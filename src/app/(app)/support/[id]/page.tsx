@@ -19,7 +19,7 @@ export default async function SupportThread({ params }: { params: Promise<{ id: 
   const { data: messages } = await supabase.from("support_messages").select("id, body, is_staff, created_at").eq("thread_id", id).order("created_at");
 
   return (
-    <div className="et-page" style={{ maxWidth: 900 }}>
+    <div className="et-page">
       <Link href="/support" className="et-back">
         <ArrowLeft size={14} />
         Support

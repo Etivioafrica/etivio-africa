@@ -11,7 +11,7 @@ export default async function AdminSettings() {
   const { data: settings } = await db.from("platform_settings").select("*").single();
 
   return (
-    <div className="et-page" style={{ maxWidth: 900 }}>
+    <div className="et-page">
       <PageHead title="Settings" />
       <div className="et-grid-2">
         <section className="et-card">

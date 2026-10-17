@@ -14,7 +14,7 @@ export default async function NewCourse() {
   const instructors = await getInstructorOptions(db);
 
   return (
-    <div className="et-page" style={{ maxWidth: 820 }}>
+    <div className="et-page">
       <Link href="/admin/courses" className="et-back">
         <ArrowLeft size={14} />
         Courses

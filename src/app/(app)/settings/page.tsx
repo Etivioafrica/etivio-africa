@@ -13,7 +13,7 @@ export default async function SettingsPage() {
   const initial = (user.name || user.email).charAt(0).toUpperCase();
 
   return (
-    <div className="et-page" style={{ maxWidth: 720 }}>
+    <div className="et-page">
       <PageHead title="Settings" sub="Manage your profile." />
       <section className="et-card">
         <div className="et-card-head">

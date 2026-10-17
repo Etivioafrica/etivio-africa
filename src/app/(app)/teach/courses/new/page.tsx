@@ -14,7 +14,7 @@ export default async function NewCourse() {
   if (!canTeach(user.roles)) redirect("/teach");
 
   return (
-    <div className="et-page" style={{ maxWidth: 720 }}>
+    <div className="et-page">
       <Link href="/teach/courses" className="et-back">
         <ArrowLeft size={14} />
         Courses

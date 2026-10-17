@@ -22,7 +22,7 @@ export default async function PostEditor({ params }: { params: Promise<{ id: str
   const live = post.status === "published";
 
   return (
-    <div className="et-page" style={{ maxWidth: 1100 }}>
+    <div className="et-page">
       <Link href="/admin/blog" className="et-back">
         <ArrowLeft size={14} />
         Blog

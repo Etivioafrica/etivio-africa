@@ -16,7 +16,7 @@ export default async function LessonEditor({ params }: { params: Promise<{ id: s
   const back = `/teach/courses/${course.id}`;
 
   return (
-    <div className="et-page" style={{ maxWidth: 820 }}>
+    <div className="et-page">
       <Link href={back} className="et-back">
         <ArrowLeft size={14} />
         {course.title}

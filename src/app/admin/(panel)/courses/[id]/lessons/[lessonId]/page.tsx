@@ -23,7 +23,7 @@ export default async function AdminLessonEditor({ params }: { params: Promise<{ 
   const hosted = keyFromUrl(lesson.video_url) !== null;
 
   return (
-    <div className="et-page" style={{ maxWidth: 860 }}>
+    <div className="et-page">
       <Link href={back} className="et-back">
         <ArrowLeft size={14} />
         {course.title}

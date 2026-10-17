@@ -21,7 +21,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
     .limit(100);
 
   return (
-    <div className="et-page" style={{ maxWidth: 1000 }}>
+    <div className="et-page">
       <Link href="/admin/users" className="et-back">
         <ArrowLeft size={14} />
         Users
