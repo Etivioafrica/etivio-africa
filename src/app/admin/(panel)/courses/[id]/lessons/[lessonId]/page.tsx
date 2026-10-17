@@ -12,7 +12,7 @@ export const metadata = { title: "Edit lesson" };
 
 export default async function AdminLessonEditor({ params }: { params: Promise<{ id: string; lessonId: string }> }) {
   const { id, lessonId } = await params;
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("courses");
   const [{ data: course }, { data: lesson }, { data: modules }] = await Promise.all([
     db.from("courses").select("id, title").eq("id", id).maybeSingle(),
     db.from("lessons").select("*").eq("id", lessonId).eq("course_id", id).maybeSingle(),

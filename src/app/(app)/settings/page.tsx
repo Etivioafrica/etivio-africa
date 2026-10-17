@@ -1,6 +1,9 @@
-import { PageHead } from "@/components/dash/ui";
+import Link from "next/link";
+import { PageHead, Status } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
+import { Uploader } from "@/components/dash/Uploader";
 import { getCurrentUser } from "@/lib/auth";
+import { CREATOR_ROLES, LIVE_CREATOR_ROLES, ROLE_BLURBS, ROLE_LABELS } from "@/lib/roles";
 import { updateProfile } from "./actions";
 
 export const metadata = { title: "Settings" };
@@ -23,7 +26,7 @@ export default async function SettingsPage() {
             <div>
               <strong style={{ display: "block", fontSize: 15 }}>{user.name || "Your account"}</strong>
               <span style={{ fontSize: 12.5, color: "var(--a-faint)" }}>
-                {user.email} · <span style={{ textTransform: "capitalize" }}>{user.role}</span>
+                {user.email} · {user.roles.map((r) => ROLE_LABELS[r]).join(", ")}
               </span>
             </div>
           </div>
@@ -33,8 +36,8 @@ export default async function SettingsPage() {
               <input id="full_name" name="full_name" defaultValue={user.name} autoComplete="name" />
             </div>
             <div className="et-field">
-              <label htmlFor="avatar_url">Avatar URL</label>
-              <input id="avatar_url" name="avatar_url" type="url" defaultValue={user.avatarUrl ?? ""} placeholder="https://" />
+              <label>Photo</label>
+              <Uploader name="avatar_url" kind="avatar" defaultUrl={user.avatarUrl} label="Upload a photo" />
             </div>
             <div className="et-field">
               <label htmlFor="bio">Bio</label>
@@ -46,6 +49,36 @@ export default async function SettingsPage() {
             </div>
           </ActionForm>
         </div>
+      </section>
+
+      <section className="et-card">
+        <div className="et-card-head">
+          <h2>Your roles on Etivio</h2>
+        </div>
+        <ul className="et-feed">
+          {CREATOR_ROLES.map((r) => {
+            const has = user.roles.includes(r);
+            const live = LIVE_CREATOR_ROLES.includes(r);
+            return (
+              <li key={r}>
+                <span style={{ flex: 1 }}>
+                  <b>{ROLE_LABELS[r]}</b>
+                  <br />
+                  <small className="et-muted">{ROLE_BLURBS[r]}</small>
+                </span>
+                {has ? (
+                  <Status value="active" />
+                ) : live ? (
+                  <Link href="/teach" className="et-btn et-btn-ghost et-btn-sm">
+                    Apply
+                  </Link>
+                ) : (
+                  <span className="et-tag">Coming soon</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       </section>
     </div>
   );

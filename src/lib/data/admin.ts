@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import type { AppRole } from "@/lib/roles";
 
 type DB = SupabaseClient<Database>;
 
@@ -44,3 +45,19 @@ export async function profileNames(db: DB, ids: (string | null)[]) {
 
 export const dayLabel = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 export const monthLabel = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { month: "short", year: "2-digit" });
+
+// People holding any of the given roles, with all their roles, sorted by name.
+export async function usersWithRoles(db: DB, roles: AppRole[]) {
+  const { data } = await db
+    .from("user_roles")
+    .select("user_id, role, profile:profiles!user_roles_user_id_fkey(full_name, deleted_at)")
+    .in("role", roles);
+  const byId = new Map<string, { id: string; name: string; roles: AppRole[] }>();
+  for (const r of data ?? []) {
+    if (!r.profile || r.profile.deleted_at) continue;
+    const entry = byId.get(r.user_id) ?? { id: r.user_id, name: r.profile.full_name || "Unnamed", roles: [] };
+    entry.roles.push(r.role);
+    byId.set(r.user_id, entry);
+  }
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+}

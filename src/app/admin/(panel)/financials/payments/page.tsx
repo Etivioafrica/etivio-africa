@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHead, Status } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
-import { requireSuperAdmin } from "@/lib/admin";
+import { requireAdmin } from "@/lib/admin";
 import { formatDateTime, formatMoney, formatPrice } from "@/lib/format";
 import type { Database } from "@/lib/database.types";
 import { recordPayment, refundPayment } from "../actions";
@@ -13,7 +13,7 @@ type PayStatus = Database["public"]["Enums"]["payment_status"];
 const TABS: PayStatus[] = ["success", "pending", "failed", "refunded"];
 
 export default async function Payments({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
-  const { db } = await requireSuperAdmin();
+  const { db } = await requireAdmin("financials");
   const sp = await searchParams;
   const status = TABS.find((t) => t === sp.status);
   const q = sp.q?.trim() ?? "";

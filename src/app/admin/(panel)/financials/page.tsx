@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowDownRight, Banknote, Building2, HandCoins, Wallet } from "lucide-react";
 import { PageHead, Stat, Status } from "@/components/dash/ui";
 import { BarChart } from "@/components/dash/BarChart";
-import { requireSuperAdmin } from "@/lib/admin";
+import { requireAdmin } from "@/lib/admin";
 import { monthLabel, profileNames } from "@/lib/data/admin";
 import { compactMoney, formatDate, formatMoney } from "@/lib/format";
 import { setPayoutStatus } from "./actions";
@@ -11,7 +11,7 @@ import { PayoutForm } from "./PayoutForm";
 export const metadata = { title: "Financials" };
 
 export default async function Financials() {
-  const { db } = await requireSuperAdmin();
+  const { db } = await requireAdmin("financials");
   const [{ data: monthly }, { data: balances }, { data: totals }, { data: payouts }, { data: recent }, { data: settings }] = await Promise.all([
     db.rpc("admin_monthly_revenue", { p_months: 12 }),
     db.rpc("admin_instructor_balances"),

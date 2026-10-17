@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { BookOpen, GraduationCap, MessagesSquare, Newspaper, Presentation, Users, Wallet, FileText } from "lucide-react";
-import { PageHead, Stat, Status } from "@/components/dash/ui";
+import { redirect } from "next/navigation";
+import { PageHead, Stat } from "@/components/dash/ui";
 import { BarChart } from "@/components/dash/BarChart";
 import { requireAdmin } from "@/lib/admin";
 import { dayLabel, getActivityFeed } from "@/lib/data/admin";
 import { compactMoney, formatDate } from "@/lib/format";
+import { ROLE_LABELS, primaryRole } from "@/lib/roles";
 import { ActivityFeed } from "./ActivityFeed";
 
 export const metadata = { title: "Dashboard" };
@@ -12,6 +14,8 @@ export const metadata = { title: "Dashboard" };
 export default async function AdminHome({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   const { admin, db } = await requireAdmin();
   const { denied } = await searchParams;
+  // Editors and accounts staff start in their own area.
+  if (!admin.isSuper) redirect(admin.roles.includes("accountant") ? "/admin/financials" : "/admin/blog");
   const count = { count: "exact", head: true } as const;
 
   const monthStart = new Date();
@@ -20,7 +24,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
   const [users, instructors, published, enrollments, posts, docs, openChats, revenue, daily, recent, feed] = await Promise.all([
     db.from("profiles").select("id", count),
-    db.from("profiles").select("id", count).eq("role", "instructor"),
+    db.from("user_roles").select("user_id", count).eq("role", "tutor"),
     db.from("courses").select("id", count).eq("status", "published"),
     db.from("enrollments").select("user_id", count),
     db.from("blog_posts").select("id", count).eq("status", "published"),
@@ -30,7 +34,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       ? db.from("payments").select("amount_minor").eq("status", "success").gte("paid_at", monthStart.toISOString())
       : Promise.resolve({ data: [] as { amount_minor: number }[] }),
     db.rpc("admin_daily_activity", { p_days: 14 }),
-    db.from("profiles").select("id, full_name, role, created_at").order("created_at", { ascending: false }).limit(6),
+    db.from("profiles").select("id, full_name, created_at, roles:user_roles!user_roles_user_id_fkey(role)").is("deleted_at", null).order("created_at", { ascending: false }).limit(6),
     getActivityFeed(db, 10),
   ]);
 
@@ -44,7 +48,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
       <div className="et-stats">
         <Stat label="Users" value={users.count ?? 0} icon={Users} href="/admin/users" />
-        <Stat label="Instructors" value={instructors.count ?? 0} icon={Presentation} href="/admin/users?role=instructor" />
+        <Stat label="Tutors" value={instructors.count ?? 0} icon={Presentation} href="/admin/users?role=tutor" />
         <Stat label="Live courses" value={published.count ?? 0} icon={BookOpen} href="/admin/courses?status=published" />
         <Stat label="Enrollments" value={enrollments.count ?? 0} icon={GraduationCap} href="/admin/tracking" />
       </div>
@@ -82,7 +86,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
                 <Link href={`/admin/users/${u.id}`}>
                   <b>{u.full_name || "Unnamed"}</b>
                 </Link>
-                <Status value={u.role} />
+                <span className="et-tag">{ROLE_LABELS[primaryRole(u.roles.map((r) => r.role))]}</span>
                 <time>{formatDate(u.created_at)}</time>
               </li>
             ))}

@@ -8,7 +8,7 @@ import { createPost } from "./actions";
 export const metadata = { title: "Blog" };
 
 export default async function AdminBlog({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("blog");
   const { status } = await searchParams;
   const filter = status === "published" || status === "draft" ? status : undefined;
 

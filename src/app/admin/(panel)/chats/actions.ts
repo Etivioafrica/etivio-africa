@@ -6,7 +6,7 @@ import type { SendResult } from "@/components/chat/ChatThread";
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 export async function staffReply(fd: FormData): Promise<SendResult> {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("chats");
   const threadId = str(fd, "thread_id");
   const body = str(fd, "body").slice(0, 5000);
   if (!body) return { error: "Write a message first." };
@@ -23,7 +23,7 @@ export async function staffReply(fd: FormData): Promise<SendResult> {
 }
 
 export async function setThreadStatus(fd: FormData) {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("chats");
   const id = str(fd, "id");
   const status = str(fd, "status") === "closed" ? "closed" : "open";
   await db.from("support_threads").update({ status }).eq("id", id);
@@ -32,7 +32,7 @@ export async function setThreadStatus(fd: FormData) {
 }
 
 export async function assignThread(fd: FormData) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("chats");
   await db.from("support_threads").update({ assigned_to: str(fd, "assignee") || null }).eq("id", str(fd, "id"));
   refresh();
 }

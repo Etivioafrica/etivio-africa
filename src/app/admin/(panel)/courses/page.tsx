@@ -16,7 +16,7 @@ const TABS: { label: string; value?: CourseStatus }[] = [
 ];
 
 export default async function AdminCourses({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("courses");
   const sp = await searchParams;
   const status = TABS.find((t) => t.value === sp.status)?.value;
   const q = sp.q?.trim() ?? "";

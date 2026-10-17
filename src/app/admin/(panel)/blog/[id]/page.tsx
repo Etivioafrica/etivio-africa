@@ -6,16 +6,17 @@ import { ActionForm } from "@/components/dash/ActionForm";
 import { Uploader } from "@/components/dash/Uploader";
 import { requireAdmin } from "@/lib/admin";
 import { formatDate } from "@/lib/format";
+import { usersWithRoles } from "@/lib/data/admin";
 import { deletePost, savePost } from "../actions";
 
 export const metadata = { title: "Edit post" };
 
 export default async function PostEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { db } = await requireAdmin();
-  const [{ data: post }, { data: authors }] = await Promise.all([
+  const { db } = await requireAdmin("blog");
+  const [{ data: post }, authors] = await Promise.all([
     db.from("blog_posts").select("*").eq("id", id).maybeSingle(),
-    db.from("profiles").select("id, full_name").in("role", ["admin", "super_admin", "instructor"]).order("full_name"),
+    usersWithRoles(db, ["super_admin", "editor", "tutor"]),
   ]);
   if (!post) notFound();
   const live = post.status === "published";
@@ -76,9 +77,9 @@ export default async function PostEditor({ params }: { params: Promise<{ id: str
               <div className="et-field">
                 <label htmlFor="author_id">Author</label>
                 <select id="author_id" name="author_id" defaultValue={post.author_id ?? ""}>
-                  {(authors ?? []).map((a) => (
+                  {authors.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.full_name || "Unnamed"}
+                      {a.name}
                     </option>
                   ))}
                 </select>

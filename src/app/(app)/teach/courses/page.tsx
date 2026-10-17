@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { Cover, Empty, PageHead, Status } from "@/components/dash/ui";
-import { canTeach, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canTeach } from "@/lib/roles";
 import { getMyTeachingCourses } from "@/lib/data/teach";
 import { formatDate, formatPrice } from "@/lib/format";
 
@@ -10,7 +11,7 @@ export const metadata = { title: "Courses" };
 
 export default async function TeachCourses() {
   const user = await getCurrentUser();
-  if (!canTeach(user.role)) redirect("/teach");
+  if (!canTeach(user.roles)) redirect("/teach");
   const courses = await getMyTeachingCourses();
 
   return (

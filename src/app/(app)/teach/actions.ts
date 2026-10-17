@@ -39,13 +39,6 @@ function safeUrl(input: string) {
   }
 }
 
-export async function becomeInstructor() {
-  const { supabase } = await requireUserId();
-  const { error } = await supabase.rpc("become_instructor");
-  if (error) throw new Error("Could not switch your account to instructor.");
-  redirect("/teach/courses/new");
-}
-
 export async function createCourse(_prev: FormState, fd: FormData): Promise<FormState> {
   const { supabase, userId } = await requireUserId();
   const title = str(fd, "title");

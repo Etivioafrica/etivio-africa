@@ -79,6 +79,8 @@ const statusColor: Record<string, string> = {
   admin: "violet",
   "super admin": "amber",
   replied: "green",
+  rejected: "red",
+  approved: "green",
 };
 
 export function Status({ value }: { value: string }) {

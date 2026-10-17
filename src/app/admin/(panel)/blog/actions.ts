@@ -9,7 +9,7 @@ import type { FormState } from "@/app/(app)/teach/actions";
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 export async function createPost() {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("blog");
   const slug = `untitled-${Math.random().toString(36).slice(2, 8)}`;
   const { data, error } = await db.from("blog_posts").insert({ title: "Untitled post", slug, author_id: admin.id }).select("id").single();
   if (error || !data) throw new Error("Could not create the post.");
@@ -18,7 +18,7 @@ export async function createPost() {
 }
 
 export async function savePost(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("blog");
   const id = str(fd, "id");
   const title = str(fd, "title");
   const slug = slugify(str(fd, "slug") || title);
@@ -56,7 +56,7 @@ export async function savePost(_prev: FormState, fd: FormData): Promise<FormStat
 }
 
 export async function deletePost(fd: FormData) {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("blog");
   const id = str(fd, "id");
   const { data } = await db.from("blog_posts").select("cover_url, title").eq("id", id).single();
   await db.from("blog_posts").delete().eq("id", id);

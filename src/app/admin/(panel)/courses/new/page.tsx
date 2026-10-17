@@ -10,7 +10,7 @@ import { getInstructorOptions } from "../instructors";
 export const metadata = { title: "New course" };
 
 export default async function NewCourse() {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("courses");
   const instructors = await getInstructorOptions(db);
 
   return (

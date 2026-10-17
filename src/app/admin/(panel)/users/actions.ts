@@ -1,34 +1,49 @@
 "use server";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
-import { audit, isAdminRole, requireAdmin, requireSuperAdmin } from "@/lib/admin";
-import type { Role } from "@/lib/auth";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { audit, requireAdmin } from "@/lib/admin";
+import { ROLE_LABELS, type AppRole } from "@/lib/roles";
+import type { Database } from "@/lib/database.types";
 import type { FormState } from "@/app/(app)/teach/actions";
 
-const ROLES: Role[] = ["student", "instructor", "admin", "super_admin"];
+const ALL_ROLES = Object.keys(ROLE_LABELS) as AppRole[];
+const PURGE_AFTER_DAYS = 30;
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
-// Loads the target and enforces: never yourself, and only super admins touch other admins.
+// Loads the target. Nobody edits their own account from here.
 async function guardTarget(targetId: string) {
-  const ctx = await requireAdmin();
+  const ctx = await requireAdmin("users");
   if (targetId === ctx.admin.id) throw new Error("You can't change your own account here.");
-  const { data: target } = await ctx.db.from("profiles").select("id, role, status, full_name").eq("id", targetId).single();
+  const { data: target } = await ctx.db.from("profiles").select("id, status, full_name, deleted_at").eq("id", targetId).single();
   if (!target) throw new Error("User not found.");
-  if (isAdminRole(target.role) && !ctx.admin.isSuper) throw new Error("Only super admins can change admin accounts.");
   return { ...ctx, target };
 }
 
-export async function setUserRole(_prev: FormState, fd: FormData): Promise<FormState> {
+export async function setUserRoles(_prev: FormState, fd: FormData): Promise<FormState> {
   try {
-    const role = str(fd, "role") as Role;
-    if (!ROLES.includes(role)) return { error: "Pick a valid role." };
     const { admin, db, target } = await guardTarget(str(fd, "id"));
-    if (isAdminRole(role) && !admin.isSuper) return { error: "Only super admins can grant admin access." };
-    const { error } = await db.from("profiles").update({ role }).eq("id", target.id);
-    if (error) return { error: "Could not change the role." };
-    await audit(admin.id, "user.role", { type: "user", id: target.id }, { from: target.role, to: role });
+    // Everyone stays a student.
+    const wanted = new Set<AppRole>(["student", ...(fd.getAll("roles").map(String).filter((r) => ALL_ROLES.includes(r as AppRole)) as AppRole[])]);
+    const { data: current } = await db.from("user_roles").select("role").eq("user_id", target.id);
+    const have = new Set((current ?? []).map((r) => r.role));
+    const add = [...wanted].filter((r) => !have.has(r));
+    const remove = [...have].filter((r) => !wanted.has(r));
+
+    if (add.length) await db.from("user_roles").insert(add.map((role) => ({ user_id: target.id, role, granted_by: admin.id })));
+    if (remove.length) await db.from("user_roles").delete().eq("user_id", target.id).in("role", remove);
+    // Approving by hand also settles any open application for that role.
+    if (add.length)
+      await db
+        .from("role_applications")
+        .update({ status: "approved", reviewed_by: admin.id, reviewed_at: new Date().toISOString() })
+        .eq("user_id", target.id)
+        .eq("status", "pending")
+        .in("role", add);
+
+    if (add.length || remove.length) await audit(admin.id, "user.roles", { type: "user", id: target.id }, { added: add, removed: remove });
     refresh();
-    return { ok: `Role changed to ${role.replace("_", " ")}.` };
+    return { ok: add.length || remove.length ? "Roles updated." : "No changes." };
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -45,7 +60,7 @@ export async function setUserStatus(fd: FormData) {
 }
 
 export async function sendPasswordReset(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("users");
   const id = str(fd, "id");
   const { data } = await db.auth.admin.getUserById(id);
   const email = data.user?.email;
@@ -58,7 +73,7 @@ export async function sendPasswordReset(_prev: FormState, fd: FormData): Promise
 }
 
 export async function grantCourseAccess(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("users");
   const userId = str(fd, "id");
   const courseId = str(fd, "course_id");
   if (!courseId) return { error: "Pick a course." };
@@ -70,7 +85,7 @@ export async function grantCourseAccess(_prev: FormState, fd: FormData): Promise
 }
 
 export async function revokeCourseAccess(fd: FormData) {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("users");
   const userId = str(fd, "id");
   const courseId = str(fd, "course_id");
   await db.from("enrollments").delete().eq("user_id", userId).eq("course_id", courseId);
@@ -78,13 +93,57 @@ export async function revokeCourseAccess(fd: FormData) {
   refresh();
 }
 
+// Soft delete: hidden, signed out, and banned now; erased for good after PURGE_AFTER_DAYS.
 export async function deleteUser(fd: FormData) {
-  const { admin, db } = await requireSuperAdmin();
-  const id = str(fd, "id");
-  if (id === admin.id) return;
+  const { admin, db, target } = await guardTarget(str(fd, "id"));
+  await db.from("profiles").update({ deleted_at: new Date().toISOString(), deleted_by: admin.id }).eq("id", target.id);
+  await db.auth.admin.updateUserById(target.id, { ban_duration: "876000h" });
+  await audit(admin.id, "user.delete", { type: "user", id: target.id }, { name: target.full_name ?? "" });
+  redirect("/admin/users?deleted=1");
+}
+
+export async function restoreUser(fd: FormData) {
+  const { admin, db, target } = await guardTarget(str(fd, "id"));
+  await db.from("profiles").update({ deleted_at: null, deleted_by: null }).eq("id", target.id);
+  if (target.status === "active") await db.auth.admin.updateUserById(target.id, { ban_duration: "none" });
+  await audit(admin.id, "user.restore", { type: "user", id: target.id });
+  refresh();
+}
+
+// Permanent erase. Payments keep their amounts; the buyer link becomes empty.
+async function purge(db: SupabaseClient<Database>, id: string) {
   const { count } = await db.from("courses").select("id", { count: "exact", head: true }).eq("instructor_id", id);
-  if (count) throw new Error("Reassign or delete this instructor's courses first.");
-  await db.auth.admin.deleteUser(id);
-  await audit(admin.id, "user.delete", { type: "user", id });
-  redirect("/admin/users");
+  if (count) return false;
+  const { error } = await db.auth.admin.deleteUser(id);
+  return !error;
+}
+
+export async function purgeUser(fd: FormData) {
+  const { admin, db, target } = await guardTarget(str(fd, "id"));
+  if (!target.deleted_at) return;
+  if (!(await purge(db, target.id))) throw new Error("This tutor still owns courses. Reassign them to someone else first.");
+  await audit(admin.id, "user.purge", { type: "user", id: target.id }, { name: target.full_name ?? "" });
+  redirect("/admin/users?deleted=1");
+}
+
+// Called when the users list loads, so expired deletions don't need a scheduler.
+export async function purgeExpiredUsers(db: SupabaseClient<Database>) {
+  const cutoff = new Date(Date.now() - PURGE_AFTER_DAYS * 86_400_000).toISOString();
+  const { data } = await db.from("profiles").select("id").not("deleted_at", "is", null).lt("deleted_at", cutoff).limit(20);
+  for (const p of data ?? []) await purge(db, p.id);
+}
+
+export async function reviewApplication(fd: FormData) {
+  const { admin, db } = await requireAdmin("users");
+  const id = str(fd, "id");
+  const approve = str(fd, "decision") === "approve";
+  const { data: app } = await db.from("role_applications").select("user_id, role, status").eq("id", id).single();
+  if (!app || app.status !== "pending") return;
+  await db
+    .from("role_applications")
+    .update({ status: approve ? "approved" : "rejected", reviewed_by: admin.id, reviewed_at: new Date().toISOString(), review_note: str(fd, "note") || null })
+    .eq("id", id);
+  if (approve) await db.from("user_roles").upsert({ user_id: app.user_id, role: app.role, granted_by: admin.id }, { onConflict: "user_id,role", ignoreDuplicates: true });
+  await audit(admin.id, `application.${approve ? "approve" : "reject"}`, { type: "user", id: app.user_id }, { role: app.role });
+  refresh();
 }

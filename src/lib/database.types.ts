@@ -597,10 +597,11 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           full_name: string | null
           id: string
           last_seen_at: string | null
-          role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["account_status"]
           updated_at: string
         }
@@ -608,10 +609,11 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           full_name?: string | null
           id: string
           last_seen_at?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
         }
@@ -619,14 +621,74 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           full_name?: string | null
           id?: string
           last_seen_at?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_applications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["application_status"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["application_status"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["application_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_applications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_messages: {
         Row: {
@@ -721,6 +783,42 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -753,17 +851,18 @@ export type Database = {
         }[]
       }
       admin_list_users: {
-        Args: { p_search?: string; p_role?: Database["public"]["Enums"]["user_role"]; p_limit?: number; p_offset?: number }
+        Args: { p_search?: string; p_role?: Database["public"]["Enums"]["app_role"]; p_deleted?: boolean; p_limit?: number; p_offset?: number }
         Returns: {
           id: string
           email: string
           full_name: string
           avatar_url: string
-          role: Database["public"]["Enums"]["user_role"]
+          roles: Database["public"]["Enums"]["app_role"][]
           status: Database["public"]["Enums"]["account_status"]
           created_at: string
           last_sign_in_at: string
           email_confirmed: boolean
+          deleted_at: string
           enrollment_count: number
           course_count: number
           total_count: number
@@ -797,10 +896,6 @@ export type Database = {
           visitors: number
         }[]
       }
-      become_instructor: {
-        Args: never
-        Returns: Database["public"]["Enums"]["user_role"]
-      }
       course_is_published: {
         Args: { p_course_id: string }
         Returns: boolean
@@ -811,6 +906,10 @@ export type Database = {
           course_id: string
           lesson_count: number
         }[]
+      }
+      has_role: {
+        Args: { p_role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
       }
       is_admin: {
         Args: never
@@ -839,6 +938,8 @@ export type Database = {
     }
     Enums: {
       account_status: "active" | "suspended"
+      app_role: "super_admin" | "editor" | "accountant" | "tutor" | "student" | "coach" | "event_manager" | "community_owner"
+      application_status: "pending" | "approved" | "rejected"
       course_level: "beginner" | "intermediate" | "advanced"
       course_status: "draft" | "published" | "archived"
       document_visibility: "public" | "enrolled" | "private"
@@ -846,7 +947,6 @@ export type Database = {
       payout_status: "pending" | "paid" | "cancelled"
       post_status: "draft" | "published"
       thread_status: "open" | "pending" | "closed"
-      user_role: "student" | "instructor" | "admin" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -975,6 +1075,8 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["active", "suspended"],
+      app_role: ["super_admin", "editor", "accountant", "tutor", "student", "coach", "event_manager", "community_owner"],
+      application_status: ["pending", "approved", "rejected"],
       course_level: ["beginner", "intermediate", "advanced"],
       course_status: ["draft", "published", "archived"],
       document_visibility: ["public", "enrolled", "private"],
@@ -982,7 +1084,6 @@ export const Constants = {
       payout_status: ["pending", "paid", "cancelled"],
       post_status: ["draft", "published"],
       thread_status: ["open", "pending", "closed"],
-      user_role: ["student", "instructor", "admin", "super_admin"],
     },
   },
 } as const

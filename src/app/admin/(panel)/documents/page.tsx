@@ -11,7 +11,7 @@ import { VisibilitySelect } from "./VisibilitySelect";
 export const metadata = { title: "Documents" };
 
 export default async function AdminDocuments({ searchParams }: { searchParams: Promise<{ course?: string; q?: string }> }) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("documents");
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "";
 

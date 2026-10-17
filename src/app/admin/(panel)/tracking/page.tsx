@@ -12,7 +12,7 @@ export const metadata = { title: "Tracking" };
 const RANGES = [7, 30, 90] as const;
 
 export default async function Tracking({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("tracking");
   const daysParam = Number((await searchParams).days);
   const days = (RANGES as readonly number[]).includes(daysParam) ? daysParam : 30;
 

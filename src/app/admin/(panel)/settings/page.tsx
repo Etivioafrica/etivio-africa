@@ -7,7 +7,7 @@ import { saveAdminProfile, savePlatformSettings } from "./actions";
 export const metadata = { title: "Settings" };
 
 export default async function AdminSettings() {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("settings");
   const { data: settings } = await db.from("platform_settings").select("*").single();
 
   return (

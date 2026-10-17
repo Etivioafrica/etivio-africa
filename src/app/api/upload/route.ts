@@ -15,11 +15,17 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in to upload." }, { status: 401 });
 
-  const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", user.id).single();
-  const role = profile?.role ?? "student";
-  const isAdmin = role === "admin" || role === "super_admin";
-  const allowed = isAdmin || kind === "avatar" || (role === "instructor" && (kind === "cover" || kind === "video"));
-  if (!allowed || profile?.status !== "active") return NextResponse.json({ error: "You can't upload this type of file." }, { status: 403 });
+  const [{ data: profile }, { data: roleRows }] = await Promise.all([
+    supabase.from("profiles").select("status, deleted_at").eq("id", user.id).single(),
+    supabase.from("user_roles").select("role").eq("user_id", user.id),
+  ]);
+  const roles = (roleRows ?? []).map((r) => r.role);
+  const allowed =
+    roles.includes("super_admin") ||
+    kind === "avatar" ||
+    (roles.includes("editor") && kind === "blog") ||
+    (roles.includes("tutor") && (kind === "cover" || kind === "video"));
+  if (!allowed || profile?.status !== "active" || profile.deleted_at) return NextResponse.json({ error: "You can't upload this type of file." }, { status: 403 });
 
   const contentType = request.headers.get("content-type") || "application/octet-stream";
   const size = Number(request.headers.get("content-length") || 0);

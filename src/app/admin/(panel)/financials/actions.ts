@@ -1,6 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
-import { audit, requireSuperAdmin } from "@/lib/admin";
+import { audit, requireAdmin } from "@/lib/admin";
 import { nairaToMinor } from "@/lib/format";
 import type { FormState } from "@/app/(app)/teach/actions";
 
@@ -8,7 +8,7 @@ const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 // Manual / offline payment (bank transfer etc.): records the sale with the current split and enrolls the buyer.
 export async function recordPayment(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireSuperAdmin();
+  const { admin, db } = await requireAdmin("financials");
   const email = str(fd, "email").toLowerCase();
   const courseId = str(fd, "course_id");
   if (!email || !courseId) return { error: "Enter the buyer's email and pick a course." };
@@ -49,7 +49,7 @@ export async function recordPayment(_prev: FormState, fd: FormData): Promise<For
 }
 
 export async function refundPayment(fd: FormData) {
-  const { admin, db } = await requireSuperAdmin();
+  const { admin, db } = await requireAdmin("financials");
   const id = str(fd, "id");
   const { data: p } = await db.from("payments").select("user_id, course_id, status").eq("id", id).single();
   if (!p || p.status !== "success") return;
@@ -62,7 +62,7 @@ export async function refundPayment(fd: FormData) {
 }
 
 export async function createPayout(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireSuperAdmin();
+  const { admin, db } = await requireAdmin("financials");
   const instructorId = str(fd, "instructor_id");
   const amount = nairaToMinor(str(fd, "amount"));
   if (!instructorId || amount <= 0) return { error: "Enter an amount above zero." };
@@ -83,7 +83,7 @@ export async function createPayout(_prev: FormState, fd: FormData): Promise<Form
 }
 
 export async function setPayoutStatus(fd: FormData) {
-  const { admin, db } = await requireSuperAdmin();
+  const { admin, db } = await requireAdmin("financials");
   const id = str(fd, "id");
   const status = str(fd, "status") === "paid" ? "paid" : "cancelled";
   await db.from("payouts").update({ status, paid_at: status === "paid" ? new Date().toISOString() : null }).eq("id", id).eq("status", "pending");

@@ -3,14 +3,15 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PageHead } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
-import { canTeach, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canTeach } from "@/lib/roles";
 import { createCourse } from "../../actions";
 
 export const metadata = { title: "New course" };
 
 export default async function NewCourse() {
   const user = await getCurrentUser();
-  if (!canTeach(user.role)) redirect("/teach");
+  if (!canTeach(user.roles)) redirect("/teach");
 
   return (
     <div className="et-page" style={{ maxWidth: 720 }}>

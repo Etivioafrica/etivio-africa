@@ -19,17 +19,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 async function AdminShell({ children }: { children: React.ReactNode }) {
   const { admin, db } = await requireAdmin();
-  const { count } = await db
-    .from("support_threads")
-    .select("id", { count: "exact", head: true })
-    .eq("staff_unread", true)
-    .neq("status", "closed");
+  const [{ count: chats }, { count: applications }] = admin.isSuper
+    ? await Promise.all([
+        db.from("support_threads").select("id", { count: "exact", head: true }).eq("staff_unread", true).neq("status", "closed"),
+        db.from("role_applications").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ])
+    : [{ count: 0 }, { count: 0 }];
 
   return (
     <Shell
       mode="admin"
-      badges={{ chats: count ?? 0 }}
-      user={{ id: admin.id, name: admin.name, email: admin.email, role: admin.role, avatarUrl: admin.avatarUrl, canTeach: true }}
+      badges={{ chats: chats ?? 0, applications: applications ?? 0 }}
+      user={{ id: admin.id, name: admin.name, email: admin.email, roles: admin.roles, avatarUrl: admin.avatarUrl }}
     >
       {children}
     </Shell>

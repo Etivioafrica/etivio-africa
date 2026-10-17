@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, ChevronRight, PlayCircle } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Download, FileText, PlayCircle } from "lucide-react";
 import { Progress } from "@/components/dash/ui";
 import { getCoursePlayer } from "@/lib/data/learn";
-import { formatDuration } from "@/lib/format";
+import { formatBytes, formatDuration } from "@/lib/format";
+import { createClient } from "@/lib/supabase/server";
 import { setLessonDone } from "../../actions";
 
 export const metadata = { title: "Course" };
@@ -29,6 +30,13 @@ export default async function CoursePlayer({
   if (!data) notFound();
 
   const { course, modules, lessons, doneCount, progress } = data;
+  // RLS limits this to documents the viewer may open (enrolled, owner, or public).
+  const { data: docs } = await (await createClient())
+    .from("documents")
+    .select("id, title, description, file_url, file_name, file_size")
+    .eq("course_id", id)
+    .neq("visibility", "private")
+    .order("created_at");
   const current = lessons.find((l) => l.id === lessonParam) ?? lessons.find((l) => !l.done) ?? lessons[0];
   const idx = current ? lessons.indexOf(current) : -1;
   const next = idx >= 0 ? lessons[idx + 1] : undefined;
@@ -95,6 +103,7 @@ export default async function CoursePlayer({
           )}
         </section>
 
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <aside className="et-card">
           <div className="et-card-head">
             <h2>Course content</h2>
@@ -124,6 +133,31 @@ export default async function CoursePlayer({
             ))}
           </div>
         </aside>
+        {!!docs?.length && (
+          <section className="et-card">
+            <div className="et-card-head">
+              <h2>
+                <FileText size={15} />
+                Course materials
+              </h2>
+            </div>
+            <ul className="et-feed">
+              {docs.map((d) => (
+                <li key={d.id}>
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <b>{d.title}</b>
+                    <br />
+                    <small className="et-muted">{d.file_size ? formatBytes(d.file_size) : d.file_name}</small>
+                  </span>
+                  <a href={d.file_url} target="_blank" rel="noreferrer" className="et-btn et-btn-ghost et-btn-sm" aria-label={`Download ${d.title}`}>
+                    <Download size={14} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        </div>
       </div>
     </div>
   );

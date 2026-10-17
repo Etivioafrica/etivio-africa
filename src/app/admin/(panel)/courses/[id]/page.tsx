@@ -13,7 +13,7 @@ export const metadata = { title: "Edit course" };
 
 export default async function AdminCourseEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("courses");
   const { data: course } = await db.from("courses").select("*").eq("id", id).maybeSingle();
   if (!course) notFound();
 

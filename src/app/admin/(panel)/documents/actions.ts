@@ -10,7 +10,7 @@ const VIS: Visibility[] = ["public", "enrolled", "private"];
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 export async function addDocument(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("documents");
   const url = str(fd, "file");
   if (!url) return { error: "Upload a file first." };
   const title = str(fd, "title") || str(fd, "file_name");
@@ -43,7 +43,7 @@ export async function addDocument(_prev: FormState, fd: FormData): Promise<FormS
 }
 
 export async function updateDocument(fd: FormData) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("documents");
   const visibility = str(fd, "visibility") as Visibility;
   if (!VIS.includes(visibility)) return;
   await db.from("documents").update({ visibility }).eq("id", str(fd, "id"));
@@ -51,7 +51,7 @@ export async function updateDocument(fd: FormData) {
 }
 
 export async function deleteDocument(fd: FormData) {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("documents");
   const id = str(fd, "id");
   const { data } = await db.from("documents").select("file_key, title").eq("id", id).single();
   await db.from("documents").delete().eq("id", id);

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Shell from "@/components/shell/Shell";
-import { canTeach, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import "./app.css";
 
 export const metadata: Metadata = {
@@ -25,9 +25,8 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        roles: user.roles,
         avatarUrl: user.avatarUrl,
-        canTeach: canTeach(user.role),
       }}
     >
       {children}

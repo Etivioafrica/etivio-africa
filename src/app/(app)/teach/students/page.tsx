@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Empty, PageHead, Progress, Status } from "@/components/dash/ui";
-import { canTeach, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canTeach } from "@/lib/roles";
 import { getMyStudents } from "@/lib/data/teach";
 import { formatDate } from "@/lib/format";
 
@@ -8,7 +9,7 @@ export const metadata = { title: "Students" };
 
 export default async function Students() {
   const user = await getCurrentUser();
-  if (!canTeach(user.role)) redirect("/teach");
+  if (!canTeach(user.roles)) redirect("/teach");
   const students = await getMyStudents();
   const unique = new Set(students.map((s) => s.userId)).size;
 

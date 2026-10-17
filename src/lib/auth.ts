@@ -2,9 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/database.types";
-
-export type Role = Database["public"]["Enums"]["user_role"];
+import type { AppRole } from "@/lib/roles";
 
 export type CurrentUser = {
   id: string;
@@ -12,7 +10,7 @@ export type CurrentUser = {
   name: string;
   avatarUrl: string | null;
   bio: string | null;
-  role: Role;
+  roles: AppRole[];
 };
 
 // One session + profile read per request, shared by the layout and pages.
@@ -23,12 +21,11 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, avatar_url, bio, role, status")
-    .eq("id", user.id)
-    .single();
-  if (profile?.status === "suspended") redirect("/suspended");
+  const [{ data: profile }, { data: roles }] = await Promise.all([
+    supabase.from("profiles").select("full_name, avatar_url, bio, status, deleted_at").eq("id", user.id).single(),
+    supabase.from("user_roles").select("role").eq("user_id", user.id),
+  ]);
+  if (profile?.status === "suspended" || profile?.deleted_at) redirect("/suspended");
 
   return {
     id: user.id,
@@ -36,8 +33,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     name: profile?.full_name ?? "",
     avatarUrl: profile?.avatar_url ?? null,
     bio: profile?.bio ?? null,
-    role: profile?.role ?? "student",
+    roles: roles?.length ? roles.map((r) => r.role) : ["student"],
   };
 });
-
-export const canTeach = (role: Role) => role === "instructor" || role === "admin" || role === "super_admin";

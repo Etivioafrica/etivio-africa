@@ -1,13 +1,13 @@
 "use server";
 import { refresh } from "next/cache";
-import { audit, requireAdmin, requireSuperAdmin } from "@/lib/admin";
+import { audit, requireAdmin } from "@/lib/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
 import type { FormState } from "@/app/(app)/teach/actions";
 
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 export async function savePlatformSettings(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireSuperAdmin();
+  const { admin, db } = await requireAdmin("platform");
   const commission = Number(str(fd, "commission_percent"));
   if (!Number.isFinite(commission) || commission < 0 || commission > 100) return { error: "Commission must be between 0 and 100." };
   const { error } = await db
@@ -21,7 +21,7 @@ export async function savePlatformSettings(_prev: FormState, fd: FormData): Prom
 }
 
 export async function saveAdminProfile(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("settings");
   const name = str(fd, "full_name");
   if (!name) return { error: "Add your name." };
   const avatar = str(fd, "avatar_url") || null;

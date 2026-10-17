@@ -24,7 +24,7 @@ function safeUrl(input: string) {
 }
 
 export async function adminCreateCourse(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("courses");
   const title = str(fd, "title");
   const instructorId = str(fd, "instructor_id");
   if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
@@ -58,7 +58,7 @@ export async function adminCreateCourse(_prev: FormState, fd: FormData): Promise
 }
 
 export async function adminUpdateCourse(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("courses");
   const id = str(fd, "id");
   const title = str(fd, "title");
   const slug = slugify(str(fd, "slug"));
@@ -91,7 +91,7 @@ export async function adminUpdateCourse(_prev: FormState, fd: FormData): Promise
 }
 
 export async function adminSetCourseStatus(fd: FormData) {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("courses");
   const id = str(fd, "id");
   const status = str(fd, "status") as Status;
   if (!STATUSES.includes(status)) return;
@@ -104,7 +104,7 @@ export async function adminSetCourseStatus(fd: FormData) {
 }
 
 export async function adminDeleteCourse(fd: FormData) {
-  const { admin, db } = await requireAdmin();
+  const { admin, db } = await requireAdmin("courses");
   const id = str(fd, "id");
   const { count } = await db.from("enrollments").select("user_id", { count: "exact", head: true }).eq("course_id", id);
   if (count) throw new Error("This course has students. Archive it instead.");
@@ -117,7 +117,7 @@ export async function adminDeleteCourse(fd: FormData) {
 }
 
 export async function adminAddModule(fd: FormData) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("courses");
   const courseId = str(fd, "courseId");
   const title = str(fd, "title");
   if (!title) return;
@@ -127,13 +127,13 @@ export async function adminAddModule(fd: FormData) {
 }
 
 export async function adminDeleteModule(fd: FormData) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("courses");
   await db.from("course_modules").delete().eq("id", str(fd, "id"));
   refresh();
 }
 
 export async function adminAddLesson(fd: FormData) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("courses");
   const moduleId = str(fd, "moduleId");
   const title = str(fd, "title");
   if (!title) return;
@@ -143,7 +143,7 @@ export async function adminAddLesson(fd: FormData) {
 }
 
 export async function adminUpdateLesson(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("courses");
   const id = str(fd, "id");
   const title = str(fd, "title");
   if (!title) return { error: "Lesson title is required." };
@@ -172,7 +172,7 @@ export async function adminUpdateLesson(_prev: FormState, fd: FormData): Promise
 }
 
 export async function adminDeleteLesson(fd: FormData) {
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("courses");
   const { data: lesson } = await db.from("lessons").select("video_url").eq("id", str(fd, "id")).single();
   await db.from("lessons").delete().eq("id", str(fd, "id"));
   await deleteObject(keyFromUrl(lesson?.video_url ?? null));

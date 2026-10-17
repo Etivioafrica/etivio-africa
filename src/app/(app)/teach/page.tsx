@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { BookOpen, Globe, Layers, Plus, Presentation, Users } from "lucide-react";
 import { Empty, PageHead, Progress, Stat, Status } from "@/components/dash/ui";
-import { canTeach, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canTeach } from "@/lib/roles";
 import { getMyStudents, getMyTeachingCourses } from "@/lib/data/teach";
 import { formatDate, formatPrice } from "@/lib/format";
-import { becomeInstructor } from "./actions";
+import { RoleApplication } from "../roles/RoleApplication";
 
 export const metadata = { title: "Teach" };
 
 export default async function TeachDashboard() {
   const user = await getCurrentUser();
-  if (!canTeach(user.role)) return <BecomeInstructor />;
+  if (!canTeach(user.roles)) return <BecomeInstructor userId={user.id} />;
 
   const [courses, students] = await Promise.all([getMyTeachingCourses(), getMyStudents(8)]);
   const published = courses.filter((c) => c.status === "published").length;
@@ -114,7 +115,7 @@ export default async function TeachDashboard() {
   );
 }
 
-function BecomeInstructor() {
+function BecomeInstructor({ userId }: { userId: string }) {
   return (
     <div className="et-page">
       <section className="et-card et-cta">
@@ -122,23 +123,21 @@ function BecomeInstructor() {
           <Presentation size={24} />
         </span>
         <h2>Teach on Etivio</h2>
-        <p>Share what you know with learners across Africa. Build a course, publish it, and track your students from one place.</p>
+        <p>Share what you know with learners across Africa and earn a share of every course sale. Tell us about yourself and the Etivio team will review your application.</p>
         <ul>
           <li>
             <b>Build</b>Organise lessons into modules with video and notes.
           </li>
           <li>
-            <b>Publish</b>Offer it free or set your own price.
+            <b>Earn</b>Set your price and get paid out for every sale.
           </li>
           <li>
             <b>Track</b>See who enrolled and how far they have got.
           </li>
         </ul>
-        <form action={becomeInstructor}>
-          <button type="submit" className="et-btn et-btn-primary">
-            Start teaching
-          </button>
-        </form>
+        <div style={{ width: "100%", maxWidth: 560 }}>
+          <RoleApplication userId={userId} role="tutor" prompt="What would you like to teach, and what's your experience?" />
+        </div>
       </section>
     </div>
   );

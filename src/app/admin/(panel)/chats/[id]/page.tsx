@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { PageHead, Status } from "@/components/dash/ui";
 import { ChatThread } from "@/components/chat/ChatThread";
 import { requireAdmin } from "@/lib/admin";
-import { profileNames } from "@/lib/data/admin";
+import { profileNames, usersWithRoles } from "@/lib/data/admin";
+import { ROLE_LABELS, primaryRole } from "@/lib/roles";
 import { formatDate } from "@/lib/format";
 import { ChatList, parseFilter } from "../ChatList";
 import { assignThread, setThreadStatus, staffReply } from "../actions";
@@ -13,19 +14,19 @@ export const metadata = { title: "Chat" };
 export default async function AdminChat({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ status?: string }> }) {
   const { id } = await params;
   const filter = parseFilter((await searchParams).status);
-  const { db } = await requireAdmin();
+  const { db } = await requireAdmin("chats");
 
   const { data: thread } = await db
     .from("support_threads")
-    .select("*, user:profiles!support_threads_user_id_fkey(id, full_name, role)")
+    .select("*, user:profiles!support_threads_user_id_fkey(id, full_name, roles:user_roles!user_roles_user_id_fkey(role))")
     .eq("id", id)
     .maybeSingle();
   if (!thread) notFound();
   if (thread.staff_unread) await db.from("support_threads").update({ staff_unread: false }).eq("id", id);
 
-  const [{ data: messages }, { data: staff }] = await Promise.all([
+  const [{ data: messages }, staff] = await Promise.all([
     db.from("support_messages").select("id, body, is_staff, created_at, sender_id").eq("thread_id", id).order("created_at"),
-    db.from("profiles").select("id, full_name").in("role", ["admin", "super_admin"]).order("full_name"),
+    usersWithRoles(db, ["super_admin"]),
   ]);
   const names = await profileNames(db, (messages ?? []).map((m) => m.sender_id));
   const initial = (messages ?? []).map((m) => ({ ...m, sender: m.sender_id ? names.get(m.sender_id) : undefined }));
@@ -43,7 +44,7 @@ export default async function AdminChat({ params, searchParams }: { params: Prom
                 {thread.subject} <Status value={thread.status === "pending" ? "pending" : thread.status} />
               </h2>
               <p>
-                <Link href={`/admin/users/${thread.user?.id}`}>{thread.user?.full_name || "Unnamed"}</Link> · {thread.user?.role.replace("_", " ")} · started {formatDate(thread.created_at)}
+                <Link href={`/admin/users/${thread.user?.id}`}>{thread.user?.full_name || "Unnamed"}</Link> · {ROLE_LABELS[primaryRole((thread.user?.roles ?? []).map((r) => r.role))]} · started {formatDate(thread.created_at)}
               </p>
             </div>
             <div className="et-inline">
@@ -51,9 +52,9 @@ export default async function AdminChat({ params, searchParams }: { params: Prom
                 <input type="hidden" name="id" value={id} />
                 <select name="assignee" defaultValue={thread.assigned_to ?? ""} className="et-input" aria-label="Assign to" style={{ height: 32 }}>
                   <option value="">Unassigned</option>
-                  {(staff ?? []).map((s) => (
+                  {staff.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.full_name || "Unnamed"}
+                      {s.name}
                     </option>
                   ))}
                 </select>

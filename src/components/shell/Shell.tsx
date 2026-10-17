@@ -35,9 +35,10 @@ import { signOut } from "@/app/(app)/actions";
 import { adminSignOut } from "@/app/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import TipLayer from "./TipLayer";
+import { ROLE_LABELS, canAccess, canTeach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
 
-export type ShellUser = { id: string; name: string; email: string; role: string; avatarUrl: string | null; canTeach: boolean };
-type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean; badge?: number };
+export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null };
+type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean; badge?: number; area?: AdminArea };
 type Group = { label: string; items: Item[] };
 
 const account: Group = {
@@ -48,33 +49,38 @@ const account: Group = {
   ],
 };
 
-const adminNav = (isSuper: boolean, badges: Record<string, number>): Group[] => [
-  { label: "Overview", items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true }] },
-  {
-    label: "Manage",
-    items: [
-      { label: "Users", href: "/admin/users", icon: Users },
-      { label: "Courses", href: "/admin/courses", icon: BookOpen },
-      { label: "Blog", href: "/admin/blog", icon: Newspaper },
-      { label: "Documents", href: "/admin/documents", icon: FileText },
-      { label: "Chats", href: "/admin/chats", icon: MessagesSquare, badge: badges.chats },
-    ],
-  },
-  {
-    label: "Insights",
-    items: [
-      { label: "Tracking", href: "/admin/tracking", icon: BarChart3 },
-      ...(isSuper ? [{ label: "Financials", href: "/admin/financials", icon: Wallet }] : []),
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      ...(isSuper ? [{ label: "Team", href: "/admin/team", icon: ShieldCheck }] : []),
-      { label: "Settings", href: "/admin/settings", icon: Settings },
-    ],
-  },
-];
+const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
+  (
+    [
+      { label: "Overview", items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true, area: "dashboard" }] },
+      {
+        label: "Manage",
+        items: [
+          { label: "Users", href: "/admin/users", icon: Users, area: "users", badge: badges.applications },
+          { label: "Courses", href: "/admin/courses", icon: BookOpen, area: "courses" },
+          { label: "Blog", href: "/admin/blog", icon: Newspaper, area: "blog" },
+          { label: "Documents", href: "/admin/documents", icon: FileText, area: "documents" },
+          { label: "Chats", href: "/admin/chats", icon: MessagesSquare, area: "chats", badge: badges.chats },
+        ],
+      },
+      {
+        label: "Insights",
+        items: [
+          { label: "Tracking", href: "/admin/tracking", icon: BarChart3, area: "tracking" },
+          { label: "Financials", href: "/admin/financials", icon: Wallet, area: "financials" },
+        ],
+      },
+      {
+        label: "System",
+        items: [
+          { label: "Team", href: "/admin/team", icon: ShieldCheck, area: "team" },
+          { label: "Settings", href: "/admin/settings", icon: Settings, area: "settings" },
+        ],
+      },
+    ] satisfies Group[]
+  )
+    .map((g) => ({ ...g, items: g.items.filter((i) => canAccess(roles, i.area)) }))
+    .filter((g) => g.items.length);
 
 const learnNav: Group[] = [
   { label: "Overview", items: [{ label: "Dashboard", href: "/learn", icon: LayoutDashboard, exact: true }] },
@@ -98,6 +104,7 @@ const teachNav = (canTeach: boolean): Group[] => [
             { label: "Courses", href: "/teach/courses", icon: BookOpen, exact: true },
             { label: "New course", href: "/teach/courses/new", icon: Plus },
             { label: "Students", href: "/teach/students", icon: Users },
+            { label: "Earnings", href: "/teach/earnings", icon: Wallet },
           ],
         },
       ]
@@ -163,7 +170,7 @@ export default function Shell({
   }, [admin, pathname, user.id]);
 
   const teachMode = pathname.startsWith("/teach");
-  const groups = admin ? adminNav(user.role === "super_admin", badges) : teachMode ? teachNav(user.canTeach) : learnNav;
+  const groups = admin ? adminNav(user.roles, badges) : teachMode ? teachNav(canTeach(user.roles)) : learnNav;
   const isActive = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
   const flat = groups.flatMap((g) => g.items);
   const results = search ? flat.filter((i) => i.label.toLowerCase().includes(search.toLowerCase())) : null;
@@ -318,7 +325,7 @@ function MenuBody({ user, initial, admin, close }: { user: ShellUser; initial: s
         <div>
           <strong>{user.name || "Your account"}</strong>
           <small>{user.email}</small>
-          <em>{user.role.replace("_", " ")}</em>
+          <em>{user.roles.filter((r) => r !== "student" || user.roles.length === 1).map((r) => ROLE_LABELS[r]).join(" · ") || ROLE_LABELS[primaryRole(user.roles)]}</em>
         </div>
       </div>
       <Link href={admin ? "/admin/settings" : "/settings"} onClick={close} className="et-menu-item">
@@ -331,7 +338,7 @@ function MenuBody({ user, initial, admin, close }: { user: ShellUser; initial: s
           Open learner app
         </Link>
       ) : (
-        (user.role === "admin" || user.role === "super_admin") && (
+        isStaff(user.roles) && (
           <Link href="/admin" onClick={close} className="et-menu-item">
             <ShieldCheck size={16} />
             Admin dashboard

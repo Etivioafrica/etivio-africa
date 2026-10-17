@@ -1,13 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { usersWithRoles } from "@/lib/data/admin";
 
-// Anyone who can own a course.
+// Anyone who can own a course: tutors and super admins.
 export async function getInstructorOptions(db: SupabaseClient<Database>) {
-  const { data } = await db
-    .from("profiles")
-    .select("id, full_name, role")
-    .in("role", ["instructor", "admin", "super_admin"])
-    .order("full_name");
-  return (data ?? []).map((p) => ({ id: p.id, label: `${p.full_name || "Unnamed"}${p.role === "instructor" ? "" : ` (${p.role.replace("_", " ")})`}` }));
+  const people = await usersWithRoles(db, ["tutor", "super_admin"]);
+  return people.map((p) => ({ id: p.id, label: `${p.name}${p.roles.includes("tutor") ? "" : " (super admin)"}` }));
 }
