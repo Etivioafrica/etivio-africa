@@ -1,0 +1,38 @@
+"use server";
+import { redirect } from "next/navigation";
+import { refresh } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
+import type { SendResult } from "@/components/chat/ChatThread";
+import type { FormState } from "@/app/(app)/teach/actions";
+
+const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
+
+export async function startThread(_prev: FormState, fd: FormData): Promise<FormState> {
+  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const subject = str(fd, "subject").slice(0, 140);
+  const body = str(fd, "body").slice(0, 5000);
+  if (subject.length < 3) return { error: "Add a short subject." };
+  if (!body) return { error: "Tell us how we can help." };
+
+  const { data: thread, error } = await supabase.from("support_threads").insert({ user_id: user.id, subject }).select("id").single();
+  if (error || !thread) return { error: "Could not start the conversation." };
+  await supabase.from("support_messages").insert({ thread_id: thread.id, sender_id: user.id, body });
+  redirect(`/support/${thread.id}`);
+}
+
+export async function userReply(fd: FormData): Promise<SendResult> {
+  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const body = str(fd, "body").slice(0, 5000);
+  if (!body) return { error: "Write a message first." };
+  const { data, error } = await supabase
+    .from("support_messages")
+    .insert({ thread_id: str(fd, "thread_id"), sender_id: user.id, body })
+    .select("id, body, is_staff, created_at")
+    .single();
+  if (error || !data) return { error: "Could not send. This conversation may be closed." };
+  refresh();
+  return { message: data };
+}

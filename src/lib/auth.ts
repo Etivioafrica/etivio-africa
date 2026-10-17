@@ -25,9 +25,10 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url, bio, role")
+    .select("full_name, avatar_url, bio, role, status")
     .eq("id", user.id)
     .single();
+  if (profile?.status === "suspended") redirect("/suspended");
 
   return {
     id: user.id,
@@ -39,4 +40,4 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   };
 });
 
-export const canTeach = (role: Role) => role === "instructor" || role === "admin";
+export const canTeach = (role: Role) => role === "instructor" || role === "admin" || role === "super_admin";

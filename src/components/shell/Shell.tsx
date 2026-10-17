@@ -3,7 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   BookOpen,
+  FileText,
+  LifeBuoy,
+  MessagesSquare,
+  Newspaper,
+  ShieldCheck,
+  Wallet,
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
@@ -25,13 +32,49 @@ import {
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
+import { adminSignOut } from "@/app/admin/actions";
+import { createClient } from "@/lib/supabase/client";
 import TipLayer from "./TipLayer";
 
-export type ShellUser = { name: string; email: string; role: string; avatarUrl: string | null; canTeach: boolean };
-type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean };
+export type ShellUser = { id: string; name: string; email: string; role: string; avatarUrl: string | null; canTeach: boolean };
+type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean; badge?: number };
 type Group = { label: string; items: Item[] };
 
-const account: Group = { label: "Account", items: [{ label: "Settings", href: "/settings", icon: Settings }] };
+const account: Group = {
+  label: "Account",
+  items: [
+    { label: "Support", href: "/support", icon: LifeBuoy },
+    { label: "Settings", href: "/settings", icon: Settings },
+  ],
+};
+
+const adminNav = (isSuper: boolean, badges: Record<string, number>): Group[] => [
+  { label: "Overview", items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true }] },
+  {
+    label: "Manage",
+    items: [
+      { label: "Users", href: "/admin/users", icon: Users },
+      { label: "Courses", href: "/admin/courses", icon: BookOpen },
+      { label: "Blog", href: "/admin/blog", icon: Newspaper },
+      { label: "Documents", href: "/admin/documents", icon: FileText },
+      { label: "Chats", href: "/admin/chats", icon: MessagesSquare, badge: badges.chats },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
+      { label: "Tracking", href: "/admin/tracking", icon: BarChart3 },
+      ...(isSuper ? [{ label: "Financials", href: "/admin/financials", icon: Wallet }] : []),
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      ...(isSuper ? [{ label: "Team", href: "/admin/team", icon: ShieldCheck }] : []),
+      { label: "Settings", href: "/admin/settings", icon: Settings },
+    ],
+  },
+];
 
 const learnNav: Group[] = [
   { label: "Overview", items: [{ label: "Dashboard", href: "/learn", icon: LayoutDashboard, exact: true }] },
@@ -75,8 +118,19 @@ function useOutside<T extends HTMLElement>(open: boolean, close: () => void) {
   return ref;
 }
 
-export default function Shell({ user, children }: { user: ShellUser; children: React.ReactNode }) {
+export default function Shell({
+  user,
+  mode = "app",
+  badges = {},
+  children,
+}: {
+  user: ShellUser;
+  mode?: "app" | "admin";
+  badges?: Record<string, number>;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
+  const admin = mode === "admin";
   const { light } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -99,8 +153,17 @@ export default function Shell({ user, children }: { user: ShellUser; children: R
     return () => window.removeEventListener("keydown", h);
   }, []);
 
+  // Page views feed admin tracking. Admin pages aren't tracked.
+  useEffect(() => {
+    if (admin) return;
+    createClient()
+      .from("activity_events")
+      .insert({ user_id: user.id, type: "page_view", path: pathname })
+      .then(() => {});
+  }, [admin, pathname, user.id]);
+
   const teachMode = pathname.startsWith("/teach");
-  const groups = teachMode ? teachNav(user.canTeach) : learnNav;
+  const groups = admin ? adminNav(user.role === "super_admin", badges) : teachMode ? teachNav(user.canTeach) : learnNav;
   const isActive = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
   const flat = groups.flatMap((g) => g.items);
   const results = search ? flat.filter((i) => i.label.toLowerCase().includes(search.toLowerCase())) : null;
@@ -119,10 +182,10 @@ export default function Shell({ user, children }: { user: ShellUser; children: R
         }}
       >
         <div className="et-sidebar-top">
-          <Link href="/learn" className="et-brand" title="Etivio">
+          <Link href={admin ? "/admin" : "/learn"} className="et-brand" title="Etivio">
             <span className="et-brand-mark">e</span>
             <span className="et-brand-text">
-              Etivio <small>{teachMode ? "Teach" : "Learn"}</small>
+              Etivio <small>{admin ? "Admin" : teachMode ? "Teach" : "Learn"}</small>
             </span>
           </Link>
           <button
@@ -138,7 +201,7 @@ export default function Shell({ user, children }: { user: ShellUser; children: R
         </div>
 
         <nav className="et-nav" aria-label="Dashboard navigation">
-          <div className="et-switch" role="tablist" aria-label="Switch dashboard">
+          {!admin && <div className="et-switch" role="tablist" aria-label="Switch dashboard">
             <Link href="/learn" role="tab" aria-selected={!teachMode} className={teachMode ? "" : "is-on"}>
               <GraduationCap size={13} />
               Learn
@@ -147,7 +210,7 @@ export default function Shell({ user, children }: { user: ShellUser; children: R
               <Presentation size={13} />
               Teach
             </Link>
-          </div>
+          </div>}
           <div className="et-search">
             <Search size={14} />
             <input
@@ -184,7 +247,7 @@ export default function Shell({ user, children }: { user: ShellUser; children: R
           </button>
           {userOpen && (
             <div className="et-menu et-menu-up">
-              <MenuBody user={user} initial={initial} close={() => setUserOpen(false)} />
+              <MenuBody user={user} initial={initial} admin={admin} close={() => setUserOpen(false)} />
             </div>
           )}
         </div>
@@ -217,7 +280,7 @@ export default function Shell({ user, children }: { user: ShellUser; children: R
               </button>
               {profileOpen && (
                 <div className="et-menu et-menu-down">
-                  <MenuBody user={user} initial={initial} close={() => setProfileOpen(false)} />
+                  <MenuBody user={user} initial={initial} admin={admin} close={() => setProfileOpen(false)} />
                 </div>
               )}
             </div>
@@ -236,6 +299,7 @@ function NavLink({ item, active }: { item: Item; active: boolean }) {
     <Link href={item.href} title={item.label} className={`et-nav-item${active ? " is-active" : ""}`}>
       <Icon size={17} strokeWidth={1.8} />
       <span className="et-nav-text">{item.label}</span>
+      {item.badge ? <span className="et-count">{item.badge}</span> : null}
     </Link>
   );
 }
@@ -246,7 +310,7 @@ function Avatar({ user, initial, size }: { user: ShellUser; initial: string; siz
   return user.avatarUrl ? <img src={user.avatarUrl} alt="" className={cls} /> : <span className={cls}>{initial}</span>;
 }
 
-function MenuBody({ user, initial, close }: { user: ShellUser; initial: string; close: () => void }) {
+function MenuBody({ user, initial, admin, close }: { user: ShellUser; initial: string; admin: boolean; close: () => void }) {
   return (
     <>
       <div className="et-menu-head">
@@ -254,15 +318,28 @@ function MenuBody({ user, initial, close }: { user: ShellUser; initial: string; 
         <div>
           <strong>{user.name || "Your account"}</strong>
           <small>{user.email}</small>
-          <em>{user.role}</em>
+          <em>{user.role.replace("_", " ")}</em>
         </div>
       </div>
-      <Link href="/settings" onClick={close} className="et-menu-item">
+      <Link href={admin ? "/admin/settings" : "/settings"} onClick={close} className="et-menu-item">
         <Settings size={16} />
         Settings
       </Link>
+      {admin ? (
+        <Link href="/learn" onClick={close} className="et-menu-item">
+          <GraduationCap size={16} />
+          Open learner app
+        </Link>
+      ) : (
+        (user.role === "admin" || user.role === "super_admin") && (
+          <Link href="/admin" onClick={close} className="et-menu-item">
+            <ShieldCheck size={16} />
+            Admin dashboard
+          </Link>
+        )
+      )}
       <div className="et-menu-sep" />
-      <form action={signOut}>
+      <form action={admin ? adminSignOut : signOut}>
         <button type="submit" className="et-menu-item et-menu-danger">
           <LogOut size={16} />
           Sign out

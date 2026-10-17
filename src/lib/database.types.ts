@@ -14,6 +14,142 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_events: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          id: number
+          meta: Json
+          path: string | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          id?: never
+          meta?: Json
+          path?: string | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          id?: never
+          meta?: Json
+          path?: string | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_events_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: number
+          meta: Json
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: never
+          meta?: Json
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: never
+          meta?: Json
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_posts: {
+        Row: {
+          author_id: string | null
+          content: string | null
+          cover_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published_at: string | null
+          slug: string
+          status: Database["public"]["Enums"]["post_status"]
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          content?: string | null
+          cover_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["post_status"]
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string | null
+          cover_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["post_status"]
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_modules: {
         Row: {
           course_id: string
@@ -99,6 +235,72 @@ export type Database = {
           {
             foreignKeyName: "courses_instructor_id_fkey"
             columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          description: string | null
+          download_count: number
+          file_key: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          visibility: Database["public"]["Enums"]["document_visibility"]
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          download_count?: number
+          file_key?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: Database["public"]["Enums"]["document_visibility"]
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          download_count?: number
+          file_key?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: Database["public"]["Enums"]["document_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -231,6 +433,165 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount_minor: number
+          course_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          instructor_id: string | null
+          instructor_share_minor: number
+          note: string | null
+          paid_at: string | null
+          platform_fee_minor: number
+          provider: string
+          reference: string
+          status: Database["public"]["Enums"]["payment_status"]
+          user_id: string | null
+        }
+        Insert: {
+          amount_minor: number
+          course_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          instructor_id?: string | null
+          instructor_share_minor?: number
+          note?: string | null
+          paid_at?: string | null
+          platform_fee_minor?: number
+          provider?: string
+          reference: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          user_id?: string | null
+        }
+        Update: {
+          amount_minor?: number
+          course_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          instructor_id?: string | null
+          instructor_share_minor?: number
+          note?: string | null
+          paid_at?: string | null
+          platform_fee_minor?: number
+          provider?: string
+          reference?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payouts: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          instructor_id: string
+          note: string | null
+          paid_at: string | null
+          reference: string | null
+          status: Database["public"]["Enums"]["payout_status"]
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          instructor_id: string
+          note?: string | null
+          paid_at?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          instructor_id?: string
+          note?: string | null
+          paid_at?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payouts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_settings: {
+        Row: {
+          commission_percent: number
+          id: boolean
+          support_email: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          commission_percent?: number
+          id?: boolean
+          support_email?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          commission_percent?: number
+          id?: boolean
+          support_email?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -238,7 +599,9 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          last_seen_at: string | null
           role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["account_status"]
           updated_at: string
         }
         Insert: {
@@ -247,7 +610,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          last_seen_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
         }
         Update: {
@@ -256,21 +621,190 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          last_seen_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
         }
         Relationships: []
+      }
+      support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_staff: boolean
+          sender_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          sender_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          sender_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "support_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_threads: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          id: string
+          last_message_at: string
+          staff_unread: boolean
+          status: Database["public"]["Enums"]["thread_status"]
+          subject: string
+          user_id: string
+          user_unread: boolean
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          staff_unread?: boolean
+          status?: Database["public"]["Enums"]["thread_status"]
+          subject: string
+          user_id: string
+          user_unread?: boolean
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          staff_unread?: boolean
+          status?: Database["public"]["Enums"]["thread_status"]
+          subject?: string
+          user_id?: string
+          user_unread?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_threads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_threads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_active_users: {
+        Args: { p_days?: number }
+        Returns: number
+      }
+      admin_daily_activity: {
+        Args: { p_days?: number }
+        Returns: {
+          day: string
+          signups: number
+          enrollments: number
+          completions: number
+          page_views: number
+          active_users: number
+        }[]
+      }
+      admin_instructor_balances: {
+        Args: never
+        Returns: {
+          instructor_id: string
+          full_name: string
+          earned_minor: number
+          paid_minor: number
+          pending_minor: number
+          sales: number
+        }[]
+      }
+      admin_list_users: {
+        Args: { p_search?: string; p_role?: Database["public"]["Enums"]["user_role"]; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          email: string
+          full_name: string
+          avatar_url: string
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["account_status"]
+          created_at: string
+          last_sign_in_at: string
+          email_confirmed: boolean
+          enrollment_count: number
+          course_count: number
+          total_count: number
+        }[]
+      }
+      admin_monthly_revenue: {
+        Args: { p_months?: number }
+        Returns: {
+          month: string
+          gross_minor: number
+          platform_minor: number
+          instructor_minor: number
+          sales: number
+        }[]
+      }
+      admin_top_courses: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          course_id: string
+          title: string
+          enrollments: number
+          completions: number
+          learners: number
+        }[]
+      }
+      admin_top_pages: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          path: string
+          views: number
+          visitors: number
+        }[]
+      }
       become_instructor: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      course_is_published: { Args: { p_course_id: string }; Returns: boolean }
+      course_is_published: {
+        Args: { p_course_id: string }
+        Returns: boolean
+      }
       course_lesson_counts: {
         Args: { p_course_ids: string[] }
         Returns: {
@@ -278,15 +812,41 @@ export type Database = {
           lesson_count: number
         }[]
       }
-      is_admin: { Args: never; Returns: boolean }
-      is_enrolled: { Args: { p_course_id: string }; Returns: boolean }
-      is_instructor: { Args: never; Returns: boolean }
-      owns_course: { Args: { p_course_id: string }; Returns: boolean }
+      is_admin: {
+        Args: never
+        Returns: boolean
+      }
+      is_enrolled: {
+        Args: { p_course_id: string }
+        Returns: boolean
+      }
+      is_instructor: {
+        Args: never
+        Returns: boolean
+      }
+      mark_thread_read: {
+        Args: { p_thread_id: string }
+        Returns: undefined
+      }
+      owns_course: {
+        Args: { p_course_id: string }
+        Returns: boolean
+      }
+      rls_auto_enable: {
+        Args: never
+        Returns: unknown
+      }
     }
     Enums: {
+      account_status: "active" | "suspended"
       course_level: "beginner" | "intermediate" | "advanced"
       course_status: "draft" | "published" | "archived"
-      user_role: "student" | "instructor" | "admin"
+      document_visibility: "public" | "enrolled" | "private"
+      payment_status: "pending" | "success" | "failed" | "refunded"
+      payout_status: "pending" | "paid" | "cancelled"
+      post_status: "draft" | "published"
+      thread_status: "open" | "pending" | "closed"
+      user_role: "student" | "instructor" | "admin" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -414,10 +974,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_status: ["active", "suspended"],
       course_level: ["beginner", "intermediate", "advanced"],
       course_status: ["draft", "published", "archived"],
-      user_role: ["student", "instructor", "admin"],
+      document_visibility: ["public", "enrolled", "private"],
+      payment_status: ["pending", "success", "failed", "refunded"],
+      payout_status: ["pending", "paid", "cancelled"],
+      post_status: ["draft", "published"],
+      thread_status: ["open", "pending", "closed"],
+      user_role: ["student", "instructor", "admin", "super_admin"],
     },
   },
 } as const
-

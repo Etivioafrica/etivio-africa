@@ -61,10 +61,29 @@ const statusColor: Record<string, string> = {
   archived: "grey",
   completed: "green",
   "in progress": "blue",
+  open: "blue",
+  pending: "amber",
+  closed: "grey",
+  success: "green",
+  failed: "red",
+  refunded: "violet",
+  paid: "green",
+  cancelled: "grey",
+  active: "green",
+  suspended: "red",
+  public: "green",
+  enrolled: "blue",
+  private: "grey",
+  student: "grey",
+  instructor: "blue",
+  admin: "violet",
+  "super admin": "amber",
+  replied: "green",
 };
 
 export function Status({ value }: { value: string }) {
-  return <span className={`et-status et-status-${statusColor[value] ?? "grey"}`}>{value}</span>;
+  const label = value.replace("_", " ");
+  return <span className={`et-status et-status-${statusColor[label] ?? "grey"}`}>{label}</span>;
 }
 
 export function Empty({ title, children, action }: { title: string; children?: React.ReactNode; action?: { href: string; label: string } }) {

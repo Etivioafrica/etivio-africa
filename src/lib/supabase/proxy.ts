@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/database.types";
 import { NextResponse, type NextRequest } from "next/server";
 
-const APP_PREFIXES = ["/learn", "/teach", "/settings"];
+const APP_PREFIXES = ["/learn", "/teach", "/settings", "/support"];
 
 // Carry refreshed auth cookies over to a redirect response.
 function redirectWithCookies(url: URL, from: NextResponse) {
@@ -44,7 +44,14 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isApp = APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
   const isAuthPage = path === "/login" || path === "/signup";
+  const isAdmin = (path === "/admin" || path.startsWith("/admin/")) && path !== "/admin/login";
 
+  if (!user && isAdmin) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/admin/login";
+    url.search = `?next=${encodeURIComponent(path)}`;
+    return redirectWithCookies(url, response);
+  }
   if (!user && isApp) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
