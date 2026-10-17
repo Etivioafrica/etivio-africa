@@ -1,0 +1,25 @@
+.et-auth{--a-bg:#070b14;--a-panel:#0c1220;--a-border:#1b2538;--a-fg:#f1f5fb;--a-muted:#8a94a8;--a-faint:#566079;--a-input:#0f1626;--accent:#2563eb;
+ min-height:100dvh;display:grid;grid-template-columns:1fr 1fr;background:var(--a-bg);color:var(--a-fg);font-family:var(--font-geist-sans),system-ui,sans-serif;color-scheme:dark}
+.et-auth.is-light{--a-bg:#f2f5fa;--a-panel:#ffffff;--a-border:#e2e7f0;--a-fg:#0a0f1a;--a-muted:#5f6b80;--a-faint:#9aa3b5;--a-input:#ffffff;color-scheme:light}
+.et-auth-side{display:flex;flex-direction:column;justify-content:space-between;padding:40px;background:var(--accent);color:#fff}
+.et-auth-side h2{max-width:420px;font-size:36px;font-weight:700;line-height:1.1;letter-spacing:-.03em}
+.et-auth-side p{max-width:400px;margin-top:14px;font-size:15px;line-height:1.6;opacity:.85}
+.et-auth-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.02em}
+.et-auth-logo span{width:32px;height:32px;border-radius:9px;background:#fff;color:var(--accent);display:grid;place-items:center;font-weight:800}
+.et-auth-main{display:grid;place-items:center;padding:32px 16px}
+.et-auth-card{width:100%;max-width:400px;display:flex;flex-direction:column;gap:22px}
+.et-auth-card h1{font-size:26px;font-weight:700;letter-spacing:-.025em}
+.et-auth-card>div>p{margin-top:6px;font-size:14px;color:var(--a-muted)}
+.et-auth form{display:flex;flex-direction:column;gap:14px}
+.et-auth label{display:flex;flex-direction:column;gap:7px;font-size:12.5px;font-weight:600}
+.et-auth input{height:44px;padding:0 13px;border-radius:10px;background:var(--a-input);border:1px solid var(--a-border);color:var(--a-fg);font-size:14px;outline:none;transition:border-color .15s}
+.et-auth input:focus{border-color:var(--accent)}
+.et-auth button{height:44px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:filter .15s}
+.et-auth button:hover:not(:disabled){filter:brightness(1.1)}
+.et-auth button:disabled{opacity:.6;cursor:not-allowed}
+.et-auth-alt{font-size:13.5px;color:var(--a-muted);text-align:center}
+.et-auth-alt a{color:var(--a-fg);font-weight:600}
+.et-auth-msg{padding:11px 14px;border-radius:10px;font-size:13px;line-height:1.5}
+.et-auth-msg.is-err{background:#dc2626;color:#fff}
+.et-auth-msg.is-ok{background:#16a34a;color:#fff}
+@media(max-width:860px){.et-auth{grid-template-columns:1fr}.et-auth-side{display:none}}
