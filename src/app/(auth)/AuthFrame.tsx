@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { Moon, Sun } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 
@@ -45,6 +46,10 @@ export function AuthFrame({
         <div className="et-auth-main">{children}</div>
         <footer className="et-auth-foot">
           <span>© Etivio Africa</span>
+          <nav>
+            <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/terms">Terms</Link>
+          </nav>
         </footer>
       </section>
     </div>
