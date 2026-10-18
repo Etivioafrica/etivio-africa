@@ -23,3 +23,7 @@
 .et-auth-msg.is-err{background:#dc2626;color:#fff}
 .et-auth-msg.is-ok{background:#16a34a;color:#fff}
 @media(max-width:860px){.et-auth{grid-template-columns:1fr}.et-auth-side{display:none}}
+.et-auth button.et-auth-google{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--a-panel);color:var(--a-fg);border:1px solid var(--a-border)}
+.et-auth button.et-auth-google:hover:not(:disabled){filter:none;background:var(--a-input)}
+.et-auth-or{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--a-faint)}
+.et-auth-or::before,.et-auth-or::after{content:"";flex:1;height:1px;background:var(--a-border)}
