@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { confirmAdminAccess } from "../../actions";
 
@@ -13,6 +15,7 @@ export function AdminLoginForm() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [show, setShow] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,24 +43,34 @@ export function AdminLoginForm() {
   }
 
   return (
-    <div className="et-auth-card">
-      <div>
-        <h1>Admin sign in</h1>
-        <p>For Etivio staff only.</p>
-      </div>
+    <div className="et-auth-box">
+      <h1>Admin sign in</h1>
+      <p className="et-auth-sub">For Etivio staff only.</p>
+      {error && <p className="et-auth-msg is-err">{error}</p>}
       <form onSubmit={onSubmit}>
-        {error && <p className="et-auth-msg is-err">{error}</p>}
         <label>
           Email
-          <input name="email" type="email" autoComplete="email" required />
+          <input name="email" type="email" autoComplete="email" placeholder="you@etivio.co" required />
         </label>
         <label>
           Password
-          <input name="password" type="password" autoComplete="current-password" required />
+          <span className="et-auth-pw">
+            <input name="password" type={show ? "text" : "password"} autoComplete="current-password" placeholder="Your password" required />
+            <button type="button" aria-label={show ? "Hide password" : "Show password"} onClick={() => setShow((v) => !v)}>
+              {show ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </span>
         </label>
-        <button type="submit" disabled={pending}>
-          {pending ? "Checking access…" : "Sign in"}
+        <button type="submit" className="et-auth-submit" disabled={pending}>
+          {pending ? "Checking access…" : (
+            <>
+              Sign in <ArrowRight size={16} strokeWidth={2.5} />
+            </>
+          )}
         </button>
+        <Link href="/forgot-password" className="et-auth-link">
+          Forgot password?
+        </Link>
       </form>
     </div>
   );

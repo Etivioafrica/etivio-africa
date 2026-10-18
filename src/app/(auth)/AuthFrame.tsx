@@ -1,31 +1,52 @@
 "use client";
-import { useTheme } from "@/lib/theme";
+import { Moon, Sun } from "lucide-react";
+import { useTheme, writeTheme } from "@/lib/theme";
 
 export function AuthFrame({
   children,
   title = "Learn the skills that move you forward.",
   body = "Courses from instructors across Africa, built for how you actually learn.",
-  tag = "Etivio Africa",
+  badge = "Etivio Africa",
 }: {
   children: React.ReactNode;
   title?: string;
   body?: string;
-  tag?: string;
+  badge?: string;
 }) {
   const { light } = useTheme();
   return (
     <div className={`et-auth${light ? " is-light" : ""}`}>
-      <aside className="et-auth-side">
-        <div className="et-auth-logo">
-          <span>e</span>Etivio
+      <aside className="et-auth-hero">
+        <div className="et-auth-photo">
+          <div className="et-auth-logo">
+            <span>e</span>Etivio
+          </div>
+          <div className="et-auth-caption">
+            <h2>{title}</h2>
+            <p>{body}</p>
+          </div>
         </div>
-        <div>
-          <h2>{title}</h2>
-          <p>{body}</p>
-        </div>
-        <small style={{ opacity: 0.7 }}>{tag}</small>
       </aside>
-      <main className="et-auth-main">{children}</main>
+      <section className="et-auth-panel">
+        <header className="et-auth-top">
+          <button
+            type="button"
+            className="et-auth-theme"
+            aria-label={light ? "Switch to dark mode" : "Switch to light mode"}
+            onClick={() => writeTheme(!light)}
+          >
+            {light ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+          <span className="et-auth-badge">
+            <span />
+            {badge}
+          </span>
+        </header>
+        <div className="et-auth-main">{children}</div>
+        <footer className="et-auth-foot">
+          <span>© Etivio Africa</span>
+        </footer>
+      </section>
     </div>
   );
 }
