@@ -19,9 +19,7 @@ export function AuthFrame({
     <div className={`et-auth${light ? " is-light" : ""}`}>
       <aside className="et-auth-hero">
         <div className="et-auth-photo">
-          <div className="et-auth-logo">
-            <span>e</span>Etivio
-          </div>
+          <img src="/etiviologo.svg" alt="Etivio" className="et-auth-logo" />
           <div className="et-auth-caption">
             <h2>{title}</h2>
             <p>{body}</p>

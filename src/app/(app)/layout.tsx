@@ -39,7 +39,7 @@ function ShellSkeleton() {
     <div className="et-app">
       <aside className="et-sidebar et-hide-sm">
         <div className="et-sidebar-top">
-          <span className="et-brand-mark">e</span>
+          <img src="/etiviologo.svg" alt="Etivio" className="et-brand-logo" />
         </div>
         <div className="et-nav">
           {Array.from({ length: 6 }, (_, i) => (

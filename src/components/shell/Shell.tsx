@@ -190,9 +190,10 @@ export default function Shell({
       >
         <div className="et-sidebar-top">
           <Link href={admin ? "/admin" : "/learn"} className="et-brand" title="Etivio">
-            <span className="et-brand-mark">e</span>
+            <img src="/etivio-mark.svg" alt="" className="et-brand-mark" />
             <span className="et-brand-text">
-              Etivio <small>{admin ? "Admin" : teachMode ? "Teach" : "Learn"}</small>
+              <img src="/etiviologo.svg" alt="Etivio" className="et-brand-logo" />
+              <small>{admin ? "Admin" : teachMode ? "Teach" : "Learn"}</small>
             </span>
           </Link>
           <button

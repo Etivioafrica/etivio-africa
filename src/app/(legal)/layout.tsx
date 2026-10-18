@@ -6,7 +6,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
     <div className="et-legal">
       <header className="et-legal-top">
         <Link href="/learn" className="et-legal-logo">
-          <span>e</span>Etivio
+          <img src="/etiviologo.svg" alt="Etivio" />
         </Link>
         <nav>
           <Link href="/privacy">Privacy</Link>

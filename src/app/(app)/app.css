@@ -9,9 +9,11 @@
 .et-app.is-collapsed .et-sidebar{width:64px}
 .et-sidebar-top{height:60px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--a-border)}
 .et-brand{display:flex;align-items:center;gap:10px;min-width:0}
-.et-brand-mark{width:28px;height:28px;flex-shrink:0;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:-.04em}
-.et-brand-text{font-weight:600;font-size:15px;letter-spacing:-.02em;white-space:nowrap}
-.et-brand-text small{font-size:11px;font-weight:500;color:var(--a-muted);margin-left:4px;letter-spacing:0}
+.et-brand-mark{display:none;width:28px;height:28px;flex-shrink:0}
+.et-app.is-collapsed .et-brand-mark{display:block}
+.et-brand-text{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.et-brand-logo{display:block;height:24px;width:auto}
+.et-brand-text small{font-size:11px;font-weight:500;color:var(--a-muted);margin-top:4px}
 .et-collapse{margin-left:auto}
 .et-icon-btn.et-mobile-close,.et-icon-btn.et-menu-btn{display:none}
 .et-app.is-collapsed :is(.et-brand-text,.et-nav-text,.et-nav-label,.et-search,.et-user-text,.et-count,.et-switch,.et-user .et-chev){display:none}

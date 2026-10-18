@@ -6,9 +6,8 @@
 /* Left brand panel */
 .et-auth-hero{width:50%;padding:8px;display:flex}
 .et-auth-photo{position:relative;flex:1;border-radius:16px;overflow:hidden;background:var(--accent);color:#fff}
-.et-auth-photo::after{content:"e";position:absolute;right:-6%;bottom:-18%;font-size:62vh;font-weight:800;line-height:1;letter-spacing:-.06em;color:#1d4ed8;pointer-events:none}
-.et-auth-logo{position:absolute;top:36px;left:32px;z-index:1;display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.02em}
-.et-auth-logo span{width:34px;height:34px;border-radius:9px;background:#fff;color:var(--accent);display:grid;place-items:center;font-weight:800}
+.et-auth-photo::after{content:"";position:absolute;right:-14%;top:-10%;width:58%;aspect-ratio:1;background:#1d4ed8;-webkit-mask:url(/etivio-mark.svg) center/contain no-repeat;mask:url(/etivio-mark.svg) center/contain no-repeat;pointer-events:none}
+.et-auth-logo{position:absolute;top:36px;left:32px;z-index:1;height:36px;width:auto;filter:brightness(0) invert(1)}
 .et-auth-caption{position:absolute;left:32px;right:32px;bottom:40px;z-index:1}
 .et-auth-caption h2{max-width:28rem;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.2;margin-bottom:8px}
 .et-auth-caption p{max-width:24rem;font-size:16px;line-height:1.65;color:#dbe6ff}
