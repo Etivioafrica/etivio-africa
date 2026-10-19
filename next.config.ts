@@ -4,9 +4,15 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
-  // Until the landing page exists, send visitors to the dashboard (login if signed out).
-  async redirects() {
-    return [{ source: "/", destination: "/learn", permanent: false }];
+  // The old-PWA kill switch must never be cached, so browsers pick it up on their next update check.
+  async headers() {
+    return ["/sw.js", "/sw-push.js"].map((source) => ({
+      source,
+      headers: [
+        { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+      ],
+    }));
   },
   turbopack: {
     rules: {

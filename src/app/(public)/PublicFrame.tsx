@@ -22,11 +22,11 @@ export function PublicFrame({ children }: { children: React.ReactNode }) {
           >
             {light ? <Moon size={17} /> : <Sun size={17} />}
           </button>
-          <Link href="/learn/browse" className="et-btn et-btn-ghost et-btn-sm">
-            Browse courses
+          <Link href="/login" className="et-btn et-btn-ghost et-btn-sm">
+            Log in
           </Link>
           <Link href="/signup" className="et-btn et-btn-primary et-btn-sm">
-            Join Etivio
+            Get started
           </Link>
         </nav>
       </header>
