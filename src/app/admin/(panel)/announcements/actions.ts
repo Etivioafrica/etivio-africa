@@ -1,5 +1,7 @@
 "use server";
 import { refresh } from "next/cache";
+import { after } from "next/server";
+import { sendDueAnnouncements } from "@/lib/email/notify";
 import { audit, requireAdmin } from "@/lib/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { sanitizeRichText } from "@/lib/sanitize";
@@ -52,6 +54,7 @@ export async function createAnnouncement(input: AnnouncementInput): Promise<Resu
     .single();
   if (error) return { error: "Could not save the announcement." };
   await audit(admin.id, "announcement.create", { type: "announcement", id: data.id }, { title: data.title, status: data.status });
+  after(sendDueAnnouncements);
   refresh();
   return { data };
 }
@@ -65,6 +68,7 @@ export async function updateAnnouncement(id: string, input: AnnouncementInput): 
   if (error) return { error: "Could not save the announcement." };
   if (before?.cover_image_url && before.cover_image_url !== data.cover_image_url) await deleteObject(keyFromUrl(before.cover_image_url)).catch(() => {});
   await audit(admin.id, "announcement.update", { type: "announcement", id }, { title: data.title, status: data.status });
+  after(sendDueAnnouncements);
   refresh();
   return { data };
 }

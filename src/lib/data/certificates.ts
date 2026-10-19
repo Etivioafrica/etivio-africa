@@ -3,7 +3,9 @@ import { randomInt } from "node:crypto";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { after } from "next/server";
 import { getLearnerProfile } from "@/lib/data/profile";
+import { emailCertificates } from "@/lib/email/notify";
 
 // No 0/O or 1/I so codes are easy to read out and type.
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -33,7 +35,7 @@ export async function syncCertificates(userId: string) {
   const fresh = done.filter((c) => !issued.has(c.id));
   if (!fresh.length) return;
 
-  await createAdminClient()
+  const { data: issuedNow } = await createAdminClient()
     .from("certificates")
     .upsert(
       fresh.map((c) => ({
@@ -45,7 +47,9 @@ export async function syncCertificates(userId: string) {
         instructor_name: c.instructor,
       })),
       { onConflict: "user_id,course_id", ignoreDuplicates: true },
-    );
+    )
+    .select("code, course_title");
+  if (issuedNow?.length) after(() => emailCertificates(userId, issuedNow));
 }
 
 export async function getMyCertificates(userId: string): Promise<Certificate[]> {

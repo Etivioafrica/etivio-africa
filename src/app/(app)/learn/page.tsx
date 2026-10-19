@@ -12,11 +12,15 @@ import { AnnouncementBar } from "@/components/dash/AnnouncementBar";
 import { getCurrentUser } from "@/lib/auth";
 import { syncBadges } from "@/lib/data/badges";
 import { syncCertificates } from "@/lib/data/certificates";
+import { after } from "next/server";
+import { sendDueAnnouncements } from "@/lib/email/notify";
 
 export const metadata = { title: "Learn" };
 
 export default async function LearnDashboard() {
   const user = await getCurrentUser();
+  // Sends any scheduled announcement whose time has passed (claimed once, so this is cheap when there's nothing due).
+  after(sendDueAnnouncements);
   // Landing page after sign-in, so it also catches badges earned outside a lesson (e.g. Early learner).
   const [mine, recommended, prefs, profile, savedIds] = await Promise.all([
     getMyCourses(),

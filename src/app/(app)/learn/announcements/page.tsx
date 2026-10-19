@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { after } from "next/server";
+import { sendDueAnnouncements } from "@/lib/email/notify";
 import { createClient } from "@/lib/supabase/server";
 import { liveDate, type Announcement, type ViewMode } from "@/lib/announcements";
 import { AnnouncementFeed } from "./AnnouncementFeed";
@@ -17,6 +19,8 @@ export default function AnnouncementsPage({ searchParams }: Props) {
 
 async function Feed({ searchParams }: Props) {
   const { view } = await searchParams;
+  // Scheduled announcements go out by email the first time someone loads the feed after their time.
+  after(sendDueAnnouncements);
   const supabase = await createClient();
   // RLS returns only live posts: published, or scheduled with a time that has passed.
   const { data } = await supabase

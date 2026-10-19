@@ -1,6 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
+import { after } from "next/server";
+import { emailApplicationDecision } from "@/lib/email/notify";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { audit, requireAdmin } from "@/lib/admin";
 import { ROLE_LABELS, type AppRole } from "@/lib/roles";
@@ -145,5 +147,7 @@ export async function reviewApplication(fd: FormData) {
     .eq("id", id);
   if (approve) await db.from("user_roles").upsert({ user_id: app.user_id, role: app.role, granted_by: admin.id }, { onConflict: "user_id,role", ignoreDuplicates: true });
   await audit(admin.id, `application.${approve ? "approve" : "reject"}`, { type: "user", id: app.user_id }, { role: app.role });
+  const note = str(fd, "note") || null;
+  after(() => emailApplicationDecision(app.user_id, app.role, approve, note));
   refresh();
 }

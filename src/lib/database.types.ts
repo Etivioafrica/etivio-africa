@@ -104,6 +104,7 @@ export type Database = {
           cover_image_url: string | null
           cover_video_url: string | null
           created_at: string
+          emailed_at: string | null
           id: string
           pinned: boolean
           scheduled_at: string | null
@@ -117,6 +118,7 @@ export type Database = {
           cover_image_url?: string | null
           cover_video_url?: string | null
           created_at?: string
+          emailed_at?: string | null
           id?: string
           pinned?: boolean
           scheduled_at?: string | null
@@ -130,6 +132,7 @@ export type Database = {
           cover_image_url?: string | null
           cover_video_url?: string | null
           created_at?: string
+          emailed_at?: string | null
           id?: string
           pinned?: boolean
           scheduled_at?: string | null
@@ -827,6 +830,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          provider_id: string | null
+          ref: string | null
+          status: string
+          subject: string
+          to_email: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          provider_id?: string | null
+          ref?: string | null
+          status: string
+          subject: string
+          to_email: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          provider_id?: string | null
+          ref?: string | null
+          status?: string
+          subject?: string
+          to_email?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       enrollments: {
         Row: {

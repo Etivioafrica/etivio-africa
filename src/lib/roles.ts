@@ -50,6 +50,7 @@ export const ADMIN_AREAS = {
   tracking: ["super_admin"],
   financials: ["super_admin", "accountant"],
   team: ["super_admin"],
+  emails: ["super_admin"],
   settings: ["super_admin", "editor", "accountant"],
   platform: ["super_admin"],
 } satisfies Record<string, AppRole[]>;

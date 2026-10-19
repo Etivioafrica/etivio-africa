@@ -32,6 +32,7 @@ import {
   X,
   type LucideIcon,
   Heart,
+  Mail,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -113,6 +114,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         label: "System",
         items: [
           { label: "Team", href: "/admin/team", icon: ShieldCheck, area: "team" },
+          { label: "Emails", href: "/admin/emails", icon: Mail, area: "emails" },
           { label: "Settings", href: "/admin/settings", icon: Settings, area: "settings" },
         ],
       },

@@ -2,6 +2,8 @@
 import { redirect } from "next/navigation";
 import { parseSkills } from "@/lib/skills";
 import { refresh } from "next/cache";
+import { after } from "next/server";
+import { emailReviewReply } from "@/lib/email/notify";
 import { audit, requireAdmin } from "@/lib/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { nairaToMinor, slugify } from "@/lib/format";
@@ -465,6 +467,7 @@ export async function replyToReview(id: string, reply: string): Promise<Result> 
     .eq("id", id);
   if (error) return { error: "Could not save the reply." };
   await audit(admin.id, "review.reply", { type: "course_review", id });
+  if (text) after(() => emailReviewReply(id));
   refresh();
   return { ok: text ? "Reply posted." : "Reply removed." };
 }

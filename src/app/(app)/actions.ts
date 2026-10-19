@@ -1,5 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { emailWelcome } from "@/lib/email/notify";
 import { createClient } from "@/lib/supabase/server";
 import type { BadgeId } from "@/lib/badges";
 import type { Database } from "@/lib/database.types";
@@ -48,6 +50,9 @@ export async function saveOnboarding(answers: OnboardingAnswers | null) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
+  // The welcome email goes out the first time someone finishes (or skips) the welcome guide.
+  const { data: before } = await supabase.from("profiles").select("onboarded_at").eq("id", user.id).maybeSingle();
+  if (before && !before.onboarded_at) after(() => emailWelcome(user.id));
   const update: Database["public"]["Tables"]["profiles"]["Update"] = { onboarded_at: new Date().toISOString() };
   if (answers) {
     if (answers.goal) update.learning_goal = answers.goal;

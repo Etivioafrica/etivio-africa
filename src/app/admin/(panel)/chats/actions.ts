@@ -1,5 +1,7 @@
 "use server";
 import { refresh } from "next/cache";
+import { after } from "next/server";
+import { emailSupportReply } from "@/lib/email/notify";
 import { audit, requireAdmin } from "@/lib/admin";
 import type { SendResult } from "@/components/chat/ChatThread";
 
@@ -18,6 +20,7 @@ export async function staffReply(fd: FormData): Promise<SendResult> {
   if (error || !data) return { error: "Could not send the reply." };
   await db.from("support_threads").update({ staff_unread: false, assigned_to: admin.id }).eq("id", threadId).is("assigned_to", null);
   await db.from("support_threads").update({ staff_unread: false }).eq("id", threadId);
+  after(() => emailSupportReply(threadId, body));
   refresh();
   return { message: { ...data, sender: admin.name || "You" } };
 }

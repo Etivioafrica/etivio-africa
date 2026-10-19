@@ -1,6 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
+import { after } from "next/server";
+import { emailEnrolled } from "@/lib/email/notify";
 import { createClient } from "@/lib/supabase/server";
 import { syncBadges } from "@/lib/data/badges";
 import { syncCertificates } from "@/lib/data/certificates";
@@ -21,6 +23,7 @@ export async function enrollFree(formData: FormData) {
   const { supabase, userId } = await requireUserId();
   const { error } = await supabase.from("enrollments").insert({ user_id: userId, course_id: courseId });
   if (error && error.code !== "23505") throw new Error("Could not enroll in this course.");
+  if (!error) after(() => emailEnrolled(userId, courseId));
   redirect(`/learn/course/${courseId}`);
 }
 
