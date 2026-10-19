@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { getCurrentUser } from "@/lib/auth";
 import { canTeach } from "@/lib/roles";
 import { bankName } from "@/lib/banks";
@@ -16,6 +17,12 @@ async function authed() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   return { supabase, user };
+}
+
+// Deletes a replaced image from R2. Ignores URLs we don't host (e.g. Google profile photos).
+async function removeReplaced(previous: string | null | undefined, next: string | null) {
+  const key = previous && previous !== next ? keyFromUrl(previous) : null;
+  if (key) await deleteObject(key).catch(() => {});
 }
 
 const text = (fd: FormData, key: string, max = 2000) => String(fd.get(key) ?? "").trim().slice(0, max);
@@ -161,8 +168,10 @@ export async function removeCard(fd: FormData) {
 export async function saveCover(url: string | null) {
   const { supabase, user } = await authed();
   if (url && !/^https?:\/\//.test(url)) return { error: "Invalid image URL." };
+  const { data: before } = await supabase.from("profiles").select("cover_url").eq("id", user.id).single();
   const { error } = await supabase.from("profiles").update({ cover_url: url }).eq("id", user.id);
   if (error) return { error: "Could not save your cover." };
+  await removeReplaced(before?.cover_url, url);
   refresh();
   return {};
 }
@@ -218,8 +227,10 @@ export async function claimUsername(raw: string): Promise<{ ok?: string; error?:
 export async function saveAvatar(url: string | null) {
   const { supabase, user } = await authed();
   if (url && !/^https?:\/\//.test(url)) return { error: "Invalid image URL." };
+  const { data: before } = await supabase.from("profiles").select("avatar_url").eq("id", user.id).single();
   const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
   if (error) return { error: "Could not save your photo." };
+  await removeReplaced(before?.avatar_url, url);
   refresh();
   return {};
 }

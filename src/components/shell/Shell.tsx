@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Library,
   LogOut,
+  Megaphone,
   Menu,
   Moon,
   Plus,
@@ -37,10 +38,12 @@ import { adminSignOut } from "@/app/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import TipLayer from "./TipLayer";
 import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
-import { ROLE_LABELS, canAccess, canTeach, isStaff, type AdminArea, type AppRole } from "@/lib/roles";
+import { Onboarding } from "@/components/dash/Onboarding";
+import { ROLE_LABELS, canAccess, canTeach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
 
 export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null; showTeach?: boolean };
-type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean; badge?: number; area?: AdminArea };
+type SubItem = { label: string; href: string; badge?: number };
+type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean; badge?: number; area?: AdminArea; children?: SubItem[] };
 type Group = { label: string; items: Item[] };
 
 const account: Group = {
@@ -60,8 +63,40 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         label: "Manage",
         items: [
           { label: "Users", href: "/admin/users", icon: Users, area: "users", badge: badges.applications },
-          { label: "Courses", href: "/admin/courses", icon: BookOpen, area: "courses" },
-          { label: "Blog", href: "/admin/blog", icon: Newspaper, area: "blog" },
+          {
+            label: "Courses",
+            href: "/admin/courses",
+            icon: BookOpen,
+            area: "courses",
+            badge: badges.reviews,
+            children: [
+              { label: "All courses", href: "/admin/courses" },
+              { label: "New course", href: "/admin/courses/new" },
+              { label: "Categories", href: "/admin/courses/categories" },
+              { label: "Students", href: "/admin/courses/students" },
+              { label: "Course metrics", href: "/admin/courses/metrics" },
+              { label: "Quizzes", href: "/admin/courses/quizzes" },
+              { label: "Reviews", href: "/admin/courses/reviews", badge: badges.reviews },
+              { label: "Certificates", href: "/admin/courses/certificates" },
+            ],
+          },
+          { label: "Announcements", href: "/admin/announcements", icon: Megaphone, area: "announcements" },
+          {
+            label: "Blog",
+            href: "/admin/blog",
+            icon: Newspaper,
+            area: "blog",
+            badge: badges.comments,
+            children: [
+              { label: "All posts", href: "/admin/blog" },
+              { label: "New post", href: "/admin/blog/new" },
+              { label: "Categories", href: "/admin/blog/categories" },
+              { label: "Archives", href: "/admin/blog/archives" },
+              { label: "Post metrics", href: "/admin/blog/metrics" },
+              { label: "Comments", href: "/admin/blog/comments", badge: badges.comments },
+              { label: "Curated", href: "/admin/blog/curated" },
+            ],
+          },
           { label: "Documents", href: "/admin/documents", icon: FileText, area: "documents" },
           { label: "Chats", href: "/admin/chats", icon: MessagesSquare, area: "chats", badge: badges.chats },
         ],
@@ -86,7 +121,13 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
     .filter((g) => g.items.length);
 
 const learnNav: Group[] = [
-  { label: "Overview", items: [{ label: "Dashboard", href: "/learn", icon: LayoutDashboard, exact: true }] },
+  {
+    label: "Overview",
+    items: [
+      { label: "Dashboard", href: "/learn", icon: LayoutDashboard, exact: true },
+      { label: "Announcements", href: "/learn/announcements", icon: Megaphone },
+    ],
+  },
   {
     label: "Learning",
     items: [
@@ -133,6 +174,7 @@ export default function Shell({
   mode = "app",
   badges = {},
   unseenBadges = "",
+  needsOnboarding = false,
   children,
 }: {
   user: ShellUser;
@@ -140,12 +182,16 @@ export default function Shell({
   badges?: Record<string, number>;
   // Comma-joined ids of earned-but-uncelebrated badges, from the server layout.
   unseenBadges?: string;
+  // Show the welcome guide (new learners, until finished or skipped).
+  needsOnboarding?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const admin = mode === "admin";
   const { light } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
+  // Captured once: stays open through the guide's final screen even after the server marks it done.
+  const [guideOpen, setGuideOpen] = useState(needsOnboarding);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -166,9 +212,16 @@ export default function Shell({
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  // Page views feed admin tracking. Admin pages aren't tracked.
+  // Page views feed admin tracking. Admin pages aren't tracked, and the same page isn't sent again
+  // within 10 minutes (the database skips those too) to keep the table small.
   useEffect(() => {
     if (admin) return;
+    try {
+      const seen = JSON.parse(sessionStorage.getItem("et-views") ?? "{}") as Record<string, number>;
+      if (Date.now() - (seen[pathname] ?? 0) < 10 * 60_000) return;
+      seen[pathname] = Date.now();
+      sessionStorage.setItem("et-views", JSON.stringify(seen));
+    } catch {}
     createClient()
       .from("activity_events")
       .insert({ user_id: user.id, type: "page_view", path: pathname })
@@ -199,7 +252,7 @@ export default function Shell({
             <img src="/etivio-mark.svg" alt="" className="et-brand-mark" />
             <span className="et-brand-text">
               <img src="/etiviologo.svg" alt="Etivio" className="et-brand-logo" />
-              <small>{admin ? "Admin" : teachMode ? "Teach" : "Learn"}</small>
+              <small>{admin ? ROLE_LABELS[primaryRole(user.roles)] : teachMode ? "Teach" : "Learn"}</small>
             </span>
           </Link>
           <button
@@ -243,9 +296,13 @@ export default function Shell({
             : groups.map((g, gi) => (
                 <div key={g.label} className="et-nav-group">
                   {gi > 0 && <p className="et-nav-label">{g.label}</p>}
-                  {g.items.map((i) => (
-                    <NavLink key={i.href} item={i} active={isActive(i)} />
-                  ))}
+                  {g.items.map((i) =>
+                    i.children ? (
+                      <NavGroup key={i.href} item={i} active={isActive(i)} pathname={pathname} />
+                    ) : (
+                      <NavLink key={i.href} item={i} active={isActive(i)} />
+                    ),
+                  )}
                 </div>
               ))}
         </nav>
@@ -302,7 +359,9 @@ export default function Shell({
         </header>
         <main className="et-main">{children}</main>
         <TipLayer />
-        {!admin && <BadgeCelebration trigger={unseenBadges} />}
+        {!admin && guideOpen && <Onboarding name={user.name || user.email} onClosed={() => setGuideOpen(false)} />}
+        {/* Badge celebrations wait until the welcome guide is out of the way. */}
+        {!admin && !guideOpen && <BadgeCelebration trigger={unseenBadges} />}
       </div>
     </div>
   );
@@ -316,6 +375,40 @@ function NavLink({ item, active }: { item: Item; active: boolean }) {
       <span className="et-nav-text">{item.label}</span>
       {item.badge ? <span className="et-count">{item.badge}</span> : null}
     </Link>
+  );
+}
+
+// A nav item with a dropdown of sub-pages (Blog). Opens by itself while you're inside that section.
+function NavGroup({ item, active, pathname }: { item: Item; active: boolean; pathname: string }) {
+  const [open, setOpen] = useState(active);
+  const [wasActive, setWasActive] = useState(active);
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (active) setOpen(true);
+  }
+  const Icon = item.icon;
+  return (
+    <div className="et-nav-tree">
+      <button type="button" title={item.label} className={`et-nav-item${active ? " is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <Icon size={17} strokeWidth={1.8} />
+        <span className="et-nav-text">{item.label}</span>
+        {item.badge && !open ? <span className="et-count">{item.badge}</span> : null}
+        <ChevronDown size={13} className={`et-nav-chev${open ? " is-open" : ""}`} />
+      </button>
+      {open && (
+        <div className="et-nav-sub">
+          {item.children!.map((c) => {
+            const on = pathname === c.href || (c.href !== item.href && pathname.startsWith(`${c.href}/`)) || (c.href === item.href && new RegExp(`^${item.href}/[0-9a-f-]{36}(/|$)`).test(pathname));
+            return (
+              <Link key={c.href} href={c.href} className={on ? "is-active" : ""} aria-current={on ? "page" : undefined}>
+                {c.label}
+                {c.badge ? <span className="et-count">{c.badge}</span> : null}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

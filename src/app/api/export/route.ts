@@ -9,12 +9,13 @@ export async function GET() {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
-  const [profile, roles, enrollments, progress, payments, threads, applications, billing, payout] = await Promise.all([
+  const [profile, priv, roles, enrollments, progress, payments, threads, applications, billing, payout] = await Promise.all([
     supabase
       .from("profiles")
-      .select("full_name, avatar_url, bio, headline, location, website_url, linkedin_url, x_url, interests, notification_prefs, created_at, updated_at")
+      .select("full_name, username, profile_public, avatar_url, cover_url, bio, headline, location, website_url, linkedin_url, x_url, interests, created_at")
       .eq("id", user.id)
       .maybeSingle(),
+    supabase.rpc("my_profile").maybeSingle(),
     supabase.from("user_roles").select("role, granted_at").eq("user_id", user.id),
     supabase.from("enrollments").select("enrolled_at, completed_at, course:courses(id, title)").eq("user_id", user.id),
     supabase.from("lesson_progress").select("completed_at, lesson:lessons(id, title, course_id)").eq("user_id", user.id),
@@ -35,6 +36,19 @@ export async function GET() {
       last_sign_in_at: user.last_sign_in_at,
     },
     profile: profile.data,
+    preferences: priv.data
+      ? {
+          notifications: priv.data.notification_prefs,
+          weekly_goal: priv.data.weekly_goal,
+          show_current_learning: priv.data.show_current_learning,
+          welcome_guide: {
+            completed_at: priv.data.onboarded_at,
+            learning_goal: priv.data.learning_goal,
+            skill_level: priv.data.skill_level,
+            weekly_hours: priv.data.weekly_hours,
+          },
+        }
+      : null,
     roles: roles.data ?? [],
     enrollments: enrollments.data ?? [],
     lesson_progress: progress.data ?? [],

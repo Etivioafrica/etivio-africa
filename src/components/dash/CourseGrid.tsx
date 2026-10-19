@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Cover } from "@/components/dash/ui";
 import { formatPrice } from "@/lib/format";
-import { Heart } from "lucide-react";
+import { Heart, Sparkles, Star } from "lucide-react";
 import { enrollFree, toggleSaved } from "@/app/(app)/learn/actions";
 import type { CourseCard } from "@/lib/data/learn";
 
-export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: CourseCard[]; enrolledIds: Set<string>; savedIds?: Set<string> }) {
+export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: (CourseCard & { reason?: string | null })[]; enrolledIds: Set<string>; savedIds?: Set<string> }) {
   return (
     <div className="et-course-grid">
       {courses.map((c) => {
@@ -26,11 +26,22 @@ export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: Course
               )}
             </div>
             <div className="et-course-body">
+              {(c.reason || c.category) && (
+                <p className="et-course-tagline">
+                  {c.reason ? <Sparkles size={12} /> : null}
+                  {c.reason ?? c.category}
+                </p>
+              )}
               <h3>{c.title}</h3>
               {c.summary && <p>{c.summary}</p>}
               <div className="et-course-meta">
                 <span>
                   {c.instructor} · {c.lessonCount} lessons
+                  {c.rating ? (
+                    <em className="et-card-rating">
+                      <Star size={12} fill="currentColor" /> {c.rating.toFixed(1)} ({c.reviews})
+                    </em>
+                  ) : null}
                 </span>
                 <b>{formatPrice(c.priceMinor, c.currency)}</b>
               </div>

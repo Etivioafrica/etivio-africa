@@ -97,6 +97,56 @@ export type Database = {
           },
         ]
       }
+      announcements: {
+        Row: {
+          author_id: string | null
+          body: string
+          cover_image_url: string | null
+          cover_video_url: string | null
+          created_at: string
+          id: string
+          pinned: boolean
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["announcement_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string
+          cover_image_url?: string | null
+          cover_video_url?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["announcement_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          cover_image_url?: string | null
+          cover_video_url?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["announcement_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_details: {
         Row: {
           address: string | null
@@ -141,6 +191,213 @@ export type Database = {
           },
         ]
       }
+      blog_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "blog_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_comments: {
+        Row: {
+          admin_reply: string | null
+          approved: boolean
+          author_email: string | null
+          author_name: string
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          replied_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_reply?: string | null
+          approved?: boolean
+          author_email?: string | null
+          author_name: string
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          replied_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_reply?: string | null
+          approved?: boolean
+          author_email?: string | null
+          author_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          replied_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_curated: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published: boolean
+          source_name: string
+          title: string
+          url: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published?: boolean
+          source_name: string
+          title: string
+          url: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published?: boolean
+          source_name?: string
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      blog_likes: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_post_categories: {
+        Row: {
+          category_id: string
+          post_id: string
+        }
+        Insert: {
+          category_id: string
+          post_id: string
+        }
+        Update: {
+          category_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_post_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "blog_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_post_categories_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_post_views: {
+        Row: {
+          country: string | null
+          created_at: string
+          id: number
+          post_id: string
+          read_seconds: number | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          id?: never
+          post_id: string
+          read_seconds?: number | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          id?: never
+          post_id?: string
+          read_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_post_views_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           author_id: string | null
@@ -148,7 +405,11 @@ export type Database = {
           cover_url: string | null
           created_at: string
           excerpt: string | null
+          featured: boolean
+          focus_keyword: string | null
           id: string
+          meta_description: string | null
+          meta_title: string | null
           published_at: string | null
           slug: string
           status: Database["public"]["Enums"]["post_status"]
@@ -162,7 +423,11 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           excerpt?: string | null
+          featured?: boolean
+          focus_keyword?: string | null
           id?: string
+          meta_description?: string | null
+          meta_title?: string | null
           published_at?: string | null
           slug: string
           status?: Database["public"]["Enums"]["post_status"]
@@ -176,7 +441,11 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           excerpt?: string | null
+          featured?: boolean
+          focus_keyword?: string | null
           id?: string
+          meta_description?: string | null
+          meta_title?: string | null
           published_at?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["post_status"]
@@ -202,6 +471,8 @@ export type Database = {
           instructor_name: string | null
           issued_at: string
           recipient_name: string
+          revoked_at: string | null
+          revoked_reason: string | null
           user_id: string
         }
         Insert: {
@@ -211,6 +482,8 @@ export type Database = {
           instructor_name?: string | null
           issued_at?: string
           recipient_name: string
+          revoked_at?: string | null
+          revoked_reason?: string | null
           user_id: string
         }
         Update: {
@@ -220,6 +493,8 @@ export type Database = {
           instructor_name?: string | null
           issued_at?: string
           recipient_name?: string
+          revoked_at?: string | null
+          revoked_reason?: string | null
           user_id?: string
         }
         Relationships: [
@@ -235,6 +510,38 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "course_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -271,12 +578,111 @@ export type Database = {
           },
         ]
       }
+      course_quizzes: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          module_id: string
+          pass_mark: number
+          title: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          module_id: string
+          pass_mark?: number
+          title: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          module_id?: string
+          pass_mark?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_quizzes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_quizzes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: true
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_reviews: {
+        Row: {
+          admin_reply: string | null
+          approved: boolean
+          body: string | null
+          course_id: string
+          created_at: string
+          id: string
+          rating: number
+          replied_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          approved?: boolean
+          body?: string | null
+          course_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          replied_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_reply?: string | null
+          approved?: boolean
+          body?: string | null
+          course_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          replied_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_reviews_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
+          category: string | null
+          category_id: string | null
           cover_url: string | null
           created_at: string
           currency: string
           description: string | null
+          featured: boolean
           id: string
           instructor_id: string
           level: Database["public"]["Enums"]["course_level"]
@@ -290,10 +696,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
+          category_id?: string | null
           cover_url?: string | null
           created_at?: string
           currency?: string
           description?: string | null
+          featured?: boolean
           id?: string
           instructor_id: string
           level?: Database["public"]["Enums"]["course_level"]
@@ -307,10 +716,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
+          category_id?: string | null
           cover_url?: string | null
           created_at?: string
           currency?: string
           description?: string | null
+          featured?: boolean
           id?: string
           instructor_id?: string
           level?: Database["public"]["Enums"]["course_level"]
@@ -324,6 +736,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "courses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "course_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "courses_instructor_id_fkey"
             columns: ["instructor_id"]
@@ -435,39 +854,6 @@ export type Database = {
           },
         ]
       }
-      lesson_progress: {
-        Row: {
-          completed_at: string
-          lesson_id: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string
-          lesson_id: string
-          user_id: string
-        }
-        Update: {
-          completed_at?: string
-          lesson_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lesson_progress_lesson_id_fkey"
-            columns: ["lesson_id"]
-            isOneToOne: false
-            referencedRelation: "lessons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_progress_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       lesson_notes: {
         Row: {
           body: string
@@ -500,6 +886,39 @@ export type Database = {
           },
           {
             foreignKeyName: "lesson_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_progress: {
+        Row: {
+          completed_at: string
+          lesson_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          lesson_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          lesson_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_progress_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -564,39 +983,51 @@ export type Database = {
           },
         ]
       }
-      payout_accounts: {
+      payment_methods: {
         Row: {
-          account_name: string
-          account_number: string
-          bank_code: string
-          bank_name: string
-          updated_at: string
+          authorization_code: string
+          bank: string | null
+          brand: string | null
+          created_at: string
+          exp_month: number | null
+          exp_year: number | null
+          id: string
+          is_default: boolean
+          last4: string | null
+          provider: string
           user_id: string
-          verified_at: string | null
         }
         Insert: {
-          account_name: string
-          account_number: string
-          bank_code: string
-          bank_name: string
-          updated_at?: string
+          authorization_code: string
+          bank?: string | null
+          brand?: string | null
+          created_at?: string
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          is_default?: boolean
+          last4?: string | null
+          provider?: string
           user_id: string
-          verified_at?: string | null
         }
         Update: {
-          account_name?: string
-          account_number?: string
-          bank_code?: string
-          bank_name?: string
-          updated_at?: string
+          authorization_code?: string
+          bank?: string | null
+          brand?: string | null
+          created_at?: string
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          is_default?: boolean
+          last4?: string | null
+          provider?: string
           user_id?: string
-          verified_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "payout_accounts_user_id_fkey"
+            foreignKeyName: "payment_methods_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -675,6 +1106,44 @@ export type Database = {
           },
         ]
       }
+      payout_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          bank_name: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          bank_name: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_code?: string
+          bank_name?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payouts: {
         Row: {
           amount_minor: number
@@ -729,75 +1198,64 @@ export type Database = {
           },
         ]
       }
-      payment_methods: {
-        Row: {
-          authorization_code: string
-          bank: string | null
-          brand: string | null
-          created_at: string
-          exp_month: number | null
-          exp_year: number | null
-          id: string
-          is_default: boolean
-          last4: string | null
-          provider: string
-          user_id: string
-        }
-        Insert: {
-          authorization_code: string
-          bank?: string | null
-          brand?: string | null
-          created_at?: string
-          exp_month?: number | null
-          exp_year?: number | null
-          id?: string
-          is_default?: boolean
-          last4?: string | null
-          provider?: string
-          user_id: string
-        }
-        Update: {
-          authorization_code?: string
-          bank?: string | null
-          brand?: string | null
-          created_at?: string
-          exp_month?: number | null
-          exp_year?: number | null
-          id?: string
-          is_default?: boolean
-          last4?: string | null
-          provider?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_methods_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       platform_settings: {
         Row: {
+          announcement_active: boolean
+          announcement_link: string | null
+          announcement_text: string | null
+          certificate_signer_name: string | null
+          certificate_signer_title: string | null
           commission_percent: number
+          hero_bg_url: string | null
           id: boolean
+          social_instagram: string | null
+          social_linkedin: string | null
+          social_tiktok: string | null
+          social_x: string | null
+          social_youtube: string | null
           support_email: string | null
+          support_whatsapp: string | null
+          tutor_applications_open: boolean
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          announcement_active?: boolean
+          announcement_link?: string | null
+          announcement_text?: string | null
+          certificate_signer_name?: string | null
+          certificate_signer_title?: string | null
           commission_percent?: number
+          hero_bg_url?: string | null
           id?: boolean
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_tiktok?: string | null
+          social_x?: string | null
+          social_youtube?: string | null
           support_email?: string | null
+          support_whatsapp?: string | null
+          tutor_applications_open?: boolean
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          announcement_active?: boolean
+          announcement_link?: string | null
+          announcement_text?: string | null
+          certificate_signer_name?: string | null
+          certificate_signer_title?: string | null
           commission_percent?: number
+          hero_bg_url?: string | null
           id?: boolean
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_tiktok?: string | null
+          social_x?: string | null
+          social_youtube?: string | null
           support_email?: string | null
+          support_whatsapp?: string | null
+          tutor_applications_open?: boolean
           updated_at?: string
           updated_by?: string | null
         }
@@ -824,16 +1282,20 @@ export type Database = {
           id: string
           interests: string[]
           last_seen_at: string | null
+          learning_goal: string | null
           linkedin_url: string | null
           location: string | null
           notification_prefs: Json
+          onboarded_at: string | null
           profile_public: boolean
           show_current_learning: boolean
+          skill_level: string | null
           status: Database["public"]["Enums"]["account_status"]
           updated_at: string
           username: string | null
           website_url: string | null
           weekly_goal: number | null
+          weekly_hours: string | null
           x_url: string | null
         }
         Insert: {
@@ -848,16 +1310,20 @@ export type Database = {
           id: string
           interests?: string[]
           last_seen_at?: string | null
+          learning_goal?: string | null
           linkedin_url?: string | null
           location?: string | null
           notification_prefs?: Json
+          onboarded_at?: string | null
           profile_public?: boolean
           show_current_learning?: boolean
+          skill_level?: string | null
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
           username?: string | null
           website_url?: string | null
           weekly_goal?: number | null
+          weekly_hours?: string | null
           x_url?: string | null
         }
         Update: {
@@ -872,16 +1338,20 @@ export type Database = {
           id?: string
           interests?: string[]
           last_seen_at?: string | null
+          learning_goal?: string | null
           linkedin_url?: string | null
           location?: string | null
           notification_prefs?: Json
+          onboarded_at?: string | null
           profile_public?: boolean
           show_current_learning?: boolean
+          skill_level?: string | null
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
           username?: string | null
           website_url?: string | null
           weekly_goal?: number | null
+          weekly_hours?: string | null
           x_url?: string | null
         }
         Relationships: [
@@ -890,6 +1360,89 @@ export type Database = {
             columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_attempts: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          passed: boolean
+          quiz_id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          passed: boolean
+          quiz_id: string
+          score: number
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          passed?: boolean
+          quiz_id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "course_quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_questions: {
+        Row: {
+          correct_index: number
+          explanation: string | null
+          id: string
+          options: string[]
+          position: number
+          prompt: string
+          quiz_id: string
+        }
+        Insert: {
+          correct_index: number
+          explanation?: string | null
+          id?: string
+          options: string[]
+          position?: number
+          prompt: string
+          quiz_id: string
+        }
+        Update: {
+          correct_index?: number
+          explanation?: string | null
+          id?: string
+          options?: string[]
+          position?: number
+          prompt?: string
+          quiz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "course_quizzes"
             referencedColumns: ["id"]
           },
         ]
@@ -1141,68 +1694,71 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_active_users: {
-        Args: { p_days?: number }
-        Returns: number
-      }
+      admin_active_users: { Args: { p_days?: number }; Returns: number }
       admin_daily_activity: {
         Args: { p_days?: number }
         Returns: {
-          day: string
-          signups: number
-          enrollments: number
-          completions: number
-          page_views: number
           active_users: number
+          completions: number
+          day: string
+          enrollments: number
+          page_views: number
+          signups: number
         }[]
       }
       admin_instructor_balances: {
         Args: never
         Returns: {
-          instructor_id: string
-          full_name: string
           earned_minor: number
+          full_name: string
+          instructor_id: string
           paid_minor: number
           pending_minor: number
           sales: number
         }[]
       }
       admin_list_users: {
-        Args: { p_search?: string; p_role?: Database["public"]["Enums"]["app_role"]; p_deleted?: boolean; p_limit?: number; p_offset?: number }
+        Args: {
+          p_deleted?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_role?: Database["public"]["Enums"]["app_role"]
+          p_search?: string
+        }
         Returns: {
-          id: string
-          email: string
-          full_name: string
           avatar_url: string
+          course_count: number
+          created_at: string
+          deleted_at: string
+          email: string
+          email_confirmed: boolean
+          enrollment_count: number
+          full_name: string
+          id: string
+          last_sign_in_at: string
           roles: Database["public"]["Enums"]["app_role"][]
           status: Database["public"]["Enums"]["account_status"]
-          created_at: string
-          last_sign_in_at: string
-          email_confirmed: boolean
-          deleted_at: string
-          enrollment_count: number
-          course_count: number
           total_count: number
         }[]
       }
       admin_monthly_revenue: {
         Args: { p_months?: number }
         Returns: {
-          month: string
           gross_minor: number
-          platform_minor: number
           instructor_minor: number
+          month: string
+          platform_minor: number
           sales: number
         }[]
       }
       admin_top_courses: {
         Args: { p_days?: number; p_limit?: number }
         Returns: {
-          course_id: string
-          title: string
-          enrollments: number
           completions: number
+          course_id: string
+          enrollments: number
           learners: number
+          title: string
         }[]
       }
       admin_top_pages: {
@@ -1213,10 +1769,18 @@ export type Database = {
           visitors: number
         }[]
       }
-      course_is_published: {
-        Args: { p_course_id: string }
-        Returns: boolean
+      blog_post_metrics: {
+        Args: never
+        Returns: {
+          avg_read: number
+          comments: number
+          likes: number
+          pending: number
+          post_id: string
+          views: number
+        }[]
       }
+      course_is_published: { Args: { p_course_id: string }; Returns: boolean }
       course_lesson_counts: {
         Args: { p_course_ids: string[] }
         Returns: {
@@ -1224,45 +1788,79 @@ export type Database = {
           lesson_count: number
         }[]
       }
+      course_metrics: {
+        Args: never
+        Returns: {
+          completed: number
+          course_id: string
+          pending_reviews: number
+          rating: number
+          revenue_minor: number
+          reviews: number
+          students: number
+        }[]
+      }
+      course_ratings: {
+        Args: { p_course_ids: string[] }
+        Returns: {
+          course_id: string
+          rating: number
+          reviews: number
+        }[]
+      }
       has_role: {
         Args: { p_role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
-      is_admin: {
+      is_admin: { Args: never; Returns: boolean }
+      is_enrolled: { Args: { p_course_id: string }; Returns: boolean }
+      is_instructor: { Args: never; Returns: boolean }
+      mark_thread_read: { Args: { p_thread_id: string }; Returns: undefined }
+      my_profile: {
         Args: never
-        Returns: boolean
+        Returns: {
+          deleted_at: string
+          last_seen_at: string
+          learning_goal: string
+          notification_prefs: Json
+          onboarded_at: string
+          show_current_learning: boolean
+          skill_level: string
+          status: Database["public"]["Enums"]["account_status"]
+          updated_at: string
+          weekly_goal: number
+          weekly_hours: string
+        }[]
       }
-      is_enrolled: {
-        Args: { p_course_id: string }
-        Returns: boolean
-      }
-      is_instructor: {
-        Args: never
-        Returns: boolean
-      }
-      mark_thread_read: {
-        Args: { p_thread_id: string }
-        Returns: undefined
-      }
-      owns_course: {
-        Args: { p_course_id: string }
-        Returns: boolean
-      }
-      rls_auto_enable: {
-        Args: never
-        Returns: unknown
+      owns_course: { Args: { p_course_id: string }; Returns: boolean }
+      quiz_progress: {
+        Args: { p_course_ids: string[]; p_user_id: string }
+        Returns: {
+          course_id: string
+          passed: number
+          quizzes: number
+        }[]
       }
     }
     Enums: {
       account_status: "active" | "suspended"
-      app_role: "super_admin" | "editor" | "accountant" | "tutor" | "student" | "coach" | "event_manager" | "community_owner"
+      announcement_status: "draft" | "scheduled" | "published" | "archived"
+      app_role:
+        | "super_admin"
+        | "editor"
+        | "accountant"
+        | "tutor"
+        | "student"
+        | "coach"
+        | "event_manager"
+        | "community_owner"
       application_status: "pending" | "approved" | "rejected"
       course_level: "beginner" | "intermediate" | "advanced"
       course_status: "draft" | "published" | "archived"
       document_visibility: "public" | "enrolled" | "private"
       payment_status: "pending" | "success" | "failed" | "refunded"
       payout_status: "pending" | "paid" | "cancelled"
-      post_status: "draft" | "published"
+      post_status: "draft" | "published" | "scheduled"
       thread_status: "open" | "pending" | "closed"
     }
     CompositeTypes: {
@@ -1392,15 +1990,26 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["active", "suspended"],
-      app_role: ["super_admin", "editor", "accountant", "tutor", "student", "coach", "event_manager", "community_owner"],
+      announcement_status: ["draft", "scheduled", "published", "archived"],
+      app_role: [
+        "super_admin",
+        "editor",
+        "accountant",
+        "tutor",
+        "student",
+        "coach",
+        "event_manager",
+        "community_owner",
+      ],
       application_status: ["pending", "approved", "rejected"],
       course_level: ["beginner", "intermediate", "advanced"],
       course_status: ["draft", "published", "archived"],
       document_visibility: ["public", "enrolled", "private"],
       payment_status: ["pending", "success", "failed", "refunded"],
       payout_status: ["pending", "paid", "cancelled"],
-      post_status: ["draft", "published"],
+      post_status: ["draft", "published", "scheduled"],
       thread_status: ["open", "pending", "closed"],
     },
   },
 } as const
+

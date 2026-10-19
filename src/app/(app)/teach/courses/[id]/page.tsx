@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TOPICS } from "@/lib/learner-prefs";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Eye, FileText, Pencil, PlayCircle, Trash2 } from "lucide-react";
 import { Status } from "@/components/dash/ui";
@@ -120,6 +121,18 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
                 <div className="et-field">
                   <label htmlFor="summary">Summary</label>
                   <textarea id="summary" name="summary" rows={2} defaultValue={course.summary ?? ""} />
+                </div>
+                <div className="et-field">
+                  <label htmlFor="category">Category</label>
+                  <select id="category" name="category" defaultValue={course.category ?? ""}>
+                    <option value="">Choose a category</option>
+                    {TOPICS.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <small>Used to recommend this course to learners interested in the topic.</small>
                 </div>
                 <div className="et-field">
                   <label htmlFor="skills">Skills taught</label>

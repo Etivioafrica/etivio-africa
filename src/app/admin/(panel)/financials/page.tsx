@@ -12,7 +12,7 @@ export const metadata = { title: "Financials" };
 
 export default async function Financials() {
   const { db } = await requireAdmin("financials");
-  const [{ data: monthly }, { data: balances }, { data: totals }, { data: payouts }, { data: recent }, { data: settings }] = await Promise.all([
+  const [{ data: monthly }, { data: balances }, { data: totals }, { data: payouts }, { data: recent }, { data: settings }, { data: accounts }] = await Promise.all([
     db.rpc("admin_monthly_revenue", { p_months: 12 }),
     db.rpc("admin_instructor_balances"),
     db.from("payments").select("amount_minor, platform_fee_minor, instructor_share_minor, status"),
@@ -23,7 +23,10 @@ export default async function Financials() {
       .order("created_at", { ascending: false })
       .limit(8),
     db.from("platform_settings").select("commission_percent").single(),
+    db.from("payout_accounts").select("user_id, bank_name, account_number, account_name, verified_at"),
   ]);
+  // Where each tutor gets paid, shown next to their balance.
+  const accountBy = new Map((accounts ?? []).map((a) => [a.user_id, a]));
 
   const ok = (totals ?? []).filter((p) => p.status === "success");
   const gross = ok.reduce((n, p) => n + p.amount_minor, 0);
@@ -84,6 +87,7 @@ export default async function Financials() {
                   <th className="et-th-right">Paid out</th>
                   <th className="et-th-right">Scheduled</th>
                   <th className="et-th-right">Owed</th>
+                  <th>Pays to</th>
                   <th />
                 </tr>
               </thead>
@@ -102,6 +106,20 @@ export default async function Financials() {
                       <td className="et-td-right">{formatMoney(b.paid_minor)}</td>
                       <td className="et-td-right">{formatMoney(b.pending_minor)}</td>
                       <td className="et-td-right et-money">{formatMoney(Math.max(0, due))}</td>
+                      <td>
+                        {accountBy.get(b.instructor_id) ? (
+                          <small>
+                            {accountBy.get(b.instructor_id)!.account_name}
+                            <br />
+                            <span className="et-muted">
+                              {accountBy.get(b.instructor_id)!.bank_name} · ••••{accountBy.get(b.instructor_id)!.account_number.slice(-4)}
+                              {accountBy.get(b.instructor_id)!.verified_at ? " · verified" : " · not verified"}
+                            </span>
+                          </small>
+                        ) : (
+                          <span className="et-tag">No account</span>
+                        )}
+                      </td>
                       <td className="et-td-right">
                         <PayoutForm instructorId={b.instructor_id} owedNaira={Math.max(0, due - b.pending_minor) / 100} />
                       </td>

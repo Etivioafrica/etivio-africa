@@ -2,6 +2,7 @@
 import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getPlatformSettings } from "@/lib/platform";
 import { CREATOR_ROLES, LIVE_CREATOR_ROLES, ROLE_LABELS, type AppRole } from "@/lib/roles";
 import type { FormState } from "@/app/(app)/teach/actions";
 
@@ -11,6 +12,7 @@ export async function applyForRole(_prev: FormState, fd: FormData): Promise<Form
   const role = String(fd.get("role") ?? "") as AppRole;
   if (!CREATOR_ROLES.includes(role) || !LIVE_CREATOR_ROLES.includes(role)) return { error: "This role isn't open for applications yet." };
   if (user.roles.includes(role)) return { error: `You're already a ${ROLE_LABELS[role].toLowerCase()}.` };
+  if (role === "tutor" && !(await getPlatformSettings()).tutorApplicationsOpen) return { error: "Tutor applications are closed right now. Please check back later." };
   const message = String(fd.get("message") ?? "").trim().slice(0, 2000);
   if (message.length < 20) return { error: "Tell us a little about what you want to teach (at least 20 characters)." };
 

@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMyPrivateProfile } from "@/lib/my-profile";
 import type { AppRole } from "@/lib/roles";
 
 export type CurrentUser = {
@@ -15,6 +16,8 @@ export type CurrentUser = {
   providers: string[];
   // Latest tutor application, so the Teach area can appear once someone has applied.
   tutorApplication: "pending" | "approved" | "rejected" | null;
+  // True until the welcome guide has been finished or skipped.
+  needsOnboarding: boolean;
 };
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -34,8 +37,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   if (!user) redirect("/login");
   await requireFullSession(supabase, "/learn");
 
-  const [{ data: profile }, { data: roles }, { data: application }] = await Promise.all([
-    supabase.from("profiles").select("full_name, avatar_url, bio, status, deleted_at").eq("id", user.id).single(),
+  const [{ data: profile }, priv, { data: roles }, { data: application }] = await Promise.all([
+    supabase.from("profiles").select("full_name, avatar_url, bio").eq("id", user.id).single(),
+    getMyPrivateProfile(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
     supabase
       .from("role_applications")
@@ -46,7 +50,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
       .limit(1)
       .maybeSingle(),
   ]);
-  if (profile?.status === "suspended" || profile?.deleted_at) redirect("/suspended");
+  if (priv?.status === "suspended" || priv?.deleted_at) redirect("/suspended");
 
   return {
     id: user.id,
@@ -57,5 +61,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     roles: roles?.length ? roles.map((r) => r.role) : ["student"],
     providers: (user.app_metadata?.providers as string[] | undefined) ?? (user.app_metadata?.provider ? [user.app_metadata.provider] : []),
     tutorApplication: application?.status ?? null,
+    needsOnboarding: !!priv && !priv.onboarded_at,
   };
 });

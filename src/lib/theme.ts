@@ -4,11 +4,12 @@ import { useSyncExternalStore } from "react";
 const THEME_KEY = "etivio_theme";
 const listeners = new Set<() => void>();
 
+// Light is the default; dark only when the visitor has chosen it.
 const read = () => {
   try {
-    return localStorage.getItem(THEME_KEY) === "light";
+    return localStorage.getItem(THEME_KEY) !== "dark";
   } catch {
-    return false;
+    return true;
   }
 };
 
@@ -27,6 +28,6 @@ export function writeTheme(light: boolean) {
 }
 
 export function useTheme() {
-  const light = useSyncExternalStore(subscribe, read, () => false);
+  const light = useSyncExternalStore(subscribe, read, () => true);
   return { light, dark: !light };
 }

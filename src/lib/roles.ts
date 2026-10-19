@@ -44,6 +44,7 @@ export const ADMIN_AREAS = {
   users: ["super_admin"],
   courses: ["super_admin"],
   blog: ["super_admin", "editor"],
+  announcements: ["super_admin", "editor"],
   documents: ["super_admin"],
   chats: ["super_admin"],
   tracking: ["super_admin"],

@@ -1,10 +1,12 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import { UserTimeline } from "./UserTimeline";
+import { LearnerAchievements, LearnerBilling, LearnerProfile } from "./LearnerDetails";
 import { notFound } from "next/navigation";
-import { Activity, ArrowLeft, Ban, BookCheck, CheckCircle2, GraduationCap, RotateCcw, Trash2, Wallet, X } from "lucide-react";
-import { Progress, Stat, Status } from "@/components/dash/ui";
+import { Activity, Ban, BookCheck, CheckCircle2, GraduationCap, RotateCcw, Trash2, Users, Wallet, X } from "lucide-react";
+import { Progress, StatStrip, Status } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { requireAdmin } from "@/lib/admin";
-import { EVENT_LABELS } from "@/lib/data/admin";
 import { compactMoney, formatDate, formatDateTime, formatMoney, percent } from "@/lib/format";
 import { CREATOR_ROLES, LIVE_CREATOR_ROLES, ROLE_BLURBS, ROLE_LABELS, STAFF_ROLES } from "@/lib/roles";
 import { deleteUser, grantCourseAccess, purgeUser, restoreUser, revokeCourseAccess, sendPasswordReset, setUserRoles, setUserStatus } from "../actions";
@@ -13,8 +15,22 @@ export const metadata = { title: "User" };
 
 const PURGE_AFTER_DAYS = 30;
 
-export default async function UserDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "learning", label: "Learning" },
+  { id: "billing", label: "Payments" },
+  { id: "activity", label: "Activity" },
+  { id: "access", label: "Roles and access" },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
+
+const skel = (height: number) => <div className="et-skel" style={{ height }} />;
+
+export default async function UserDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
+  const [{ id }, { tab: wanted }] = await Promise.all([params, searchParams]);
+  const tab: Tab = TABS.find((t) => t.id === wanted)?.id ?? "overview";
   const { admin, db } = await requireAdmin("users");
 
   const [{ data: profile }, { data: authUser }, { data: roleRows }] = await Promise.all([
@@ -30,7 +46,12 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
     db.from("enrollments").select("course_id, enrolled_at, completed_at, course:courses(title)").eq("user_id", id).order("enrolled_at", { ascending: false }),
     db.from("lesson_progress").select("lesson:lessons(course_id)").eq("user_id", id),
     db.from("courses").select("id, title, status, created_at").eq("instructor_id", id).order("created_at", { ascending: false }),
-    db.from("payments").select("id, amount_minor, currency, status, reference, paid_at, created_at, course:courses(title)").eq("user_id", id).order("created_at", { ascending: false }).limit(20),
+    db
+      .from("payments")
+      .select("id, amount_minor, currency, status, reference, paid_at, created_at, course:courses(title)")
+      .eq("user_id", id)
+      .order("created_at", { ascending: false })
+      .limit(20),
     db.from("payments").select("instructor_share_minor").eq("instructor_id", id).eq("status", "success"),
     db.from("payouts").select("amount_minor, status").eq("instructor_id", id),
     db.from("support_threads").select("id, subject, status, last_message_at").eq("user_id", id).order("last_message_at", { ascending: false }),
@@ -40,7 +61,8 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
       .select("id, type, path, created_at, course:courses!activity_events_course_id_fkey(title)")
       .eq("user_id", id)
       .order("created_at", { ascending: false })
-      .limit(30),
+      .gte("created_at", daysAgo(30))
+      .limit(300),
     db.from("role_applications").select("id, role, status, message, created_at, review_note").eq("user_id", id).order("created_at", { ascending: false }),
   ]);
 
@@ -67,12 +89,20 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
   const purgeOn = deleted ? new Date(Date.parse(profile.deleted_at!) + PURGE_AFTER_DAYS * 86_400_000).toISOString() : null;
   const provider = (user.app_metadata?.provider as string | undefined) ?? "email";
 
+  const current = TABS.find((t) => t.id === tab)!;
+  const counts: Partial<Record<Tab, number>> = {
+    learning: enrolled.length,
+    billing: payments.data?.length ?? 0,
+    activity: threads.data?.filter((t) => t.status !== "closed").length ?? 0,
+  };
+  const tabHref = (t: Tab) => (t === "overview" ? `/admin/users/${id}` : `/admin/users/${id}?tab=${t}`);
+
   return (
     <div className="et-page">
-      <Link href={deleted ? "/admin/users?deleted=1" : "/admin/users"} className="et-back">
-        <ArrowLeft size={14} />
-        Users
-      </Link>
+      <p className="et-set-crumb">
+        <Users size={12} />
+        <Link href={deleted ? "/admin/users?deleted=1" : "/admin/users"}>Users</Link> <span>/</span> {name} <span>/</span> {current.label}
+      </p>
 
       {deleted && (
         <div className="et-flash et-flash-err" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -99,8 +129,12 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
 
       <div className="et-page-head">
         <div className="et-cell-main">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="et-avatar et-avatar-xl" /> : <span className="et-avatar et-avatar-xl">{name.charAt(0).toUpperCase()}</span>}
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="et-avatar et-avatar-xl" />
+          ) : (
+            <span className="et-avatar et-avatar-xl">{name.charAt(0).toUpperCase()}</span>
+          )}
           <div>
             <h1>{name}</h1>
             <p className="et-inline" style={{ marginTop: 6 }}>
@@ -135,15 +169,65 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      <div className="et-stats">
-        <Stat label="Courses enrolled" value={enrolled.length} icon={GraduationCap} />
-        <Stat label="Lessons done" value={lessonsDone} icon={BookCheck} />
-        <Stat label={roles.includes("tutor") ? "Earned as tutor" : "Total spent"} value={compactMoney(roles.includes("tutor") ? earned : spent)} icon={Wallet} />
-        <Stat label="Last active" value={lastActive ? formatDate(lastActive) : "Never"} icon={Activity} />
-      </div>
+      <nav className="et-seg" aria-label="User sections" style={{ alignSelf: "flex-start" }}>
+        {TABS.map((t) => (
+          <Link key={t.id} href={tabHref(t.id)} scroll={false} className={tab === t.id ? "is-on" : ""} aria-current={tab === t.id ? "page" : undefined}>
+            {t.label}
+            {!!counts[t.id] && <span className="et-seg-count">{counts[t.id]}</span>}
+          </Link>
+        ))}
+      </nav>
 
-      <div className="et-grid-main" style={{ gridTemplateColumns: "minmax(0,1fr) 380px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+      {tab === "overview" && (
+        <>
+          <StatStrip
+            items={[
+              { label: "Courses enrolled", value: enrolled.length, icon: GraduationCap, href: tabHref("learning") },
+              { label: "Lessons done", value: lessonsDone, icon: BookCheck, href: tabHref("learning") },
+              {
+                label: roles.includes("tutor") ? "Earned as tutor" : "Total spent",
+                value: compactMoney(roles.includes("tutor") ? earned : spent),
+                icon: Wallet,
+                href: tabHref("billing"),
+              },
+              { label: "Last active", value: lastActive ? formatDate(lastActive) : "Never", icon: Activity, href: tabHref("activity") },
+            ]}
+          />
+          <div className="et-grid-2" style={{ alignItems: "start" }}>
+            <section className="et-card">
+              <div className="et-card-head">
+                <h2>Details</h2>
+              </div>
+              <dl className="et-kv et-card-pad">
+                <dt>Email</dt>
+                <dd>
+                  {user.email} {user.email_confirmed_at ? <Status value="active" /> : "(unconfirmed)"}
+                </dd>
+                <dt>Phone</dt>
+                <dd>{user.phone || "Not added"}</dd>
+                <dt>Signs in with</dt>
+                <dd style={{ textTransform: "capitalize" }}>{provider}</dd>
+                <dt>Joined</dt>
+                <dd>{formatDateTime(profile.created_at)}</dd>
+                <dt>Last sign-in</dt>
+                <dd>{user.last_sign_in_at ? formatDateTime(user.last_sign_in_at) : "Never"}</dd>
+                <dt>Profile updated</dt>
+                <dd>{formatDateTime(profile.updated_at)}</dd>
+                <dt>Bio</dt>
+                <dd>{profile.bio || "None"}</dd>
+                <dt>User ID</dt>
+                <dd style={{ fontFamily: "var(--font-geist-mono)", fontSize: 11.5 }}>{id}</dd>
+              </dl>
+            </section>
+            <Suspense fallback={skel(420)}>
+              <LearnerProfile db={db} id={id} profile={profile} />
+            </Suspense>
+          </div>
+        </>
+      )}
+
+      {tab === "learning" && (
+        <>
           <section className="et-card">
             <div className="et-card-head">
               <h2>Learning</h2>
@@ -186,7 +270,7 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
             <div style={{ borderTop: "1px solid var(--a-border)", padding: "14px 20px" }}>
               <ActionForm action={grantCourseAccess} className="et-inline">
                 <input type="hidden" name="id" value={id} />
-                <select name="course_id" className="et-input" aria-label="Course" defaultValue="" style={{ flex: 1, height: 36, width: "auto" }}>
+                <select name="course_id" className="et-input" aria-label="Course" defaultValue="" style={{ flex: 1 }}>
                   <option value="" disabled>
                     Grant access to a course…
                   </option>
@@ -204,7 +288,6 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
               </ActionForm>
             </div>
           </section>
-
           {(roles.includes("tutor") || !!taught.data?.length) && (
             <section className="et-card">
               <div className="et-card-head">
@@ -236,7 +319,16 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
               )}
             </section>
           )}
+          <Suspense fallback={skel(220)}>
+            <div className="et-grid-2" style={{ alignItems: "start" }}>
+              <LearnerAchievements db={db} id={id} />
+            </div>
+          </Suspense>
+        </>
+      )}
 
+      {tab === "billing" && (
+        <div className="et-grid-main" style={{ gridTemplateColumns: "minmax(0,1fr) 380px" }}>
           <section className="et-card">
             <div className="et-card-head">
               <h2>Payments</h2>
@@ -264,29 +356,21 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
               <p className="et-empty">No payments.</p>
             )}
           </section>
+          <Suspense fallback={skel(320)}>
+            <LearnerBilling db={db} id={id} />
+          </Suspense>
+        </div>
+      )}
 
+      {tab === "activity" && (
+        <div className="et-grid-main" style={{ gridTemplateColumns: "minmax(0,1fr) 380px" }}>
           <section className="et-card">
             <div className="et-card-head">
               <h2>Activity timeline</h2>
-              <span className="et-muted">last 30 events</span>
+              <span className="et-muted" style={{ fontSize: 12.5 }}>Last 30 days</span>
             </div>
-            {events.data?.length ? (
-              <ul className="et-feed">
-                {events.data.map((e) => (
-                  <li key={e.id}>
-                    <span className="et-feed-dot" />
-                    <span>
-                      {EVENT_LABELS[e.type] ?? e.type.replace(/_/g, " ")} {e.course?.title ? <b>{e.course.title}</b> : e.path ? <b>{e.path}</b> : null}
-                    </span>
-                    <time>{formatDateTime(e.created_at)}</time>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="et-empty">No activity yet.</p>
-            )}
+            <UserTimeline events={events.data ?? []} />
           </section>
-
           <section className="et-card">
             <div className="et-card-head">
               <h2>Support conversations</h2>
@@ -308,34 +392,10 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
             )}
           </section>
         </div>
+      )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <section className="et-card">
-            <div className="et-card-head">
-              <h2>Details</h2>
-            </div>
-            <dl className="et-kv et-card-pad">
-              <dt>Email</dt>
-              <dd>
-                {user.email} {user.email_confirmed_at ? <Status value="active" /> : "(unconfirmed)"}
-              </dd>
-              <dt>Phone</dt>
-              <dd>{user.phone || "Not added"}</dd>
-              <dt>Signs in with</dt>
-              <dd style={{ textTransform: "capitalize" }}>{provider}</dd>
-              <dt>Joined</dt>
-              <dd>{formatDateTime(profile.created_at)}</dd>
-              <dt>Last sign-in</dt>
-              <dd>{user.last_sign_in_at ? formatDateTime(user.last_sign_in_at) : "Never"}</dd>
-              <dt>Profile updated</dt>
-              <dd>{formatDateTime(profile.updated_at)}</dd>
-              <dt>Bio</dt>
-              <dd>{profile.bio || "None"}</dd>
-              <dt>User ID</dt>
-              <dd style={{ fontFamily: "var(--font-geist-mono)", fontSize: 11.5 }}>{id}</dd>
-            </dl>
-          </section>
-
+      {tab === "access" && (
+        <div className="et-grid-2" style={{ alignItems: "start" }}>
           <section className="et-card">
             <div className="et-card-head">
               <h2>Roles</h2>
@@ -356,7 +416,11 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
                       <input type="checkbox" name="roles" value={r} defaultChecked={roles.includes(r)} style={{ marginTop: 2 }} />
                       <span>
                         <b style={{ color: "var(--a-fg)" }}>{ROLE_LABELS[r]}</b>
-                        {!LIVE_CREATOR_ROLES.includes(r) && <span className="et-tag" style={{ marginLeft: 6 }}>Coming soon</span>}
+                        {!LIVE_CREATOR_ROLES.includes(r) && (
+                          <span className="et-tag" style={{ marginLeft: 6 }}>
+                            Coming soon
+                          </span>
+                        )}
                         <br />
                         <small>{ROLE_BLURBS[r]}</small>
                       </span>
@@ -383,49 +447,49 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
               )}
             </div>
           </section>
-
-          {!!applications.data?.length && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <section className="et-card">
               <div className="et-card-head">
-                <h2>Applications</h2>
-                <Link href="/admin/users/applications">Review queue</Link>
+                <h2>Password</h2>
               </div>
-              <ul className="et-feed">
-                {applications.data.map((a) => (
-                  <li key={a.id}>
-                    <span>
-                      <b>{ROLE_LABELS[a.role]}</b>
-                      <br />
-                      <small className="et-muted">{a.review_note || a.message}</small>
-                    </span>
-                    <Status value={a.status === "approved" ? "active" : a.status} />
-                    <time>{formatDate(a.created_at)}</time>
-                  </li>
-                ))}
-              </ul>
+              <div className="et-card-pad">
+                <ActionForm action={sendPasswordReset}>
+                  <input type="hidden" name="id" value={id} />
+                  <p className="et-muted" style={{ fontSize: 13 }}>
+                    Email this user a link to set a new password.
+                  </p>
+                  <div className="et-form-foot">
+                    <SubmitButton className="et-btn et-btn-ghost" pendingLabel="Sending…">
+                      Send reset link
+                    </SubmitButton>
+                  </div>
+                </ActionForm>
+              </div>
             </section>
-          )}
-
-          <section className="et-card">
-            <div className="et-card-head">
-              <h2>Password</h2>
-            </div>
-            <div className="et-card-pad">
-              <ActionForm action={sendPasswordReset}>
-                <input type="hidden" name="id" value={id} />
-                <p className="et-muted" style={{ fontSize: 13 }}>
-                  Email this user a link to set a new password.
-                </p>
-                <div className="et-form-foot">
-                  <SubmitButton className="et-btn et-btn-ghost" pendingLabel="Sending…">
-                    Send reset link
-                  </SubmitButton>
+            {!!applications.data?.length && (
+              <section className="et-card">
+                <div className="et-card-head">
+                  <h2>Applications</h2>
+                  <Link href="/admin/users/applications">Review queue</Link>
                 </div>
-              </ActionForm>
-            </div>
-          </section>
+                <ul className="et-feed">
+                  {applications.data.map((a) => (
+                    <li key={a.id}>
+                      <span>
+                        <b>{ROLE_LABELS[a.role]}</b>
+                        <br />
+                        <small className="et-muted">{a.review_note || a.message}</small>
+                      </span>
+                      <Status value={a.status === "approved" ? "active" : a.status} />
+                      <time>{formatDate(a.created_at)}</time>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

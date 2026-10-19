@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getMyPrivateProfile } from "@/lib/my-profile";
 import { percent } from "@/lib/format";
 import { buildHeatmap, dailyCounts, type Heatmap } from "@/lib/activity";
 import type { BadgeId } from "@/lib/badges";
@@ -68,15 +69,22 @@ export type LearnerProfile = {
   skills: string[];
 };
 
+// Public fields for anyone the viewer can see (RLS hides deleted accounts). Private fields (preferences, goal)
+// only come back for the viewer's own profile; for someone else they're defaults.
 export async function getProfileDetails(userId: string): Promise<ProfileDetails | null> {
   const supabase = await createClient();
-  const { data: p } = await supabase
-    .from("profiles")
-    .select("id, username, profile_public, full_name, avatar_url, cover_url, bio, headline, location, website_url, linkedin_url, x_url, interests, notification_prefs, created_at, weekly_goal, show_current_learning")
-    .eq("id", userId)
-    .is("deleted_at", null)
-    .maybeSingle();
+  const [{ data: p }, {
+    data: { user },
+  }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, username, profile_public, full_name, avatar_url, cover_url, bio, headline, location, website_url, linkedin_url, x_url, interests, created_at")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase.auth.getUser(),
+  ]);
   if (!p) return null;
+  const priv = user?.id === userId ? await getMyPrivateProfile() : null;
   return {
     id: p.id,
     username: p.username,
@@ -91,10 +99,10 @@ export async function getProfileDetails(userId: string): Promise<ProfileDetails 
     linkedinUrl: p.linkedin_url,
     xUrl: p.x_url,
     interests: p.interests ?? [],
-    notificationPrefs: readPrefs(p.notification_prefs),
+    notificationPrefs: readPrefs(priv?.notification_prefs),
     joinedAt: p.created_at,
-    weeklyGoal: p.weekly_goal,
-    showCurrentLearning: p.show_current_learning,
+    weeklyGoal: priv?.weekly_goal ?? null,
+    showCurrentLearning: priv?.show_current_learning ?? true,
   };
 }
 
@@ -141,6 +149,9 @@ export const getLearnerProfile = cache(async (userId: string): Promise<LearnerPr
   const ids = rows.map((r) => r.course!.id);
   const { data: counts } = ids.length ? await supabase.rpc("course_lesson_counts", { p_course_ids: ids }) : { data: [] };
   const totalBy = new Map((counts ?? []).map((c) => [c.course_id, c.lesson_count]));
+  // Module quizzes count as steps, and a course isn't complete until every one is passed.
+  const { data: quizRows } = ids.length ? await supabase.rpc("quiz_progress", { p_user_id: userId, p_course_ids: ids }) : { data: [] };
+  const quizBy = new Map((quizRows ?? []).map((q) => [q.course_id, q]));
 
   const enrolledIds = new Set(ids);
   const done = ((progress ?? []) as unknown as ProgressRow[]).filter((p) => p.lesson && enrolledIds.has(p.lesson.course_id));
@@ -168,8 +179,8 @@ export const getLearnerProfile = cache(async (userId: string): Promise<LearnerPr
         enrolledAt: r.enrolled_at,
         done: n,
         total,
-        progress: percent(n, total),
-        completed: total > 0 && n >= total,
+        progress: percent(n + (quizBy.get(c.id)?.passed ?? 0), total + (quizBy.get(c.id)?.quizzes ?? 0)),
+        completed: total > 0 && n >= total && (quizBy.get(c.id)?.passed ?? 0) >= (quizBy.get(c.id)?.quizzes ?? 0),
         lastActivity: d?.last || r.enrolled_at,
       };
     })

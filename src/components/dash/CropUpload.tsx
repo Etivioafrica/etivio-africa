@@ -21,7 +21,7 @@ export const CropUpload = forwardRef<
     title: string;
     hint: string;
     out: Size;
-    kind: "banner" | "avatar";
+    kind: "banner" | "avatar" | "blog" | "cover";
     minZoom?: number;
     round?: boolean;
     confirmLabel: string;

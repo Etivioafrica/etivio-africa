@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import { LearnerInsights } from "./LearnerInsights";
 import { Activity, BookCheck, Eye, GraduationCap, UserPlus } from "lucide-react";
 import { PageHead, Stat } from "@/components/dash/ui";
 import { BarChart } from "@/components/dash/BarChart";
@@ -48,6 +50,10 @@ export default async function Tracking({ searchParams }: { searchParams: Promise
         <Stat label="Lessons completed" value={sum("completions")} icon={BookCheck} />
         <Stat label="Page views" value={sum("page_views")} icon={Eye} />
       </div>
+
+      <Suspense fallback={<div className="et-skel" style={{ height: 320 }} />}>
+        <LearnerInsights db={db} />
+      </Suspense>
 
       <div className="et-grid-2">
         <section className="et-card">

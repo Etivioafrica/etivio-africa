@@ -4,7 +4,7 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 
 // Light chrome for public pages (shareable profiles) that reuses the dashboard design tokens.
-export function PublicFrame({ children }: { children: React.ReactNode }) {
+export function PublicFrame({ children, footerLinks }: { children: React.ReactNode; footerLinks?: React.ReactNode }) {
   const { light } = useTheme();
   return (
     <div className={`et-app et-public${light ? " is-light" : ""}`}>
@@ -14,6 +14,9 @@ export function PublicFrame({ children }: { children: React.ReactNode }) {
           <img src="/etiviologo.svg" alt="Etivio" className="et-brand-logo" />
         </Link>
         <nav className="et-inline">
+          <Link href="/blog" className="et-public-link">
+            Blog
+          </Link>
           <button
             type="button"
             className="et-icon-btn"
@@ -33,7 +36,9 @@ export function PublicFrame({ children }: { children: React.ReactNode }) {
       <main className="et-public-main">{children}</main>
       <footer className="et-public-foot">
         <span>© Etivio Africa</span>
+        {footerLinks}
         <nav className="et-inline">
+          <Link href="/blog">Blog</Link>
           <Link href="/certificate">Verify a certificate</Link>
           <Link href="/teach-on-etivio">Teach on Etivio</Link>
           <Link href="/privacy">Privacy</Link>

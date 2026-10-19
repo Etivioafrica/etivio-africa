@@ -4,7 +4,9 @@ const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "lon
 
 // The certificate itself. Every size is in container units (cqw), so the same markup renders as a
 // thumbnail in the Certificates tab, full size on the public page, and one A4 page when printed.
-export function CertificateArt({ cert, site }: { cert: Certificate; site: string }) {
+export function CertificateArt({ cert, site, signer }: { cert: Certificate; site: string; signer?: { name: string; title: string } }) {
+  // Courses with a tutor are signed by the tutor; otherwise by the admin-set signer (Admin > Settings > Learning).
+  const sign = cert.instructorName ? { name: cert.instructorName, title: "Course tutor" } : (signer ?? { name: "The Etivio team", title: "Etivio Africa" });
   const ring = `cx-ring-${cert.code}`;
   return (
     <div className="et-cx" role="img" aria-label={`Etivio certificate: ${cert.recipientName} completed ${cert.courseTitle}, ${fmt(cert.issuedAt)}, ID ${cert.code}`}>
@@ -52,9 +54,9 @@ export function CertificateArt({ cert, site }: { cert: Certificate; site: string
           </div>
 
           <div className="et-cx-field et-cx-sign">
-            <i>{cert.instructorName ?? "Etivio Learning"}</i>
-            <b>{cert.instructorName ?? "The Etivio team"}</b>
-            <span>{cert.instructorName ? "Course tutor" : "Etivio Africa"}</span>
+            <i>{sign.name}</i>
+            <b>{sign.name}</b>
+            <span>{sign.title}</span>
           </div>
         </div>
 

@@ -14,14 +14,22 @@ export function BarChart({
   data,
   format = (n) => n.toLocaleString("en-NG"),
   height = 180,
-  ticks = 4,
+  ticks: wantedTicks = 4,
+  integer = false,
 }: {
   data: Point[];
   format?: (n: number) => string;
   height?: number;
   ticks?: number;
+  // Counts (sign-ups, enrollments): keep the axis on whole numbers, never "0.25 sign-ups".
+  integer?: boolean;
 }) {
-  const max = niceMax(Math.max(0, ...data.map((d) => d.value)));
+  let max = niceMax(Math.max(0, ...data.map((d) => d.value)));
+  let ticks = wantedTicks;
+  if (integer) {
+    max = Math.max(1, Math.ceil(max));
+    ticks = [wantedTicks, 4, 3, 2, 1].find((t) => t <= max && max % t === 0) ?? 1;
+  }
   const gridValues = Array.from({ length: ticks + 1 }, (_, i) => (max / ticks) * (ticks - i));
   const labelEvery = Math.max(1, Math.ceil(data.length / 8));
 

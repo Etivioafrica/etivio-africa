@@ -9,6 +9,7 @@ import { getCertificate, linkedInAddUrl } from "@/lib/data/certificates";
 import { PrintButton } from "./PrintButton";
 import { VerifyBox } from "../VerifyBox";
 import { CertificateArt } from "@/components/dash/CertificateArt";
+import { getPlatformSettings } from "@/lib/platform";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -48,6 +49,26 @@ async function CertificateContent({ params }: Props) {
       </section>
     );
 
+  if (cert.revokedAt)
+    return (
+      <section className="et-card et-verify is-bad">
+        <span className="et-cta-icon">
+          <ShieldX size={24} />
+        </span>
+        <h1>This certificate has been revoked</h1>
+        <p>
+          Certificate <b>{cert.code}</b> was issued to {cert.recipientName} for {cert.courseTitle} on {fmt(cert.issuedAt)}, but Etivio revoked it on{" "}
+          {fmt(cert.revokedAt)}. It is no longer valid.
+        </p>
+        {cert.revokedReason && (
+          <p>
+            <b>Reason:</b> {cert.revokedReason}
+          </p>
+        )}
+        <VerifyBox />
+      </section>
+    );
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -72,7 +93,7 @@ async function CertificateContent({ params }: Props) {
       </div>
 
       <article className="et-cert-frame">
-        <CertificateArt cert={cert} site={SITE} />
+        <CertificateArt cert={cert} site={SITE} signer={(await getPlatformSettings()).certificateSigner} />
       </article>
 
       {cert.username && (

@@ -113,7 +113,8 @@ async function SessionCtas() {
 
 // A few published courses. Hidden until there are some.
 async function Featured() {
-  const courses = (await getCatalog(6)).slice(0, 3);
+  // Courses starred in Admin › Courses come first.
+  const courses = (await getCatalog(12)).sort((a, b) => Number(!!b.featured) - Number(!!a.featured)).slice(0, 3);
   if (!courses.length) return null;
   return (
     <section className="et-home-section">

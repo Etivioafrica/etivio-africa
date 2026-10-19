@@ -106,18 +106,30 @@ export function Empty({ title, children, action }: { title: string; children?: R
 }
 
 // Slim stats row: separate light cards, a finer alternative to the big Stat cards.
-export function StatStrip({ items }: { items: { label: string; value: number | string; icon: LucideIcon }[] }) {
+export function StatStrip({ items }: { items: { label: string; value: number | string; icon: LucideIcon; href?: string; hint?: string }[] }) {
   return (
     <section className="et-statstrip">
-      {items.map(({ label, value, icon: Icon }) => (
-        <div key={label} className="et-card">
-          <span className="et-statstrip-icon">
-            <Icon size={15} strokeWidth={1.9} />
-          </span>
-          <p>{label}</p>
-          <strong>{value}</strong>
-        </div>
-      ))}
+      {items.map(({ label, value, icon: Icon, href, hint }) => {
+        const body = (
+          <>
+            <span className="et-statstrip-icon">
+              <Icon size={15} strokeWidth={1.9} />
+            </span>
+            <p>{label}</p>
+            <strong>{value}</strong>
+            {hint && <small className="et-statstrip-hint">{hint}</small>}
+          </>
+        );
+        return href ? (
+          <Link key={label} href={href} className="et-card et-statstrip-link">
+            {body}
+          </Link>
+        ) : (
+          <div key={label} className="et-card">
+            {body}
+          </div>
+        );
+      })}
     </section>
   );
 }

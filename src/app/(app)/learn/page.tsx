@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { BookOpen, CheckCircle2, Flame, ListChecks } from "lucide-react";
-import { Cover, Empty, PageHead, Progress, Stat } from "@/components/dash/ui";
+import { Cover, Empty, Progress, Stat } from "@/components/dash/ui";
 import { CourseGrid } from "@/components/dash/CourseGrid";
-import { getCatalog, getMyCourses, getSavedIds } from "@/lib/data/learn";
+import { getMyCourses, getSavedIds } from "@/lib/data/learn";
+import { getLearnerPrefs, getRecommendations } from "@/lib/data/recommend";
+import { getLearnerProfile } from "@/lib/data/profile";
+import { LearnerGuidance } from "@/components/dash/LearnerGuidance";
+import { WelcomeHero } from "@/components/dash/WelcomeHero";
+import { getPlatformSettings } from "@/lib/platform";
+import { AnnouncementBar } from "@/components/dash/AnnouncementBar";
 import { getCurrentUser } from "@/lib/auth";
 import { syncBadges } from "@/lib/data/badges";
 import { syncCertificates } from "@/lib/data/certificates";
@@ -12,19 +18,42 @@ export const metadata = { title: "Learn" };
 export default async function LearnDashboard() {
   const user = await getCurrentUser();
   // Landing page after sign-in, so it also catches badges earned outside a lesson (e.g. Early learner).
-  const [mine, catalog, savedIds] = await Promise.all([getMyCourses(), getCatalog(12), getSavedIds(), syncBadges(user.id), syncCertificates(user.id)]);
+  const [mine, recommended, prefs, profile, savedIds] = await Promise.all([
+    getMyCourses(),
+    getRecommendations(3),
+    getLearnerPrefs(),
+    getLearnerProfile(user.id),
+    getSavedIds(),
+    syncBadges(user.id),
+    syncCertificates(user.id),
+  ]);
+  const platform = await getPlatformSettings();
+  // Lessons this week (Sunday to Saturday), from the activity heatmap's current column.
+  const thisWeek = profile?.heatmap.weeks.at(-1)?.reduce((n, d) => n + d.count, 0) ?? 0;
   const active = mine.filter((c) => !c.completed);
   const completed = mine.filter((c) => c.completed);
   const lessonsDone = mine.reduce((n, c) => n + c.done, 0);
   const enrolledIds = new Set(mine.map((c) => c.id));
-  const suggestions = catalog.filter((c) => !enrolledIds.has(c.id)).slice(0, 3);
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  // The banner's one next step: the course they touched most recently, else something new to start.
+  const current = active[0];
+  const hero = current
+    ? {
+        message: current.done
+          ? `You're ${current.progress}% through ${current.title}. Keep going to reach your goal.`
+          : `You're enrolled in ${current.title}. Start your first lesson today.`,
+        cta: { label: current.done ? "Continue learning" : "Start learning", href: `/learn/course/${current.id}` },
+      }
+    : mine.length
+      ? { message: "You've finished every course you started. Ready for the next one?", cta: { label: "Find a new course", href: "/learn/browse" } }
+      : { message: "Find your first course and start learning today. Your progress, badges, and certificates start here.", cta: { label: "Browse courses", href: "/learn/browse" } };
 
   return (
     <div className="et-page">
-      <PageHead title="Dashboard" sub="Pick up where you left off.">
-        <span className="et-date">{today}</span>
-      </PageHead>
+      {platform.announcement && <AnnouncementBar text={platform.announcement.text} link={platform.announcement.link} />}
+      <WelcomeHero name={(user.name || "there").split(" ")[0]} date={today} message={hero.message} cta={hero.cta} background={platform.heroBgUrl} />
+
+      <LearnerGuidance goal={prefs.goal} weeklyGoal={prefs.weeklyGoal} thisWeek={thisWeek} />
 
       <div className="et-stats">
         <Stat label="Enrolled" value={mine.length} icon={BookOpen} href="/learn/courses" />
@@ -80,15 +109,22 @@ export default async function LearnDashboard() {
         </section>
       </div>
 
-      {suggestions.length > 0 && (
+      {recommended.length > 0 && (
         <section className="et-page" style={{ gap: 14 }}>
           <div className="et-toolbar">
-            <h2 style={{ fontSize: 16, fontWeight: 600 }}>Explore courses</h2>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 600 }}>{prefs.interests.length || prefs.level ? "Recommended for you" : "Explore courses"}</h2>
+              {(prefs.interests.length > 0 || prefs.level) && (
+                <p className="et-muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                  Based on your interests{prefs.level ? " and level" : ""}. <Link href="/settings" style={{ color: "var(--accent)" }}>Update interests</Link>
+                </p>
+              )}
+            </div>
             <Link href="/learn/browse" className="et-btn et-btn-ghost et-btn-sm">
               Browse all
             </Link>
           </div>
-          <CourseGrid courses={suggestions} enrolledIds={enrolledIds} savedIds={savedIds} />
+          <CourseGrid courses={recommended} enrolledIds={enrolledIds} savedIds={savedIds} />
         </section>
       )}
     </div>

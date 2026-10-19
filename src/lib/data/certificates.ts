@@ -16,6 +16,8 @@ export type Certificate = {
   courseTitle: string;
   instructorName: string | null;
   issuedAt: string;
+  revokedAt?: string | null;
+  revokedReason?: string | null;
 };
 
 // Issues a certificate for every completed course that doesn't have one yet. Service role, so learners can't mint their own.
@@ -52,6 +54,7 @@ export async function getMyCertificates(userId: string): Promise<Certificate[]> 
     .from("certificates")
     .select("code, course_id, recipient_name, course_title, instructor_name, issued_at")
     .eq("user_id", userId)
+    .is("revoked_at", null)
     .order("issued_at", { ascending: false });
   return (data ?? []).map((c) => ({
     code: c.code,
@@ -68,7 +71,7 @@ export const getCertificate = cache(async (code: string): Promise<(Certificate &
   if (!/^[A-Z0-9]{8}$/.test(code)) return null;
   const { data: c } = await createAdminClient()
     .from("certificates")
-    .select("code, course_id, recipient_name, course_title, instructor_name, issued_at, owner:profiles!certificates_user_id_fkey(username, profile_public, deleted_at)")
+    .select("code, course_id, recipient_name, course_title, instructor_name, issued_at, revoked_at, revoked_reason, owner:profiles!certificates_user_id_fkey(username, profile_public, deleted_at)")
     .eq("code", code)
     .maybeSingle();
   if (!c) return null;
@@ -81,6 +84,8 @@ export const getCertificate = cache(async (code: string): Promise<(Certificate &
     courseTitle: c.course_title,
     instructorName: c.instructor_name,
     issuedAt: c.issued_at,
+    revokedAt: c.revoked_at,
+    revokedReason: c.revoked_reason,
     username: owner?.profile_public ? owner.username : null,
   };
 });

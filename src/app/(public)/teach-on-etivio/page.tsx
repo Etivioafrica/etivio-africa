@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, BarChart3, CheckCircle2, Clock, Layers, Presentation, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { RoleApplication } from "@/app/(app)/roles/RoleApplication";
+import { getPlatformSettings } from "@/lib/platform";
 
 export const metadata = {
   title: "Teach on Etivio",
@@ -84,6 +85,16 @@ async function ApplyPanel() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { tutorApplicationsOpen } = await getPlatformSettings();
+  const closed = (
+      <div className="et-teach-signin">
+        <p className="et-inline">
+          <Clock size={16} /> Tutor applications are closed right now.
+        </p>
+        <p>We open them in batches so every application gets a proper review. Please check back soon.</p>
+      </div>
+  );
+  if (!user && !tutorApplicationsOpen) return closed;
   if (!user)
     return (
       <div className="et-teach-signin">
@@ -100,7 +111,9 @@ async function ApplyPanel() {
     );
 
   const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-  if ((roles ?? []).some((r) => r.role === "tutor" || r.role === "super_admin"))
+  const isTutor = (roles ?? []).some((r) => r.role === "tutor" || r.role === "super_admin");
+  if (!isTutor && !tutorApplicationsOpen) return closed;
+  if (isTutor)
     return (
       <div className="et-teach-signin">
         <p className="et-inline">

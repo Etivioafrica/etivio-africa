@@ -35,6 +35,7 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
         avatarUrl: user.avatarUrl,
         showTeach: showsTeach(user.roles, user.tutorApplication),
       }}
+      needsOnboarding={user.needsOnboarding}
       unseenBadges={(unseen ?? []).map((b) => b.badge_id).join(",")}
     >
       {children}
@@ -44,7 +45,7 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
 
 function ShellSkeleton() {
   return (
-    <div className="et-app">
+    <div className="et-app is-light">
       <aside className="et-sidebar et-hide-sm">
         <div className="et-sidebar-top">
           <img src="/etiviologo.svg" alt="Etivio" className="et-brand-logo" />

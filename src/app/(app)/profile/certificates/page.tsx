@@ -8,6 +8,7 @@ import { CertificateArt } from "@/components/dash/CertificateArt";
 import { getCurrentUser } from "@/lib/auth";
 import { getMyCertificates, linkedInAddUrl } from "@/lib/data/certificates";
 import { getLearnerProfile } from "@/lib/data/profile";
+import { getPlatformSettings } from "@/lib/platform";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Certificates" };
@@ -24,7 +25,7 @@ export default function CertificatesPage() {
 
 async function Certificates() {
   const user = await getCurrentUser();
-  const [certs, data] = await Promise.all([getMyCertificates(user.id), getLearnerProfile(user.id)]);
+  const [certs, data, platform] = await Promise.all([getMyCertificates(user.id), getLearnerProfile(user.id), getPlatformSettings()]);
   const issued = new Set(certs.map((c) => c.courseId));
   // Courses still in progress get a locked preview of the certificate they'll earn.
   const locked = (data?.courses ?? []).filter((c) => !c.completed && !issued.has(c.id));
@@ -45,7 +46,7 @@ async function Certificates() {
           {certs.map((c) => (
             <article key={c.code} className="et-card et-cert-card">
               <Link href={`/certificate/${c.code}`} className="et-cert-thumb" aria-label={`View certificate for ${c.courseTitle}`}>
-                <CertificateArt cert={c} site={SITE} />
+                <CertificateArt cert={c} site={SITE} signer={platform.certificateSigner} />
               </Link>
               <div className="et-cert-card-body">
                 <h3>{c.courseTitle}</h3>
@@ -78,6 +79,7 @@ async function Certificates() {
                   <div className="et-cert-thumb">
                     <CertificateArt
                       site={SITE}
+                      signer={platform.certificateSigner}
                       cert={{ code: "••••••••", courseId: c.id, recipientName: data!.profile.name, courseTitle: c.title, instructorName: c.instructor, issuedAt: new Date().toISOString() }}
                     />
                     <div className="et-cert-lock">

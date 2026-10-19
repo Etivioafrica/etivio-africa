@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Sign in to upload." }, { status: 401 });
 
   const [{ data: profile }, { data: roleRows }] = await Promise.all([
-    supabase.from("profiles").select("status, deleted_at").eq("id", user.id).single(),
+    supabase.rpc("my_profile").maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
   ]);
   const roles = (roleRows ?? []).map((r) => r.role);

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireFullSession } from "@/lib/auth";
+import { getMyPrivateProfile } from "@/lib/my-profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/database.types";
 import { canAccess, isStaff, type AdminArea, type AppRole } from "@/lib/roles";
@@ -24,12 +25,13 @@ export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
   await requireFullSession(supabase, "/admin");
-  const [{ data: profile }, { data: roleRows }] = await Promise.all([
-    supabase.from("profiles").select("full_name, avatar_url, status, deleted_at").eq("id", user.id).single(),
+  const [{ data: profile }, priv, { data: roleRows }] = await Promise.all([
+    supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single(),
+    getMyPrivateProfile(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
   ]);
   const roles = (roleRows ?? []).map((r) => r.role);
-  if (!profile || profile.status !== "active" || profile.deleted_at || !isStaff(roles)) return null;
+  if (!profile || priv?.status !== "active" || priv?.deleted_at || !isStaff(roles)) return null;
   return {
     id: user.id,
     email: user.email ?? "",
