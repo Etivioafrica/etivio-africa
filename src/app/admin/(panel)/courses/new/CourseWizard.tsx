@@ -1,12 +1,12 @@
 "use client";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, ImagePlus, Plus, Trash2, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Check, CloudUpload, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { CropUpload, type CropUploadHandle } from "@/components/dash/CropUpload";
 import { useToast } from "@/components/dash/useToast";
 import type { Category } from "@/components/dash/CategoryManager";
-import { createCourseFull, updateCourseFull, type LessonFile } from "../actions";
+import { createCourseFull, updateCourseFull, type Created, type LessonFile } from "../actions";
 import { LessonCard, hasText, type LessonPatch, type WizLesson } from "./LessonCard";
 
 type Level = "beginner" | "intermediate" | "advanced";
@@ -24,6 +24,9 @@ export type WizardInitial = {
   modules: { id: string; title: string; lessons: { id: string; title: string; videoUrl: string; hostedVideo: boolean; content: string; files: LessonFile[] }[] }[];
 };
 const STEPS = ["Basics", "Curriculum", "Pricing", "Review"] as const;
+// Wait this long after the last change before autosaving an existing course.
+const AUTOSAVE_MS = 1200;
+type SaveState = "saved" | "pending" | "saving" | "error";
 let uid = 0;
 const nextKey = () => ++uid;
 const newLesson = (): WizLesson => ({ key: nextKey(), title: "", videoUrl: "", content: "", files: [] });
@@ -108,6 +111,7 @@ export function CourseWizard({
   const lessonPayload = () =>
     modules.map((m) => ({
       id: m.id,
+      key: String(m.key),
       title: m.title,
       lessons: m.lessons.map((l) => ({ id: l.id, key: String(l.key), title: l.title, videoUrl: l.videoUrl, content: l.content, files: l.files })),
     }));
@@ -119,30 +123,82 @@ export function CourseWizard({
       return copy;
     });
 
+  const fields = () => ({ title, summary, description, skills, instructorId, categoryId, level, coverUrl, priceNaira: paid ? String(priceNum) : "0", modules: lessonPayload() });
+  // What the course looks like, without row ids, so merging ids after a save doesn't count as a change.
+  const snapshot = JSON.stringify({
+    ...fields(),
+    modules: modules.map((m) => ({ t: m.title, l: m.lessons.map((l) => [l.title, l.videoUrl, l.content, l.files.map((f) => f.url)]) })),
+  });
+  const [savedSnap, setSavedSnap] = useState(snapshot);
+  // A version the server rejected; don't retry it until something changes.
+  const [failedSnap, setFailedSnap] = useState("");
+  const inFlight = useRef(false);
+  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [saveError, setSaveError] = useState("");
+  const dirty = snapshot !== savedSnap;
+
+  function mergeCreated(c: Created) {
+    setModules((ms) =>
+      ms.map((m) => ({
+        ...m,
+        id: m.id ?? c.modules[String(m.key)],
+        lessons: m.lessons.map((l) => ({ ...l, id: l.id ?? c.lessons[String(l.key)], files: l.files.map((f) => (f.id ? f : { ...f, id: c.files[f.url] })) })),
+      })),
+    );
+  }
+
+  // Existing courses save themselves shortly after each change. Publishing still happens from the Review step.
+  useEffect(() => {
+    if (!edit || !dirty || inFlight.current || snapshot === failedSnap) return;
+    const problem = check(0) || check(2);
+    const t = setTimeout(async () => {
+      if (problem) {
+        setFailedSnap(snapshot);
+        setSaveState("error");
+        return setSaveError(problem);
+      }
+      inFlight.current = true;
+      setSaveState("saving");
+      const sent = snapshot;
+      const res = await updateCourseFull(edit.courseId, { ...fields(), status: "keep", quiet: true });
+      inFlight.current = false;
+      if (res.error) {
+        setFailedSnap(sent);
+        setSaveState("error");
+        setSaveError(res.error);
+        return;
+      }
+      setSavedSnap(sent);
+      if (res.created) mergeCreated(res.created);
+      setSaveError("");
+      setSaveState("saved");
+    }, AUTOSAVE_MS);
+    setSaveState((s) => (s === "saving" ? s : "pending"));
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot, saveState]);
+
+  // Warn before leaving with changes that haven't reached the server yet.
+  useEffect(() => {
+    if (!edit || !dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [edit, dirty]);
+
   function saveEdit(status: "keep" | "draft" | "published") {
     if (!edit) return;
     const removed = initial!.modules.flatMap((m) => m.lessons).filter((l) => !modules.some((m) => m.lessons.some((x) => x.id === l.id))).length;
     if (removed && edit.students && !window.confirm(`You removed ${removed} ${removed === 1 ? "lesson" : "lessons"}. Learners lose their progress, notes and resources for ${removed === 1 ? "it" : "them"}. Save anyway?`)) return;
     setError("");
     start(async () => {
-      const res = await updateCourseFull(edit.courseId, {
-        title,
-        summary,
-        description,
-        skills,
-        instructorId,
-        categoryId,
-        level,
-        coverUrl,
-        priceNaira: paid ? String(priceNum) : "0",
-        modules: lessonPayload(),
-        status,
-      });
+      const res = await updateCourseFull(edit.courseId, { ...fields(), status });
       if (res.error) {
         setError(res.error);
         return show(res);
       }
-      show(status === "published" ? "Saved and published." : "Changes saved.");
+      setSavedSnap(snapshot);
+      show(status === "published" ? "Published." : status === "draft" ? "Moved back to draft." : "Changes saved.");
       router.push(`/admin/courses/${edit.courseId}`);
     });
   }
@@ -184,10 +240,16 @@ export function CourseWizard({
           <h1>{edit ? "Edit course" : "New course"}</h1>
           <p>
             {edit
-              ? "Change the details, lessons, or price, then save from the Review step."
+              ? "Changes save automatically as you work. Use the Review step to publish or unpublish."
               : "Set it up in four steps: details, lessons (with videos, text and files), price, then review."}
           </p>
         </div>
+        {edit && (
+          <span className={`et-autosave is-${saveState}`} role="status" title={saveState === "error" ? saveError : undefined}>
+            {saveState === "error" ? <AlertCircle size={14} /> : saveState === "saved" ? <Check size={14} /> : <CloudUpload size={14} />}
+            {saveState === "error" ? `Not saved: ${saveError}` : saveState === "saved" ? "All changes saved" : "Saving…"}
+          </span>
+        )}
       </div>
 
       <ol className="et-wiz-steps">
@@ -335,7 +397,8 @@ export function CourseWizard({
                         onChange={(patch) => setLesson(m.key, l.key, patch)}
                         onEnter={() => addLesson(mi, li + 1)}
                         onRemove={() => {
-                          if ((l.videoUrl || hasText(l.content) || l.files.length) && !window.confirm(`Remove "${l.title || "this lesson"}" and its content?`)) return;
+                          const learners = edit?.students && l.id ? ` ${edit.students} enrolled learners lose their progress and notes on it.` : "";
+                          if ((learners || l.videoUrl || hasText(l.content) || l.files.length) && !window.confirm(`Remove "${l.title || "this lesson"}" and its content?${learners}`)) return;
                           setMod(mi, { lessons: m.lessons.filter((_, i) => i !== li) });
                         }}
                       />
@@ -415,7 +478,7 @@ export function CourseWizard({
           </button>
         ) : (
           <Link href={edit ? `/admin/courses/${edit.courseId}` : "/admin/courses"} className="et-btn et-btn-ghost">
-            Cancel
+            {edit ? "Back to course" : "Cancel"}
           </Link>
         )}
         {step < 3 ? (
@@ -427,15 +490,15 @@ export function CourseWizard({
             <div className="et-inline">
               {edit.status === "published" ? (
                 <button type="button" className="et-btn et-btn-ghost" onClick={() => saveEdit("draft")} disabled={saving}>
-                  Save and unpublish
+                  Unpublish
                 </button>
               ) : (
-                <button type="button" className="et-btn et-btn-ghost" onClick={() => saveEdit("keep")} disabled={saving}>
-                  {saving ? "Saving…" : edit.status === "archived" ? "Save" : "Save as draft"}
+                <button type="button" className="et-btn et-btn-success" onClick={() => saveEdit("published")} disabled={saving || !lessonTotal}>
+                  {saving ? "Publishing…" : "Publish"}
                 </button>
               )}
-              <button type="button" className="et-btn et-btn-success" onClick={() => saveEdit(edit.status === "published" ? "keep" : "published")} disabled={saving || !lessonTotal}>
-                {saving ? "Saving…" : edit.status === "published" ? "Save changes" : "Save and publish"}
+              <button type="button" className="et-btn et-btn-primary" onClick={() => saveEdit("keep")} disabled={saving}>
+                {saving ? "Saving…" : "Done"}
               </button>
             </div>
           ) : (

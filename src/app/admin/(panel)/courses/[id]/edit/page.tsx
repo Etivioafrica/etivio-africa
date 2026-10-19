@@ -38,7 +38,7 @@ async function Content({ params }: Props) {
 
   return (
     <CourseWizard
-      key={course.updated_at}
+      key={course.id}
       instructors={options}
       categories={categories}
       defaultInstructor={admin.id}

@@ -218,7 +218,9 @@ export type NewCourseInput = {
 
 export type LessonFile = { id?: string; url: string; key: string; name: string; size: number; type: string };
 export type LessonDraft = { id?: string; key?: string; title: string; videoUrl: string; content: string; files: LessonFile[] };
-export type ModuleDraft = { id?: string; title: string; lessons: LessonDraft[] };
+export type ModuleDraft = { id?: string; key?: string; title: string; lessons: LessonDraft[] };
+// Ids for rows a save created, keyed the way the editor knows them, so the next autosave updates instead of re-adding.
+export type Created = { lessons: Record<string, string>; modules: Record<string, string>; files: Record<string, string> };
 
 // Trims titles, drops empty rows and checks video links. Returns an error message for the first bad lesson.
 function cleanCurriculum(input: ModuleDraft[]) {
@@ -257,13 +259,16 @@ async function syncCurriculum(db: DB, adminId: string, courseId: string, modules
   const lessonsById = new Map((oldLessons ?? []).map((l) => [l.id, l]));
   const keptMods = new Set<string>();
   const keptLessons = new Set<string>();
-  const created: Record<string, string> = {};
+  const created: Created = { lessons: {}, modules: {}, files: {} };
   const trash: (string | null)[] = [];
 
   for (const [mi, m] of modules.entries()) {
     let moduleId = m.id && modIds.has(m.id) ? m.id : null;
     if (moduleId) await db.from("course_modules").update({ title: m.title, position: mi }).eq("id", moduleId);
-    else moduleId = (await db.from("course_modules").insert({ course_id: courseId, title: m.title, position: mi }).select("id").single()).data?.id ?? null;
+    else {
+      moduleId = (await db.from("course_modules").insert({ course_id: courseId, title: m.title, position: mi }).select("id").single()).data?.id ?? null;
+      if (moduleId && m.key) created.modules[m.key] = moduleId;
+    }
     if (!moduleId) return { error: "Could not save a module. Try again." };
     keptMods.add(moduleId);
 
@@ -279,7 +284,7 @@ async function syncCurriculum(db: DB, adminId: string, courseId: string, modules
         const { data: row } = await db.from("lessons").insert({ ...fields, course_id: courseId }).select("id").single();
         if (!row) return { error: `Could not save "${l.title}". Try again.` };
         lessonId = row.id;
-        if (l.key) created[l.key] = row.id;
+        if (l.key) created.lessons[l.key] = row.id;
       }
       keptLessons.add(lessonId);
 
@@ -290,8 +295,8 @@ async function syncCurriculum(db: DB, adminId: string, courseId: string, modules
         trash.push(...gone.map((d) => d.file_url));
       }
       const fresh = l.files.filter((f) => !f.id);
-      if (fresh.length)
-        await db.from("documents").insert(
+      if (fresh.length) {
+        const { data: added } = await db.from("documents").insert(
           fresh.map((f) => ({
             title: f.name.slice(0, 160) || "File",
             file_url: f.url,
@@ -304,7 +309,9 @@ async function syncCurriculum(db: DB, adminId: string, courseId: string, modules
             visibility: "enrolled" as const,
             uploaded_by: adminId,
           })),
-        );
+        ).select("id, file_url");
+        for (const d of added ?? []) created.files[d.file_url] = d.id;
+      }
     }
   }
 
@@ -554,11 +561,12 @@ export async function deleteQuiz(quizId: string): Promise<Result> {
 
 // Edit course (same four steps as creating one) ---------------------------------------------
 
-export type EditCourseInput = Omit<NewCourseInput, "publish"> & { status: "keep" | "draft" | "published" };
+// `quiet` is for autosave: skip refreshing the page so the editor isn't re-rendered mid-typing.
+export type EditCourseInput = Omit<NewCourseInput, "publish"> & { status: "keep" | "draft" | "published"; quiet?: boolean };
 
 // Saves details, pricing and the curriculum outline in one go. Modules and lessons keep their ids, so
 // progress, notes and quiz results survive renames and moves; anything removed from the outline is deleted.
-export async function updateCourseFull(courseId: string, input: EditCourseInput): Promise<Result & { created?: Record<string, string> }> {
+export async function updateCourseFull(courseId: string, input: EditCourseInput): Promise<Result & { created?: Created }> {
   const { admin, db } = await requireAdmin("courses");
   const title = input.title.trim().slice(0, 140);
   if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
@@ -595,8 +603,10 @@ export async function updateCourseFull(courseId: string, input: EditCourseInput)
   if ("error" in synced) return { error: synced.error };
   if (before.cover_url && before.cover_url !== cover) await deleteObject(keyFromUrl(before.cover_url));
 
-  await audit(admin.id, "course.update", { type: "course", id: courseId }, { lessons: lessonCount });
-  refresh();
+  if (!input.quiet) {
+    await audit(admin.id, "course.update", { type: "course", id: courseId }, { lessons: lessonCount });
+    refresh();
+  }
   return { ok: "Course saved.", id: courseId, created: synced.created };
 }
 

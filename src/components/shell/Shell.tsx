@@ -31,6 +31,7 @@ import {
   Users,
   X,
   type LucideIcon,
+  Heart,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -133,6 +134,7 @@ const learnNav: Group[] = [
     items: [
       { label: "My courses", href: "/learn/courses", icon: Library },
       { label: "Browse courses", href: "/learn/browse", icon: Compass },
+      { label: "Saved", href: "/profile/saved", icon: Heart },
     ],
   },
   account,
@@ -230,8 +232,10 @@ export default function Shell({
 
   const teachMode = pathname.startsWith("/teach");
   const groups = admin ? adminNav(user.roles, badges) : teachMode ? teachNav(canTeach(user.roles)) : learnNav;
-  const isActive = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const matches = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
   const flat = groups.flatMap((g) => g.items);
+  // When two links match (Profile and Saved on /profile/saved), only the more specific one lights up.
+  const isActive = (i: Item) => matches(i) && !flat.some((o) => o !== i && o.href.length > i.href.length && o.href.startsWith(`${i.href}/`) && matches(o));
   const results = search ? flat.filter((i) => i.label.toLowerCase().includes(search.toLowerCase())) : null;
 
   const display = user.name || user.email;

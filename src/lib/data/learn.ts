@@ -28,6 +28,9 @@ export type MyCourse = CourseCard & {
   progress: number;
   completed: boolean;
   lastActivity: string;
+  // Remaining lesson time when lessons have durations; otherwise just the count left.
+  secondsLeft: number;
+  lessonsLeft: number;
 };
 
 const COURSE_COLS =
@@ -88,10 +91,22 @@ export async function getMyCourses(): Promise<MyCourse[]> {
 
   const [{ data: enrollments }, { data: progress }] = await Promise.all([
     supabase.from("enrollments").select(`enrolled_at, course:courses(${COURSE_COLS})`).eq("user_id", user.id).order("enrolled_at", { ascending: false }),
-    supabase.from("lesson_progress").select("completed_at, lesson:lessons(course_id)").eq("user_id", user.id),
+    supabase.from("lesson_progress").select("lesson_id, completed_at, lesson:lessons(course_id)").eq("user_id", user.id),
   ]);
 
   const rows = (enrollments ?? []).filter((e) => e.course) as unknown as { enrolled_at: string; course: CourseRow }[];
+  const doneIds = new Set((progress ?? []).map((p) => p.lesson_id));
+  const { data: lessonRows } = rows.length
+    ? await supabase.from("lessons").select("id, course_id, duration_seconds").in("course_id", rows.map((r) => r.course.id))
+    : { data: [] };
+  const leftBy = new Map<string, { seconds: number; lessons: number }>();
+  for (const l of lessonRows ?? []) {
+    if (doneIds.has(l.id)) continue;
+    const cur = leftBy.get(l.course_id) ?? { seconds: 0, lessons: 0 };
+    cur.seconds += l.duration_seconds ?? 0;
+    cur.lessons += 1;
+    leftBy.set(l.course_id, cur);
+  }
   const counts = await lessonCounts(rows.map((r) => r.course.id));
   const quizBy = await quizProgress(
     user.id,
@@ -121,6 +136,8 @@ export async function getMyCourses(): Promise<MyCourse[]> {
         progress: percent(done + quiz.passed, card.lessonCount + quiz.quizzes),
         completed: card.lessonCount > 0 && done >= card.lessonCount && quiz.passed >= quiz.quizzes,
         lastActivity: d?.last || r.enrolled_at,
+        secondsLeft: leftBy.get(card.id)?.seconds ?? 0,
+        lessonsLeft: leftBy.get(card.id)?.lessons ?? Math.max(0, card.lessonCount - done),
       };
     })
     .sort((a, b) => b.lastActivity.localeCompare(a.lastActivity));

@@ -1,35 +1,36 @@
-import { CourseGrid } from "@/components/dash/CourseGrid";
+import { CourseTiles } from "@/components/dash/CourseTiles";
 import { Empty, PageHead } from "@/components/dash/ui";
+import { catalogTile } from "@/lib/course-tiles";
 import { getCatalog, getMyCourses, getSavedIds } from "@/lib/data/learn";
 import { getRecommendations } from "@/lib/data/recommend";
 
 export const metadata = { title: "Browse courses" };
 
 export default async function Browse() {
-  const [catalog, mine, savedIds, recommended] = await Promise.all([getCatalog(), getMyCourses(), getSavedIds(), getRecommendations(3)]);
-  // Only worth a separate row when the ranking actually found matches.
-  const picks = recommended.filter((c) => c.reason);
-  const enrolledIds = new Set(mine.map((c) => c.id));
+  const [catalog, mine, savedIds, recommended] = await Promise.all([getCatalog(), getMyCourses(), getSavedIds(), getRecommendations(12)]);
+  // "For you" only lists courses the ranking actually matched to the learner.
+  const reasons = new Map(recommended.filter((c) => c.reason).map((c) => [c.id, c.reason]));
+  const forYou = new Set(reasons.keys());
+  const myCourses = new Map(mine.map((c) => [c.id, c]));
+  const tiles = catalog.map((c) => catalogTile({ ...c, reason: reasons.get(c.id) ?? null }, myCourses, savedIds, forYou));
 
   return (
     <div className="et-page">
       <PageHead title="Browse courses" sub="Learn practical skills from instructors across Africa." />
-      {picks.length > 0 && (
-        <>
-          <h2 style={{ fontSize: 16, fontWeight: 600 }}>Recommended for you</h2>
-          <CourseGrid courses={picks} enrolledIds={enrolledIds} savedIds={savedIds} />
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>All courses</h2>
-        </>
-      )}
-      {catalog.length ? (
-        <CourseGrid courses={catalog} enrolledIds={enrolledIds} savedIds={savedIds} />
-      ) : (
-        <section className="et-card">
-          <Empty title="No courses published yet">
-            New courses are on the way. Check back soon.
-          </Empty>
-        </section>
-      )}
+      <CourseTiles
+        tiles={tiles}
+        filters={[
+          ...(forYou.size ? [{ key: "for-you", label: "For you" }] : []),
+          { key: "beginner", label: "Beginner" },
+          { key: "intermediate", label: "Intermediate" },
+          { key: "advanced", label: "Advanced" },
+        ]}
+        empty={
+          <section className="et-card">
+            <Empty title="No courses published yet">New courses are on the way. Check back soon.</Empty>
+          </section>
+        }
+      />
     </div>
   );
 }
