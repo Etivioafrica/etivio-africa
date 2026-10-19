@@ -3,7 +3,7 @@
 //
 //   SUPABASE_ACCESS_TOKEN=sbp_... RESEND_API_KEY=re_... node scripts/configure-auth-email.mjs
 //
-// Optional: EMAIL_FROM_ADDRESS (default hello@etivio.co), EMAIL_SENDER_NAME (default Etivio).
+// Optional: EMAIL_FROM_ADDRESS (default support@etivio.co), EMAIL_SENDER_NAME (default Etivio).
 import { readFileSync } from "node:fs";
 
 const REF = "kuhkkginwhsoetpycitw";
@@ -22,7 +22,7 @@ const body = {
   smtp_port: "465",
   smtp_user: "resend",
   smtp_pass: resendKey,
-  smtp_admin_email: process.env.EMAIL_FROM_ADDRESS || "hello@etivio.co",
+  smtp_admin_email: process.env.EMAIL_FROM_ADDRESS || "support@etivio.co",
   smtp_sender_name: process.env.EMAIL_SENDER_NAME || "Etivio",
   // The built-in mailer allows ~2 an hour; with our own SMTP this can go up.
   rate_limit_email_sent: 100,
