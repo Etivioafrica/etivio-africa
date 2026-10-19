@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { Banknote, Clock, HandCoins, Wallet } from "lucide-react";
 import { PageHead, Stat, Status } from "@/components/dash/ui";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ITEM_TYPES } from "@/lib/marketplace";
 import { getCurrentUser } from "@/lib/auth";
 import { canTeach } from "@/lib/roles";
 import { compactMoney, formatDate, formatMoney } from "@/lib/format";
@@ -12,11 +14,12 @@ export default async function Earnings() {
   const user = await getCurrentUser();
   if (!canTeach(user.roles)) redirect("/teach");
   const supabase = await createClient();
-  // RLS: tutors see sales of their own courses and their own payouts.
+  // Sales of their own courses and products. Product tables aren't readable by tutors directly, so this goes through
+  // the server, filtered to this tutor.
   const [{ data: sales }, { data: payouts }, { data: settings }] = await Promise.all([
-    supabase
+    createAdminClient()
       .from("payments")
-      .select("id, amount_minor, instructor_share_minor, currency, status, paid_at, created_at, course:courses(title)")
+      .select("id, amount_minor, instructor_share_minor, currency, status, paid_at, created_at, course:courses(title), product:products(title, kind)")
       .eq("instructor_id", user.id)
       .order("created_at", { ascending: false })
       .limit(100),
@@ -51,8 +54,9 @@ export default async function Earnings() {
                 {sales.map((s) => (
                   <tr key={s.id}>
                     <td>
-                      <b>{s.course?.title ?? "Course"}</b>
+                      <b>{s.course?.title ?? s.product?.title ?? "Sale"}</b>
                       <small>
+                        {s.product ? `${ITEM_TYPES[s.product.kind].label} · ` : "Course · "}
                         {formatDate(s.paid_at ?? s.created_at)} · sold for {formatMoney(s.amount_minor, s.currency)}
                       </small>
                     </td>
@@ -65,7 +69,7 @@ export default async function Earnings() {
               </tbody>
             </table>
           ) : (
-            <p className="et-empty">No sales yet. Sales of your paid courses show up here.</p>
+            <p className="et-empty">No sales yet. Sales of your paid courses and marketplace products show up here.</p>
           )}
         </section>
         <section className="et-card">

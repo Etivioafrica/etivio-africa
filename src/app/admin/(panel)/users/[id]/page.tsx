@@ -10,6 +10,7 @@ import { requireAdmin } from "@/lib/admin";
 import { compactMoney, formatDate, formatDateTime, formatMoney, percent } from "@/lib/format";
 import { CREATOR_ROLES, LIVE_CREATOR_ROLES, ROLE_BLURBS, ROLE_LABELS, STAFF_ROLES } from "@/lib/roles";
 import { deleteUser, grantCourseAccess, purgeUser, restoreUser, revokeCourseAccess, sendPasswordReset, setUserRoles, setUserStatus } from "../actions";
+import { Avatar } from "@/components/dash/Avatar";
 
 export const metadata = { title: "User" };
 
@@ -129,12 +130,7 @@ export default async function UserDetail({ params, searchParams }: { params: Pro
 
       <div className="et-page-head">
         <div className="et-cell-main">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" className="et-avatar et-avatar-xl" />
-          ) : (
-            <span className="et-avatar et-avatar-xl">{name.charAt(0).toUpperCase()}</span>
-          )}
+          <Avatar src={profile.avatar_url} initial={name.charAt(0).toUpperCase()} className="et-avatar et-avatar-xl" />
           <div>
             <h1>{name}</h1>
             <p className="et-inline" style={{ marginTop: 6 }}>

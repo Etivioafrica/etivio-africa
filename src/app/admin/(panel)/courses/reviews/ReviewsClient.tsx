@@ -5,6 +5,7 @@ import { Check, EyeOff, MessageSquareReply, Star, Trash2 } from "lucide-react";
 import { useToast } from "@/components/dash/useToast";
 import { fmtShort } from "@/lib/blog";
 import { approveReview, deleteReview, replyToReview } from "../actions";
+import { Avatar } from "@/components/dash/Avatar";
 
 export type Review = {
   id: string;
@@ -96,8 +97,7 @@ export function ReviewsClient({ reviews, initialFilter = "all", hideCourse }: { 
           {shown.map((r) => (
             <article key={r.id} className="et-card">
               <header>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {r.avatar ? <img src={r.avatar} alt="" className="et-avatar" /> : <span className="et-avatar">{r.author.charAt(0).toUpperCase()}</span>}
+                                <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} className="et-avatar" />
                 <div>
                   <p>
                     <Link href={`/admin/users/${r.user_id}`}>

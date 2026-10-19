@@ -1,5 +1,7 @@
 import "server-only";
-import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { randomUUID } from "node:crypto";
+import { DeleteObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
 import { slugify } from "@/lib/format";
 
@@ -22,6 +24,8 @@ export const UPLOAD_KINDS = {
   blog: { folder: "blog", maxMb: 10, types: /^image\// },
   video: { folder: "videos", maxMb: 2048, types: /^video\// },
   document: { folder: "documents", maxMb: 200, types: /.*/ },
+  // Marketplace files. Never linked publicly: buyers get a short-lived signed link from /api/download.
+  product: { folder: "products", maxMb: 500, types: /.*/ },
 } as const;
 
 export type UploadKind = keyof typeof UPLOAD_KINDS;
@@ -30,7 +34,8 @@ export function objectKey(kind: UploadKind, fileName: string) {
   const dot = fileName.lastIndexOf(".");
   const ext = dot > 0 ? fileName.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) : "";
   const base = slugify(dot > 0 ? fileName.slice(0, dot) : fileName) || "file";
-  const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  // Product files get a long random segment so their address can't be guessed.
+  const stamp = kind === "product" ? randomUUID() : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   return `${UPLOAD_KINDS[kind].folder}/${stamp}-${base}${ext ? `.${ext}` : ""}`;
 }
 
@@ -54,4 +59,10 @@ export async function putObject(key: string, body: ReadableStream<Uint8Array>, c
 export async function deleteObject(key: string | null) {
   if (!key) return;
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key })).catch(() => {});
+}
+
+// A download link that works for a few minutes and saves the file under its original name.
+export function signedDownloadUrl(key: string, fileName: string, seconds = 300) {
+  const safe = fileName.replace(/["\\\r\n]/g, "");
+  return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key, ResponseContentDisposition: `attachment; filename="${safe}"` }), { expiresIn: seconds });
 }

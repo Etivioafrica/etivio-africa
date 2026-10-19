@@ -43,6 +43,7 @@ export const ADMIN_AREAS = {
   dashboard: ["super_admin", "editor", "accountant"],
   users: ["super_admin"],
   courses: ["super_admin"],
+  marketplace: ["super_admin"],
   blog: ["super_admin", "editor"],
   announcements: ["super_admin", "editor"],
   documents: ["super_admin"],

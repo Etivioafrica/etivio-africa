@@ -19,7 +19,7 @@ export default async function Financials() {
     db.from("payouts").select("id, instructor_id, amount_minor, status, reference, created_at, paid_at").order("created_at", { ascending: false }).limit(20),
     db
       .from("payments")
-      .select("id, amount_minor, currency, status, provider, reference, paid_at, created_at, buyer:profiles!payments_user_id_fkey(full_name), course:courses(title)")
+      .select("id, amount_minor, currency, status, provider, reference, paid_at, created_at, buyer:profiles!payments_user_id_fkey(full_name), course:courses(title), product:products(title)")
       .order("created_at", { ascending: false })
       .limit(8),
     db.from("platform_settings").select("commission_percent").single(),
@@ -147,7 +147,7 @@ export default async function Financials() {
                   <tr key={p.id}>
                     <td>
                       <b>{p.buyer?.full_name || "Unknown buyer"}</b>
-                      <small>{p.course?.title ?? "Course"}</small>
+                      <small>{p.course?.title ?? p.product?.title ?? "Sale"}</small>
                     </td>
                     <td className="et-money et-td-right">{formatMoney(p.amount_minor, p.currency)}</td>
                     <td>

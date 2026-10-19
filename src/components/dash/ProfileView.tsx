@@ -7,6 +7,7 @@ import { ProfileCompleteness, SkillsCard, WeeklyGoal, profileSteps } from "@/com
 import { Badges } from "@/components/dash/Badges";
 import { allBadges, nextBadge } from "@/lib/badges";
 import { formatDate, formatDateTime, formatDuration } from "@/lib/format";
+import { Avatar } from "@/components/dash/Avatar";
 
 export function LinkedInIcon() {
   return (
@@ -48,8 +49,7 @@ export function ProfileHero({ profile: p, actions, badges, skills = [] }: { prof
         {p.coverUrl && <img src={p.coverUrl} alt="" />}
       </div>
       <div className="et-pf-main">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="et-avatar et-pf-avatar" /> : <span className="et-avatar et-pf-avatar">{initial}</span>}
+                <Avatar src={p.avatarUrl} initial={initial} className="et-avatar et-pf-avatar" />
         <div className="et-pf-id">
           <h1>{p.name}</h1>
           {p.headline && <p className="et-pf-headline">{p.headline}</p>}

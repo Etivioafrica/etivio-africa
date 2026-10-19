@@ -7,7 +7,7 @@ import { formatBytes } from "@/lib/format";
 const RESPONSE_TIMEOUT_MS = 60_000;
 
 export type Uploaded = { url: string; key: string; name: string; size: number; type: string };
-type Kind = "cover" | "avatar" | "banner" | "blog" | "video" | "document";
+type Kind = "cover" | "avatar" | "banner" | "blog" | "video" | "document" | "product";
 
 const ACCEPT: Record<Kind, string> = {
   cover: "image/*",
@@ -16,6 +16,7 @@ const ACCEPT: Record<Kind, string> = {
   blog: "image/*",
   video: "video/*",
   document: "*/*",
+  product: "*/*",
 };
 
 // Uploads to R2 via /api/upload and writes the public URL into a hidden input named `name`.

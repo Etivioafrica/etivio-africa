@@ -1,31 +1,21 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripHtml } from "@/lib/announcements";
-import { render } from "./layout";
+import { formatPrice } from "@/lib/format";
 import { everyone, recipient } from "./recipients";
 import { sendBatch, sendEmail, sentRecently, siteUrl, type Mail } from "./send";
+import { compose, fillStored, storedTemplate } from "./stored";
+import { announcementEmail, applicationEmail, productApprovedEmail, productChangesEmail, productSubmittedEmail, receiptEmail, certificateEmail, enrolledEmail, reviewReplyEmail, supportReplyEmail, testEmail, welcomeEmail } from "./templates";
 
 // Every email Etivio sends from the app. Callers run these inside after() so a slow mail API never delays a page.
 // Account emails (welcome, enrolment, certificates, application decisions) always send; the rest follow the
-// learner's notification settings.
-
-const excerpt = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+// learner's notification settings. The wording lives in templates.ts.
 
 export async function emailWelcome(userId: string) {
   const r = await recipient(userId);
   if (!r) return;
-  const { html, text } = render({
-    preheader: "Your account is ready. Here's how to get the most out of Etivio.",
-    heading: `Welcome to Etivio, ${r.name}`,
-    blocks: [
-      { p: "Your account is ready. Etivio is where you learn practical skills from instructors across Africa, at your own pace." },
-      { list: ["Browse courses and enroll in one that fits your goal", "Learn a little each week and keep your streak going", "Finish a course to earn a certificate anyone can verify"] },
-      { p: "Need a hand? Reply to this email or use Support in your dashboard." },
-    ],
-    cta: { label: "Browse courses", url: `${siteUrl()}/learn/browse` },
-    reason: "You're getting this because you created an Etivio account.",
-  });
-  await sendEmail({ to: r.email, userId, kind: "welcome", ref: userId, subject: "Welcome to Etivio", html, text });
+  const email = await compose("welcome", { name: r.name, browse_url: `${siteUrl()}/learn/browse` }, () => welcomeEmail({ name: r.name }));
+  await sendEmail({ to: r.email, userId, kind: "welcome", ref: userId, ...email });
 }
 
 export async function emailEnrolled(userId: string, courseId: string) {
@@ -34,17 +24,11 @@ export async function emailEnrolled(userId: string, courseId: string) {
     createAdminClient().from("courses").select("title, instructor:profiles!courses_instructor_id_fkey(full_name)").eq("id", courseId).maybeSingle(),
   ]);
   if (!r || !c) return;
-  const { html, text } = render({
-    preheader: `You're in. Start ${c.title} whenever you're ready.`,
-    heading: `You're enrolled in ${c.title}`,
-    blocks: [
-      { p: `Hi ${r.name}, you now have access to ${c.title}${c.instructor?.full_name ? ` with ${c.instructor.full_name}` : ""}.` },
-      { p: "Work through the lessons in order, mark each one complete, and you'll get a certificate when you finish." },
-    ],
-    cta: { label: "Start learning", url: `${siteUrl()}/learn/course/${courseId}` },
-    reason: "You're getting this because you enrolled in a course on Etivio.",
-  });
-  await sendEmail({ to: r.email, userId, kind: "enrolled", ref: courseId, subject: `You're enrolled: ${c.title}`, html, text });
+  const instructor = c.instructor?.full_name ?? null;
+  const email = await compose("enrolled", { name: r.name, course: c.title, instructor: instructor ?? "Etivio", course_url: `${siteUrl()}/learn/course/${courseId}` }, () =>
+    enrolledEmail({ name: r.name, course: c.title, instructor, courseId }),
+  );
+  await sendEmail({ to: r.email, userId, kind: "enrolled", ref: courseId, ...email });
 }
 
 export async function emailCertificates(userId: string, certs: { code: string; course_title: string }[]) {
@@ -52,37 +36,22 @@ export async function emailCertificates(userId: string, certs: { code: string; c
   const r = await recipient(userId);
   if (!r) return;
   for (const cert of certs) {
-    const { html, text } = render({
-      preheader: `You finished ${cert.course_title}. Your certificate is ready to share.`,
-      heading: "You earned a certificate",
-      blocks: [
-        { p: `Well done, ${r.name}. You completed ${cert.course_title}, and your certificate is ready.` },
-        { code: cert.code },
-        { p: "Anyone can check it's genuine with the link below, so it's ready to add to LinkedIn or your CV." },
-      ],
-      cta: { label: "View your certificate", url: `${siteUrl()}/certificate/${cert.code}` },
-      reason: "You're getting this because you completed a course on Etivio.",
-    });
-    await sendEmail({ to: r.email, userId, kind: "certificate", ref: cert.code, subject: `Your certificate for ${cert.course_title}`, html, text });
+    const vars = { name: r.name, course: cert.course_title, code: cert.code, certificate_url: `${siteUrl()}/certificate/${cert.code}` };
+    const email = await compose("certificate", vars, () => certificateEmail({ name: r.name, course: cert.course_title, code: cert.code }));
+    await sendEmail({ to: r.email, userId, kind: "certificate", ref: cert.code, ...email });
   }
 }
 
 // At most one email per support thread every 15 minutes, so a back-and-forth chat doesn't flood their inbox.
 export async function emailSupportReply(threadId: string, body: string) {
-  const db = createAdminClient();
-  const { data: t } = await db.from("support_threads").select("user_id, subject").eq("id", threadId).maybeSingle();
+  const { data: t } = await createAdminClient().from("support_threads").select("user_id, subject").eq("id", threadId).maybeSingle();
   if (!t || (await sentRecently("support_reply", threadId, 15))) return;
   const r = await recipient(t.user_id, "support_replies");
   if (!r) return;
-  const { html, text } = render({
-    preheader: excerpt(body, 110),
-    heading: "The Etivio team replied",
-    blocks: [{ p: `Hi ${r.name}, we've replied to your support conversation${t.subject ? ` about "${t.subject}"` : ""}:` }, { quote: excerpt(body, 1200) }],
-    cta: { label: "Open the conversation", url: `${siteUrl()}/support` },
-    reason: "You're getting this because you have support replies turned on.",
-    manageLink: true,
-  });
-  await sendEmail({ to: r.email, userId: r.userId, kind: "support_reply", ref: threadId, subject: "New reply from Etivio support", html, text });
+  const email = await compose("support_reply", { name: r.name, subject: t.subject ?? "", message: body, conversation_url: `${siteUrl()}/support` }, () =>
+    supportReplyEmail({ name: r.name, subject: t.subject, body }),
+  );
+  await sendEmail({ to: r.email, userId: r.userId, kind: "support_reply", ref: threadId, ...email });
 }
 
 export async function emailReviewReply(reviewId: string) {
@@ -90,49 +59,19 @@ export async function emailReviewReply(reviewId: string) {
   if (!rv?.admin_reply) return;
   const r = await recipient(rv.user_id, "course_updates");
   if (!r) return;
-  const title = rv.course?.title ?? "your course";
-  const { html, text } = render({
-    preheader: `Etivio replied to your review of ${title}.`,
-    heading: "We replied to your review",
-    blocks: [{ p: `Hi ${r.name}, thanks for reviewing ${title}. Here's our reply:` }, { quote: rv.admin_reply }],
-    cta: { label: "Back to the course", url: `${siteUrl()}/learn/course/${rv.course_id}` },
-    reason: "You're getting this because you have course updates turned on.",
-    manageLink: true,
-  });
-  await sendEmail({ to: r.email, userId: r.userId, kind: "review_reply", ref: reviewId, subject: `Reply to your review of ${title}`, html, text });
+  const course = rv.course?.title ?? "your course";
+  const email = await compose("review_reply", { name: r.name, course, reply: rv.admin_reply, course_url: `${siteUrl()}/learn/course/${rv.course_id}` }, () =>
+    reviewReplyEmail({ name: r.name, course, courseId: rv.course_id, reply: rv.admin_reply! }),
+  );
+  await sendEmail({ to: r.email, userId: r.userId, kind: "review_reply", ref: reviewId, ...email });
 }
-
-const ROLE_NAMES: Record<string, string> = { tutor: "tutor", coach: "coach", event_manager: "event manager", community_owner: "community owner" };
 
 export async function emailApplicationDecision(userId: string, role: string, approved: boolean, note: string | null) {
   const r = await recipient(userId);
   if (!r) return;
-  const name = ROLE_NAMES[role] ?? role.replace(/_/g, " ");
-  const { html, text } = render(
-    approved
-      ? {
-          preheader: `You can now create on Etivio as a ${name}.`,
-          heading: `You're approved as a ${name}`,
-          blocks: [
-            { p: `Good news, ${r.name}. Your application to become a ${name} on Etivio was approved.` },
-            ...(note ? [{ quote: note }] : []),
-            { p: "Switch to Teach in your dashboard to start building your first course." },
-          ],
-          cta: { label: "Open your Teach dashboard", url: `${siteUrl()}/teach` },
-          reason: "You're getting this because you applied to teach on Etivio.",
-        }
-      : {
-          preheader: `An update on your ${name} application.`,
-          heading: "About your application",
-          blocks: [
-            { p: `Hi ${r.name}, thank you for applying to be a ${name} on Etivio. We aren't able to approve your application right now.` },
-            ...(note ? [{ quote: note }] : []),
-            { p: "You're welcome to apply again later. Reply to this email if you have questions." },
-          ],
-          reason: "You're getting this because you applied to teach on Etivio.",
-        },
-  );
-  await sendEmail({ to: r.email, userId, kind: approved ? "application_approved" : "application_rejected", ref: role, subject: approved ? `You're approved as an Etivio ${name}` : `Your Etivio ${name} application`, html, text });
+  const kind = approved ? "application_approved" : "application_rejected";
+  const email = await compose(kind, { name: r.name, role: role.replace(/_/g, " "), note: note ?? "", teach_url: `${siteUrl()}/teach` }, () => applicationEmail({ name: r.name, role, approved, note }));
+  await sendEmail({ to: r.email, userId, kind, ref: role, ...email });
 }
 
 // Emails every announcement that is live and hasn't been sent. The claim (setting emailed_at) happens first, so two
@@ -146,29 +85,79 @@ export async function sendDueAnnouncements() {
     const { data: a } = await db.from("announcements").update({ emailed_at: now }).eq("id", id).is("emailed_at", null).select("id, title, body").maybeSingle();
     if (!a) continue;
     const people = await everyone("course_updates");
-    const summary = excerpt(stripHtml(a.body), 600);
-    const mails: Mail[] = people.map((r) => {
-      const { html, text } = render({
-        preheader: excerpt(summary, 110),
-        heading: a.title,
-        blocks: [{ p: `Hi ${r.name},` }, { p: summary }],
-        cta: { label: "Read the announcement", url: `${siteUrl()}/learn/announcements` },
-        reason: "You're getting this because you have course updates turned on.",
-        manageLink: true,
-      });
-      return { to: r.email, userId: r.userId, kind: "announcement", ref: a.id, subject: a.title, html, text, bulk: true };
-    });
+    const summary = stripHtml(a.body);
+    const stored = await storedTemplate("announcement");
+    const url = `${siteUrl()}/learn/announcements`;
+    const mails: Mail[] = people.map((r) => ({
+      to: r.email,
+      userId: r.userId,
+      kind: "announcement",
+      ref: a.id,
+      bulk: true,
+      ...(stored ? fillStored(stored, { name: r.name, title: a.title, summary, announcement_url: url }) : announcementEmail({ name: r.name, title: a.title, summary })),
+    }));
     await sendBatch(mails);
   }
 }
 
+export async function emailReceipt(paymentId: string) {
+  const db = createAdminClient();
+  const { data: pay } = await db
+    .from("payments")
+    .select("user_id, amount_minor, currency, reference, paid_at, course_id, product_id, course:courses(title), product:products(title)")
+    .eq("id", paymentId)
+    .maybeSingle();
+  if (!pay?.user_id) return;
+  const r = await recipient(pay.user_id);
+  if (!r) return;
+  const item = pay.course?.title ?? pay.product?.title ?? "Your purchase";
+  const isCourse = !!pay.course_id;
+  const vars = {
+    name: r.name,
+    item,
+    amount: formatPrice(pay.amount_minor, pay.currency),
+    reference: pay.reference,
+    date: new Date(pay.paid_at ?? Date.now()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+    item_url: isCourse ? `${siteUrl()}/learn/course/${pay.course_id}` : `${siteUrl()}/learn/library`,
+  };
+  const email = await compose("receipt", vars, () => receiptEmail({ ...vars, url: vars.item_url, cta: isCourse ? "Start the course" : "Go to your library" }));
+  await sendEmail({ to: r.email, userId: r.userId, kind: "receipt", ref: pay.reference, ...email });
+}
+
+const KIND_LABELS: Record<string, string> = { template: "Template", ebook: "E-book", resource_pack: "Resource pack", bundle: "Bundle" };
+
+// Tells the tutor their product was approved or needs changes.
+export async function emailProductDecision(productId: string, approved: boolean) {
+  const { data: p } = await createAdminClient().from("products").select("creator_id, title, slug, review_note").eq("id", productId).maybeSingle();
+  if (!p) return;
+  const r = await recipient(p.creator_id);
+  if (!r) return;
+  const email = approved
+    ? await compose("product_approved", { name: r.name, product: p.title, product_url: `${siteUrl()}/products/${p.slug}` }, () =>
+        productApprovedEmail({ name: r.name, product: p.title, url: `${siteUrl()}/products/${p.slug}` }),
+      )
+    : await compose("product_rejected", { name: r.name, product: p.title, note: p.review_note ?? "", edit_url: `${siteUrl()}/teach/products/${productId}` }, () =>
+        productChangesEmail({ name: r.name, product: p.title, note: p.review_note ?? "", url: `${siteUrl()}/teach/products/${productId}` }),
+      );
+  await sendEmail({ to: r.email, userId: r.userId, kind: approved ? "product_approved" : "product_rejected", ref: productId, ...email });
+}
+
+// Tells every super admin a tutor's product is waiting for review.
+export async function emailProductSubmitted(productId: string) {
+  const db = createAdminClient();
+  const [{ data: p }, { data: admins }] = await Promise.all([
+    db.from("products").select("title, kind, creator:profiles!products_creator_id_fkey(full_name)").eq("id", productId).maybeSingle(),
+    db.from("user_roles").select("user_id").eq("role", "super_admin"),
+  ]);
+  if (!p) return;
+  const vars = { product: p.title, creator: p.creator?.full_name || "A tutor", kind: KIND_LABELS[p.kind] ?? "Product", review_url: `${siteUrl()}/admin/marketplace/${productId}` };
+  const email = await compose("product_submitted", vars, () => productSubmittedEmail({ product: vars.product, creator: vars.creator, kind: vars.kind, url: vars.review_url }));
+  for (const a of admins ?? []) {
+    const r = await recipient(a.user_id);
+    if (r) await sendEmail({ to: r.email, userId: r.userId, kind: "product_submitted", ref: productId, ...email });
+  }
+}
+
 export async function emailTest(to: string, userId: string) {
-  const { html, text } = render({
-    preheader: "Your Etivio email setup works.",
-    heading: "Email is working",
-    blocks: [{ p: "This is a test from the Etivio admin. If you can read it, the app can send email, and it should land in the inbox rather than spam." }],
-    cta: { label: "Open Etivio", url: siteUrl() },
-    reason: "You're getting this because someone pressed 'Send test email' in Etivio admin settings.",
-  });
-  return sendEmail({ to, userId, kind: "test", ref: null, subject: "Etivio test email", html, text });
+  return sendEmail({ to, userId, kind: "test", ref: null, ...(await compose("test", {}, testEmail)) });
 }

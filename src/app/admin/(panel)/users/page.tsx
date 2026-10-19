@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatDate } from "@/lib/format";
 import { ROLE_LABELS, type AppRole } from "@/lib/roles";
 import { purgeExpiredUsers } from "./actions";
+import { Avatar } from "@/components/dash/Avatar";
 
 export const metadata = { title: "Users" };
 
@@ -97,8 +98,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                   <tr key={u.id}>
                     <td>
                       <Link href={`/admin/users/${u.id}`} className="et-cell-main">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {u.avatar_url ? <img src={u.avatar_url} alt="" className="et-avatar" /> : <span className="et-avatar">{(u.full_name || u.email).charAt(0).toUpperCase()}</span>}
+                                                <Avatar src={u.avatar_url} initial={(u.full_name || u.email).charAt(0).toUpperCase()} className="et-avatar" />
                         <span>
                           <b>{u.full_name || "Unnamed"}</b>
                           <small>

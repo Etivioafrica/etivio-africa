@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { requireAdmin } from "@/lib/admin";
 import { emailConfigured, emailFrom } from "@/lib/email/send";
@@ -17,6 +18,10 @@ const KINDS: Record<string, string> = {
   application_approved: "Application approved",
   application_rejected: "Application declined",
   announcement: "Announcement",
+  receipt: "Receipt",
+  product_approved: "Product approved",
+  product_rejected: "Product needs changes",
+  product_submitted: "Product to review",
   test: "Test",
 };
 
@@ -25,7 +30,11 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString
 export default function EmailsPage() {
   return (
     <div className="et-page">
-      <PageHead title="Emails" sub="What Etivio sends to learners, and whether it got there." />
+      <PageHead title="Emails" sub="What Etivio sends to learners, and whether it got there.">
+        <Link href="/admin/emails/templates" className="et-btn et-btn-ghost">
+          View all templates
+        </Link>
+      </PageHead>
       <Suspense fallback={<div className="et-skel" style={{ height: 420 }} />}>
         <Emails />
       </Suspense>

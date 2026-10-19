@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sessionUser } from "@/lib/supabase/session";
 import { getCurrentUser } from "@/lib/auth";
 import { percent } from "@/lib/format";
 
@@ -282,26 +283,30 @@ export async function getSavedCourses(): Promise<CourseCard[]> {
 
 // Course details page for the catalog: the outline (titles only), what's included, reviews and the instructor.
 // Uses the service role because lesson rows are only readable once enrolled; nothing here exposes lesson content.
-export async function getCourseDetails(courseId: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(courseId)) return null;
-  const user = await getCurrentUser();
+// Looks a course up by id (inside the app) or slug (public /courses page). Works for visitors who aren't signed in.
+export async function getCourseDetails(idOrSlug: string) {
+  const byId = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(idOrSlug);
+  if (!byId && !/^[a-z0-9-]{1,120}$/.test(idOrSlug)) return null;
+  const user = await sessionUser(await createClient());
   const db = createAdminClient();
   const { data: course } = await db
     .from("courses")
     .select(
-      "id, title, summary, description, cover_url, level, price_minor, currency, category, skills, status, instructor_id, updated_at, instructor:profiles!courses_instructor_id_fkey(full_name, avatar_url, headline, bio)",
+      "id, slug, title, summary, description, cover_url, level, price_minor, currency, category, skills, status, featured, published_at, instructor_id, updated_at, instructor:profiles!courses_instructor_id_fkey(full_name, avatar_url, headline, bio)",
     )
-    .eq("id", courseId)
+    .eq(byId ? "id" : "slug", idOrSlug)
     .maybeSingle();
   if (!course || course.status !== "published") return null;
+  const courseId = course.id;
+  const none = Promise.resolve({ data: null });
 
   const [{ data: modules }, { data: lessons }, { data: quizzes }, { count: files }, { data: enrollment }, { data: saved }, { count: students }, { data: reviews }] = await Promise.all([
     db.from("course_modules").select("id, title").eq("course_id", courseId).order("position"),
     db.from("lessons").select("id, module_id, title, kind, duration_seconds, is_preview").eq("course_id", courseId).order("position"),
     db.from("course_quizzes").select("module_id, title").eq("course_id", courseId),
     db.from("documents").select("id", { count: "exact", head: true }).eq("course_id", courseId),
-    db.from("enrollments").select("enrolled_at").eq("course_id", courseId).eq("user_id", user.id).maybeSingle(),
-    db.from("saved_courses").select("course_id").eq("course_id", courseId).eq("user_id", user.id).maybeSingle(),
+    user ? db.from("enrollments").select("enrolled_at").eq("course_id", courseId).eq("user_id", user.id).maybeSingle() : none,
+    user ? db.from("saved_courses").select("course_id").eq("course_id", courseId).eq("user_id", user.id).maybeSingle() : none,
     db.from("enrollments").select("user_id", { count: "exact", head: true }).eq("course_id", courseId),
     db
       .from("course_reviews")
@@ -317,6 +322,7 @@ export async function getCourseDetails(courseId: string) {
   return {
     course: {
       id: course.id,
+      slug: course.slug,
       title: course.title,
       summary: course.summary,
       description: course.description,
@@ -327,6 +333,8 @@ export async function getCourseDetails(courseId: string) {
       category: course.category,
       skills: course.skills ?? [],
       updatedAt: course.updated_at,
+      publishedAt: course.published_at,
+      featured: course.featured,
     },
     instructor: {
       name: course.instructor?.full_name || "Etivio instructor",
@@ -354,7 +362,8 @@ export async function getCourseDetails(courseId: string) {
       reviews: rated.length,
     },
     reviews: rated.slice(0, 6).map((r) => ({ id: r.id, rating: r.rating, body: r.body, reply: r.admin_reply, at: r.created_at, author: r.author?.full_name || "Learner", avatar: r.author?.avatar_url ?? null })),
-    enrolled: !!enrollment || course.instructor_id === user.id,
+    enrolled: !!enrollment || (!!user && course.instructor_id === user.id),
     saved: !!saved,
+    signedIn: !!user,
   };
 }

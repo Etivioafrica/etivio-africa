@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMyPrivateProfile } from "@/lib/my-profile";
+import { sessionUser } from "@/lib/supabase/session";
 import type { AppRole } from "@/lib/roles";
 
 export type CurrentUser = {
@@ -31,9 +32,7 @@ export async function requireFullSession(supabase: Supabase, next: string) {
 // One session + profile read per request, shared by the layout and pages.
 export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await sessionUser(supabase);
   if (!user) redirect("/login");
   await requireFullSession(supabase, "/learn");
 
@@ -54,12 +53,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
 
   return {
     id: user.id,
-    email: user.email ?? "",
+    email: user.email,
     name: profile?.full_name ?? "",
     avatarUrl: profile?.avatar_url ?? null,
     bio: profile?.bio ?? null,
     roles: roles?.length ? roles.map((r) => r.role) : ["student"],
-    providers: (user.app_metadata?.providers as string[] | undefined) ?? (user.app_metadata?.provider ? [user.app_metadata.provider] : []),
+    providers: user.providers,
     tutorApplication: application?.status ?? null,
     needsOnboarding: !!priv && !priv.onboarded_at,
   };

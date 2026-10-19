@@ -33,6 +33,8 @@ import {
   type LucideIcon,
   Heart,
   Mail,
+  FolderDown,
+  Store,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -42,6 +44,7 @@ import TipLayer from "./TipLayer";
 import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
 import { ROLE_LABELS, canAccess, canTeach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
+import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
 
 export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null; showTeach?: boolean };
 type SubItem = { label: string; href: string; badge?: number };
@@ -82,6 +85,19 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
               { label: "Certificates", href: "/admin/courses/certificates" },
             ],
           },
+          {
+            label: "Marketplace",
+            href: "/admin/marketplace",
+            icon: Store,
+            area: "marketplace",
+            badge: badges.products,
+            children: [
+              { label: "All products", href: "/admin/marketplace" },
+              { label: "New product", href: "/admin/marketplace/new" },
+              { label: "Needs review", href: "/admin/marketplace?status=pending", badge: badges.products },
+              { label: "Orders", href: "/admin/marketplace/orders" },
+            ],
+          },
           { label: "Announcements", href: "/admin/announcements", icon: Megaphone, area: "announcements" },
           {
             label: "Blog",
@@ -114,7 +130,16 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         label: "System",
         items: [
           { label: "Team", href: "/admin/team", icon: ShieldCheck, area: "team" },
-          { label: "Emails", href: "/admin/emails", icon: Mail, area: "emails" },
+          {
+            label: "Emails",
+            href: "/admin/emails",
+            icon: Mail,
+            area: "emails",
+            children: [
+              { label: "Overview", href: "/admin/emails" },
+              { label: "Templates", href: "/admin/emails/templates" },
+            ],
+          },
           { label: "Settings", href: "/admin/settings", icon: Settings, area: "settings" },
         ],
       },
@@ -136,7 +161,9 @@ const learnNav: Group[] = [
     items: [
       { label: "My courses", href: "/learn/courses", icon: Library },
       { label: "Browse courses", href: "/learn/browse", icon: Compass },
+      { label: "Library", href: "/learn/library", icon: FolderDown },
       { label: "Saved", href: "/profile/saved", icon: Heart },
+      { label: "Marketplace", href: "/explore", icon: Store },
     ],
   },
   account,
@@ -151,6 +178,7 @@ const teachNav = (canTeach: boolean): Group[] => [
           items: [
             { label: "Courses", href: "/teach/courses", icon: BookOpen, exact: true },
             { label: "New course", href: "/teach/courses/new", icon: Plus },
+            { label: "Products", href: "/teach/products", icon: Store },
             { label: "Students", href: "/teach/students", icon: Users },
             { label: "Earnings", href: "/teach/earnings", icon: Wallet },
           ],
@@ -419,9 +447,7 @@ function NavGroup({ item, active, pathname }: { item: Item; active: boolean; pat
 }
 
 function Avatar({ user, initial, size }: { user: ShellUser; initial: string; size?: "lg" }) {
-  const cls = `et-avatar${size ? ` et-avatar-${size}` : ""}`;
-  // eslint-disable-next-line @next/next/no-img-element
-  return user.avatarUrl ? <img src={user.avatarUrl} alt="" className={cls} /> : <span className={cls}>{initial}</span>;
+  return <PhotoAvatar src={user.avatarUrl} initial={initial} className={`et-avatar${size ? ` et-avatar-${size}` : ""}`} />;
 }
 
 function MenuBody({ user, initial, admin, close }: { user: ShellUser; initial: string; admin: boolean; close: () => void }) {

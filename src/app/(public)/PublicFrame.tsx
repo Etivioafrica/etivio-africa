@@ -14,6 +14,9 @@ export function PublicFrame({ children, footerLinks }: { children: React.ReactNo
           <img src="/etiviologo.svg" alt="Etivio" className="et-brand-logo" />
         </Link>
         <nav className="et-inline">
+          <Link href="/explore" className="et-public-link">
+            Explore
+          </Link>
           <Link href="/blog" className="et-public-link">
             Blog
           </Link>
@@ -38,6 +41,7 @@ export function PublicFrame({ children, footerLinks }: { children: React.ReactNo
         <span>© Etivio Africa</span>
         {footerLinks}
         <nav className="et-inline">
+          <Link href="/explore">Explore</Link>
           <Link href="/blog">Blog</Link>
           <Link href="/certificate">Verify a certificate</Link>
           <Link href="/teach-on-etivio">Teach on Etivio</Link>

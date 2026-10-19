@@ -25,6 +25,7 @@ import { dayLabel, getActivityFeed } from "@/lib/data/admin";
 import { compactMoney, formatDate } from "@/lib/format";
 import { ROLE_LABELS, primaryRole } from "@/lib/roles";
 import { ActivityFeed } from "./ActivityFeed";
+import { Avatar } from "@/components/dash/Avatar";
 
 export const metadata = { title: "Dashboard" };
 
@@ -172,8 +173,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
                 return (
                   <li key={u.id}>
                     <Link href={`/admin/users/${u.id}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {u.avatar_url ? <img src={u.avatar_url} alt="" className="et-avatar" /> : <span className="et-avatar">{name.charAt(0).toUpperCase()}</span>}
+                                            <Avatar src={u.avatar_url} initial={name.charAt(0).toUpperCase()} className="et-avatar" />
                       <span className="et-people-main">
                         <b>{name}</b>
                         <small>{formatDate(u.created_at)}</small>

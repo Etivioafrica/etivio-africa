@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { sessionUser } from "@/lib/supabase/session";
 import { getMyPrivateProfile } from "@/lib/my-profile";
 import { percent } from "@/lib/format";
 import { buildHeatmap, dailyCounts, type Heatmap } from "@/lib/activity";
@@ -73,15 +74,13 @@ export type LearnerProfile = {
 // only come back for the viewer's own profile; for someone else they're defaults.
 export async function getProfileDetails(userId: string): Promise<ProfileDetails | null> {
   const supabase = await createClient();
-  const [{ data: p }, {
-    data: { user },
-  }] = await Promise.all([
+  const [{ data: p }, user] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, username, profile_public, full_name, avatar_url, cover_url, bio, headline, location, website_url, linkedin_url, x_url, interests, created_at")
       .eq("id", userId)
       .maybeSingle(),
-    supabase.auth.getUser(),
+    sessionUser(supabase),
   ]);
   if (!p) return null;
   const priv = user?.id === userId ? await getMyPrivateProfile() : null;

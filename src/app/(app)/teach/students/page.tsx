@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { canTeach } from "@/lib/roles";
 import { getMyStudents } from "@/lib/data/teach";
 import { formatDate } from "@/lib/format";
+import { Avatar } from "@/components/dash/Avatar";
 
 export const metadata = { title: "Students" };
 
@@ -35,8 +36,7 @@ export default async function Students() {
                   <tr key={`${s.userId}:${s.courseId}`}>
                     <td>
                       <Link href={`/teach/students/${s.userId}`} className="et-cell-main">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {s.avatarUrl ? <img src={s.avatarUrl} alt="" className="et-avatar" /> : <span className="et-avatar">{s.name.charAt(0).toUpperCase()}</span>}
+                                                <Avatar src={s.avatarUrl} initial={s.name.charAt(0).toUpperCase()} className="et-avatar" />
                         <b>{s.name}</b>
                       </Link>
                     </td>

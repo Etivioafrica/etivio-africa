@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     kind === "avatar" ||
     kind === "banner" ||
     (roles.includes("editor") && kind === "blog") ||
-    (roles.includes("tutor") && (kind === "cover" || kind === "video"));
+    (roles.includes("tutor") && (kind === "cover" || kind === "video" || kind === "product"));
   if (!allowed || profile?.status !== "active" || profile.deleted_at) return NextResponse.json({ error: "You can't upload this type of file." }, { status: 403 });
 
   const contentType = request.headers.get("content-type") || "application/octet-stream";

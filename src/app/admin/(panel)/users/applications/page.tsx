@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatDate } from "@/lib/format";
 import { ROLE_LABELS } from "@/lib/roles";
 import { reviewApplication } from "../actions";
+import { Avatar } from "@/components/dash/Avatar";
 
 export const metadata = { title: "Applications" };
 
@@ -41,8 +42,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
           <section key={a.id} className="et-card">
             <div className="et-card-head">
               <Link href={`/admin/users/${a.user?.id}`} className="et-cell-main">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {a.user?.avatar_url ? <img src={a.user.avatar_url} alt="" className="et-avatar" /> : <span className="et-avatar">{(a.user?.full_name || "?").charAt(0).toUpperCase()}</span>}
+                                <Avatar src={a.user.avatar_url} initial={(a.user?.full_name || "?").charAt(0).toUpperCase()} className="et-avatar" />
                 <span>
                   <b style={{ fontSize: 14 }}>{a.user?.full_name || "Unnamed"}</b>
                   <small className="et-muted" style={{ display: "block", fontSize: 12 }}>

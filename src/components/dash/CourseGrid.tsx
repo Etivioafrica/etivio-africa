@@ -68,9 +68,9 @@ export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: (Cours
                   </button>
                 </form>
               ) : (
-                <button className="et-btn et-btn-ghost" disabled data-tip="Paid checkout is coming soon">
-                  Enroll
-                </button>
+                <Link href={`/courses/${c.slug}`} className="et-btn et-btn-primary">
+                  Buy · {formatPrice(c.priceMinor, c.currency)}
+                </Link>
               )}
             </div>
           </article>

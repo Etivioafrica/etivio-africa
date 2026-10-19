@@ -5,6 +5,7 @@ import { Award, Download, Search } from "lucide-react";
 import { Progress } from "@/components/dash/ui";
 import { fmtShort } from "@/lib/blog";
 import type { StudentRow } from "@/lib/data/courses-admin";
+import { Avatar } from "@/components/dash/Avatar";
 
 type State = "all" | "not_started" | "in_progress" | "completed";
 const stateOf = (r: StudentRow): Exclude<State, "all"> => (r.completed ? "completed" : r.progress > 0 ? "in_progress" : "not_started");
@@ -84,8 +85,7 @@ export function StudentsTable({ rows, courses, initialCourse = "all", fixedCours
                 <tr key={`${r.userId}:${r.courseId}`}>
                   <td>
                     <Link href={`/admin/users/${r.userId}`} className="et-cell-main">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {r.avatar ? <img src={r.avatar} alt="" className="et-avatar" /> : <span className="et-avatar">{r.name.charAt(0).toUpperCase()}</span>}
+                                            <Avatar src={r.avatar} initial={r.name.charAt(0).toUpperCase()} className="et-avatar" />
                       <span>
                         <b>{r.name}</b>
                         <small>{LABEL[stateOf(r)]}</small>

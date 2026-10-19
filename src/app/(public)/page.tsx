@@ -120,11 +120,11 @@ async function Featured() {
     <section className="et-home-section">
       <div className="et-home-head">
         <h2>Popular courses</h2>
-        <Link href="/signup">See all courses</Link>
+        <Link href="/explore">Explore the marketplace</Link>
       </div>
       <div className="et-course-grid">
         {courses.map((c) => (
-          <Link key={c.id} href="/signup" className="et-card et-course">
+          <Link key={c.id} href={`/courses/${c.slug}`} className="et-card et-course">
             <Cover url={c.coverUrl} level={c.level} />
             <div className="et-course-body">
               <h3>{c.title}</h3>

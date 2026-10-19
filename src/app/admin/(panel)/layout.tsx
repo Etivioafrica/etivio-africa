@@ -29,6 +29,9 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
   const { count: reviews } = canAccess(admin.roles, "courses")
     ? await db.from("course_reviews").select("id", { count: "exact", head: true }).eq("approved", false)
     : { count: 0 };
+  const { count: products } = canAccess(admin.roles, "marketplace")
+    ? await db.from("products").select("id", { count: "exact", head: true }).eq("status", "pending")
+    : { count: 0 };
   const { count: comments } = canAccess(admin.roles, "blog")
     ? await db.from("blog_comments").select("id", { count: "exact", head: true }).eq("approved", false)
     : { count: 0 };
@@ -36,7 +39,7 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <Shell
       mode="admin"
-      badges={{ chats: chats ?? 0, applications: applications ?? 0, comments: comments ?? 0, reviews: reviews ?? 0 }}
+      badges={{ chats: chats ?? 0, applications: applications ?? 0, comments: comments ?? 0, reviews: reviews ?? 0, products: products ?? 0 }}
       user={{ id: admin.id, name: admin.name, email: admin.email, roles: admin.roles, avatarUrl: admin.avatarUrl }}
     >
       {children}

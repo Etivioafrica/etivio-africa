@@ -1,5 +1,8 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { siteUrl } from "./site";
+
+export { siteUrl };
 
 // Sends through Resend's HTTP API. Without RESEND_API_KEY (local dev) emails are logged as skipped, never thrown,
 // so a mail problem can't break the action that triggered it.
@@ -19,7 +22,6 @@ export type Mail = {
 const API = "https://api.resend.com";
 export const emailConfigured = () => !!process.env.RESEND_API_KEY;
 export const emailFrom = () => process.env.EMAIL_FROM || "Etivio <support@etivio.co>";
-export const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://etivio.co").replace(/\/$/, "");
 
 function payload(m: Mail) {
   return {

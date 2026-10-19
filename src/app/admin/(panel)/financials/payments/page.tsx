@@ -20,7 +20,7 @@ export default async function Payments({ searchParams }: { searchParams: Promise
 
   let query = db
     .from("payments")
-    .select("id, amount_minor, currency, platform_fee_minor, instructor_share_minor, status, provider, reference, note, paid_at, created_at, user_id, buyer:profiles!payments_user_id_fkey(full_name), course:courses(title)")
+    .select("id, amount_minor, currency, platform_fee_minor, instructor_share_minor, status, provider, reference, note, paid_at, created_at, user_id, buyer:profiles!payments_user_id_fkey(full_name), course:courses(title), product:products(title)")
     .order("created_at", { ascending: false })
     .limit(200);
   if (status) query = query.eq("status", status);
@@ -36,7 +36,7 @@ export default async function Payments({ searchParams }: { searchParams: Promise
         <ArrowLeft size={14} />
         Financials
       </Link>
-      <PageHead title="Payments" sub="Every course purchase. Paystack payments will land here automatically once checkout is live." />
+      <PageHead title="Payments" sub="Every course and product purchase. Paystack payments land here automatically." />
 
       <div className="et-grid-main" style={{ gridTemplateColumns: "minmax(0,1fr) 360px" }}>
         <section className="et-card">
@@ -81,7 +81,7 @@ export default async function Payments({ searchParams }: { searchParams: Promise
                           <b>Deleted user</b>
                         )}
                         <small>
-                          {p.course?.title ?? "Course"} · {p.provider} · {p.reference}
+                          {p.course?.title ?? p.product?.title ?? "Sale"} · {p.provider} · {p.reference}
                         </small>
                       </td>
                       <td className="et-td-right et-money">{formatMoney(p.amount_minor, p.currency)}</td>

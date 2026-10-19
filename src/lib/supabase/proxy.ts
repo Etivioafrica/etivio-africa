@@ -43,10 +43,10 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Refreshes the session cookie. Do not put logic between client creation and this call.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refreshes the session cookie when needed and verifies it locally (ES256), so no Auth round trip per request.
+  // Do not put logic between client creation and this call.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? { id: data.claims.sub } : null;
 
   // Optimistic routing only. Layouts and Server Actions re-check the session.
   const path = request.nextUrl.pathname;

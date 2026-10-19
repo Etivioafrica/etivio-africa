@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireFullSession } from "@/lib/auth";
 import { getMyPrivateProfile } from "@/lib/my-profile";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sessionUser } from "@/lib/supabase/session";
 import type { Json } from "@/lib/database.types";
 import { canAccess, isStaff, type AdminArea, type AppRole } from "@/lib/roles";
 
@@ -20,9 +21,7 @@ export type AdminUser = {
 // Current staff member (super admin, editor, accountant), or null for anyone else.
 export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await sessionUser(supabase);
   if (!user) return null;
   await requireFullSession(supabase, "/admin");
   const [{ data: profile }, priv, { data: roleRows }] = await Promise.all([
@@ -34,7 +33,7 @@ export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
   if (!profile || priv?.status !== "active" || priv?.deleted_at || !isStaff(roles)) return null;
   return {
     id: user.id,
-    email: user.email ?? "",
+    email: user.email,
     name: profile.full_name ?? "",
     avatarUrl: profile.avatar_url,
     roles,
