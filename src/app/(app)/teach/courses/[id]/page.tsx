@@ -122,6 +122,11 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
                   <textarea id="summary" name="summary" rows={2} defaultValue={course.summary ?? ""} />
                 </div>
                 <div className="et-field">
+                  <label htmlFor="skills">Skills taught</label>
+                  <input id="skills" name="skills" defaultValue={(course.skills ?? []).join(", ")} placeholder="Figma, UI design, Prototyping" />
+                  <small>Learners earn these on their profile when they finish the course. Separate with commas, up to 12.</small>
+                </div>
+                <div className="et-field">
                   <label htmlFor="description">Description</label>
                   <textarea id="description" name="description" rows={5} defaultValue={course.description ?? ""} />
                 </div>

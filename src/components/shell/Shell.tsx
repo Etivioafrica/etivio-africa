@@ -26,6 +26,7 @@ import {
   Search,
   Settings,
   Sun,
+  UserRound,
   Users,
   X,
   type LucideIcon,
@@ -35,15 +36,17 @@ import { signOut } from "@/app/(app)/actions";
 import { adminSignOut } from "@/app/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import TipLayer from "./TipLayer";
-import { ROLE_LABELS, canAccess, canTeach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
+import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
+import { ROLE_LABELS, canAccess, canTeach, isStaff, type AdminArea, type AppRole } from "@/lib/roles";
 
-export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null };
+export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null; showTeach?: boolean };
 type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean; badge?: number; area?: AdminArea };
 type Group = { label: string; items: Item[] };
 
 const account: Group = {
   label: "Account",
   items: [
+    { label: "Profile", href: "/profile", icon: UserRound },
     { label: "Support", href: "/support", icon: LifeBuoy },
     { label: "Settings", href: "/settings", icon: Settings },
   ],
@@ -129,11 +132,14 @@ export default function Shell({
   user,
   mode = "app",
   badges = {},
+  unseenBadges = "",
   children,
 }: {
   user: ShellUser;
   mode?: "app" | "admin";
   badges?: Record<string, number>;
+  // Comma-joined ids of earned-but-uncelebrated badges, from the server layout.
+  unseenBadges?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -209,7 +215,7 @@ export default function Shell({
         </div>
 
         <nav className="et-nav" aria-label="Dashboard navigation">
-          {!admin && <div className="et-switch" role="tablist" aria-label="Switch dashboard">
+          {!admin && user.showTeach && <div className="et-switch" role="tablist" aria-label="Switch dashboard">
             <Link href="/learn" role="tab" aria-selected={!teachMode} className={teachMode ? "" : "is-on"}>
               <GraduationCap size={13} />
               Learn
@@ -296,6 +302,7 @@ export default function Shell({
         </header>
         <main className="et-main">{children}</main>
         <TipLayer />
+        {!admin && <BadgeCelebration trigger={unseenBadges} />}
       </div>
     </div>
   );
@@ -326,9 +333,15 @@ function MenuBody({ user, initial, admin, close }: { user: ShellUser; initial: s
         <div>
           <strong>{user.name || "Your account"}</strong>
           <small>{user.email}</small>
-          <em>{user.roles.filter((r) => r !== "student" || user.roles.length === 1).map((r) => ROLE_LABELS[r]).join(" · ") || ROLE_LABELS[primaryRole(user.roles)]}</em>
+          {user.roles.some((r) => r !== "student") && <em>{user.roles.filter((r) => r !== "student").map((r) => ROLE_LABELS[r]).join(" · ")}</em>}
         </div>
       </div>
+      {!admin && (
+        <Link href="/profile" onClick={close} className="et-menu-item">
+          <UserRound size={16} />
+          Your profile
+        </Link>
+      )}
       <Link href={admin ? "/admin/settings" : "/settings"} onClick={close} className="et-menu-item">
         <Settings size={16} />
         Settings

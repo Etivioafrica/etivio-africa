@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/database.types";
 import { NextResponse, type NextRequest } from "next/server";
 
-const APP_PREFIXES = ["/learn", "/teach", "/settings", "/support"];
+const APP_PREFIXES = ["/learn", "/teach", "/settings", "/support", "/profile"];
 
 // Carry refreshed auth cookies over to a redirect response.
 function redirectWithCookies(url: URL, from: NextResponse) {
@@ -12,6 +12,14 @@ function redirectWithCookies(url: URL, from: NextResponse) {
 }
 
 export async function updateSession(request: NextRequest) {
+  // Public profiles live at /@username; the route itself is /u/[username].
+  const handle = request.nextUrl.pathname.match(/^\/@([^/]+)\/?$/);
+  if (handle) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/u/${handle[1]}`;
+    return NextResponse.rewrite(url);
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -56,6 +64,22 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = `?next=${encodeURIComponent(path)}`;
+    return redirectWithCookies(url, response);
+  }
+  // Accounts with two-step verification must finish the code step before using the app or admin.
+  if (user && (isApp || isAdmin || path === "/admin/login")) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/verify";
+      url.search = `?next=${encodeURIComponent(path === "/admin/login" ? "/admin" : path)}`;
+      return redirectWithCookies(url, response);
+    }
+  }
+  if (!user && path === "/verify") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
     return redirectWithCookies(url, response);
   }
   if (user && isAuthPage) {

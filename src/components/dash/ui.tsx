@@ -81,6 +81,7 @@ const statusColor: Record<string, string> = {
   replied: "green",
   rejected: "red",
   approved: "green",
+  verified: "green",
 };
 
 export function Status({ value }: { value: string }) {
@@ -100,6 +101,67 @@ export function Empty({ title, children, action }: { title: string; children?: R
           </Link>
         </div>
       )}
+    </div>
+  );
+}
+
+// Slim stats row: separate light cards, a finer alternative to the big Stat cards.
+export function StatStrip({ items }: { items: { label: string; value: number | string; icon: LucideIcon }[] }) {
+  return (
+    <section className="et-statstrip">
+      {items.map(({ label, value, icon: Icon }) => (
+        <div key={label} className="et-card">
+          <span className="et-statstrip-icon">
+            <Icon size={15} strokeWidth={1.9} />
+          </span>
+          <p>{label}</p>
+          <strong>{value}</strong>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// Compact empty state for cards: small icon, one line of guidance, optional small button.
+export function EmptyMini({ icon: Icon, title, children, action }: { icon: LucideIcon; title: string; children?: React.ReactNode; action?: { href: string; label: string } }) {
+  return (
+    <div className="et-empty-mini">
+      <span className="et-empty-mini-icon">
+        <Icon size={18} strokeWidth={1.8} />
+      </span>
+      <b>{title}</b>
+      {children && <p>{children}</p>}
+      {action && (
+        <Link href={action.href} className="et-btn et-btn-ghost et-btn-sm">
+          {action.label}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// Circular progress ring with a value in the middle.
+export function Ring({ value, max, size = 84, children }: { value: number; max: number; size?: number; children?: React.ReactNode }) {
+  const r = 34;
+  const c = 2 * Math.PI * r;
+  const pct = max ? Math.min(1, value / max) : 0;
+  return (
+    <div className="et-ring" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 80 80" width={size} height={size} aria-hidden="true">
+        <circle cx="40" cy="40" r={r} fill="none" stroke="var(--a-border)" strokeWidth="7" />
+        <circle
+          cx="40"
+          cy="40"
+          r={r}
+          fill="none"
+          stroke={pct >= 1 ? "#16a34a" : "var(--accent)"}
+          strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={`${c * pct} ${c}`}
+          transform="rotate(-90 40 40)"
+        />
+      </svg>
+      <span>{children}</span>
     </div>
   );
 }

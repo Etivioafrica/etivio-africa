@@ -18,6 +18,7 @@ const PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!.replace(/\/$/, "");
 export const UPLOAD_KINDS = {
   cover: { folder: "covers", maxMb: 10, types: /^image\// },
   avatar: { folder: "avatars", maxMb: 5, types: /^image\// },
+  banner: { folder: "banners", maxMb: 5, types: /^image\// },
   blog: { folder: "blog", maxMb: 10, types: /^image\// },
   video: { folder: "videos", maxMb: 2048, types: /^video\// },
   document: { folder: "documents", maxMb: 200, types: /.*/ },

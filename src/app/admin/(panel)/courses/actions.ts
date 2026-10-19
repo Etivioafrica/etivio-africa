@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { parseSkills } from "@/lib/skills";
 import { refresh } from "next/cache";
 import { audit, requireAdmin } from "@/lib/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
@@ -79,6 +80,7 @@ export async function adminUpdateCourse(_prev: FormState, fd: FormData): Promise
       summary: str(fd, "summary") || null,
       description: str(fd, "description") || null,
       cover_url: cover,
+      skills: parseSkills(str(fd, "skills")),
       level: LEVELS.includes(level) ? level : "beginner",
       price_minor: nairaToMinor(str(fd, "price")),
     })

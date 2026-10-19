@@ -2,12 +2,17 @@ import Link from "next/link";
 import { BookOpen, CheckCircle2, Flame, ListChecks } from "lucide-react";
 import { Cover, Empty, PageHead, Progress, Stat } from "@/components/dash/ui";
 import { CourseGrid } from "@/components/dash/CourseGrid";
-import { getCatalog, getMyCourses } from "@/lib/data/learn";
+import { getCatalog, getMyCourses, getSavedIds } from "@/lib/data/learn";
+import { getCurrentUser } from "@/lib/auth";
+import { syncBadges } from "@/lib/data/badges";
+import { syncCertificates } from "@/lib/data/certificates";
 
 export const metadata = { title: "Learn" };
 
 export default async function LearnDashboard() {
-  const [mine, catalog] = await Promise.all([getMyCourses(), getCatalog(12)]);
+  const user = await getCurrentUser();
+  // Landing page after sign-in, so it also catches badges earned outside a lesson (e.g. Early learner).
+  const [mine, catalog, savedIds] = await Promise.all([getMyCourses(), getCatalog(12), getSavedIds(), syncBadges(user.id), syncCertificates(user.id)]);
   const active = mine.filter((c) => !c.completed);
   const completed = mine.filter((c) => c.completed);
   const lessonsDone = mine.reduce((n, c) => n + c.done, 0);
@@ -83,7 +88,7 @@ export default async function LearnDashboard() {
               Browse all
             </Link>
           </div>
-          <CourseGrid courses={suggestions} enrolledIds={enrolledIds} />
+          <CourseGrid courses={suggestions} enrolledIds={enrolledIds} savedIds={savedIds} />
         </section>
       )}
     </div>

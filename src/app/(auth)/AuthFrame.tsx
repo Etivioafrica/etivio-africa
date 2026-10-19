@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Moon, Sun } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 
@@ -7,7 +8,7 @@ export function AuthFrame({
   children,
   title = "Learn the skills that move you forward.",
   body = "Courses from instructors across Africa, built for how you actually learn.",
-  badge = "Etivio Africa",
+  badge,
 }: {
   children: React.ReactNode;
   title?: string;
@@ -15,6 +16,7 @@ export function AuthFrame({
   badge?: string;
 }) {
   const { light } = useTheme();
+  const pathname = usePathname();
   return (
     <div className={`et-auth${light ? " is-light" : ""}`}>
       <aside className="et-auth-hero">
@@ -36,10 +38,22 @@ export function AuthFrame({
           >
             {light ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <span className="et-auth-badge">
-            <span />
-            {badge}
-          </span>
+          {pathname === "/login" ? (
+            <p className="et-auth-switch">
+              New to Etivio? <Link href="/signup">Create an account</Link>
+            </p>
+          ) : pathname === "/signup" ? (
+            <p className="et-auth-switch">
+              Already have an account? <Link href="/login">Sign in</Link>
+            </p>
+          ) : (
+            badge && (
+              <span className="et-auth-badge">
+                <span />
+                {badge}
+              </span>
+            )
+          )}
         </header>
         <div className="et-auth-main">{children}</div>
         <footer className="et-auth-foot">

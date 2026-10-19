@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
   const allowed =
     roles.includes("super_admin") ||
     kind === "avatar" ||
+    kind === "banner" ||
     (roles.includes("editor") && kind === "blog") ||
     (roles.includes("tutor") && (kind === "cover" || kind === "video"));
   if (!allowed || profile?.status !== "active" || profile.deleted_at) return NextResponse.json({ error: "You can't upload this type of file." }, { status: 403 });

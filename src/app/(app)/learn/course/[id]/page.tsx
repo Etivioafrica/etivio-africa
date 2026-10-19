@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, ChevronRight, Download, FileText, PlayCircle } from "lucide-react";
+import { ArrowLeft, Bookmark, Check, ChevronRight, Download, FileText, PlayCircle } from "lucide-react";
 import { Progress } from "@/components/dash/ui";
 import { getCoursePlayer } from "@/lib/data/learn";
 import { formatBytes, formatDuration } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { setLessonDone } from "../../actions";
+import { LessonNotes } from "./LessonNotes";
 
 export const metadata = { title: "Course" };
 
@@ -31,12 +32,20 @@ export default async function CoursePlayer({
 
   const { course, modules, lessons, doneCount, progress } = data;
   // RLS limits this to documents the viewer may open (enrolled, owner, or public).
-  const { data: docs } = await (await createClient())
+  const supabase = await createClient();
+  const [{ data: docs }, { data: notes }] = await Promise.all([
+    supabase
     .from("documents")
     .select("id, title, description, file_url, file_name, file_size")
     .eq("course_id", id)
     .neq("visibility", "private")
-    .order("created_at");
+    .order("created_at"),
+    supabase
+      .from("lesson_notes")
+      .select("lesson_id, body, bookmarked")
+      .in("lesson_id", lessons.map((l) => l.id)),
+  ]);
+  const noteBy = new Map((notes ?? []).map((n) => [n.lesson_id, n]));
   const current = lessons.find((l) => l.id === lessonParam) ?? lessons.find((l) => !l.done) ?? lessons[0];
   const idx = current ? lessons.indexOf(current) : -1;
   const next = idx >= 0 ? lessons[idx + 1] : undefined;
@@ -80,6 +89,12 @@ export default async function CoursePlayer({
                   !video && <p style={{ color: "var(--a-faint)" }}>This lesson has no content yet.</p>
                 )}
               </div>
+              <LessonNotes
+                key={current.id}
+                lessonId={current.id}
+                initialBody={noteBy.get(current.id)?.body ?? ""}
+                initialBookmarked={noteBy.get(current.id)?.bookmarked ?? false}
+              />
               <div className="et-lesson-foot">
                 <form action={setLessonDone}>
                   <input type="hidden" name="lessonId" value={current.id} />
@@ -125,6 +140,7 @@ export default async function CoursePlayer({
                       {l.done ? <Check size={11} strokeWidth={3} /> : null}
                     </span>
                     <span className="et-lesson-title">{l.title}</span>
+                    {noteBy.get(l.id)?.bookmarked && <Bookmark size={13} fill="currentColor" aria-label="Bookmarked" />}
                     {l.videoUrl && <PlayCircle size={14} />}
                     {l.durationSeconds ? <small>{formatDuration(l.durationSeconds)}</small> : null}
                   </Link>

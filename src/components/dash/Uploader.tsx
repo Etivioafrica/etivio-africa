@@ -1,14 +1,15 @@
 "use client";
 import { useRef, useState } from "react";
-import { FileUp, ImageIcon, Video, X } from "lucide-react";
+import { Camera, FileUp, ImageIcon, Video, X } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 
 export type Uploaded = { url: string; key: string; name: string; size: number; type: string };
-type Kind = "cover" | "avatar" | "blog" | "video" | "document";
+type Kind = "cover" | "avatar" | "banner" | "blog" | "video" | "document";
 
 const ACCEPT: Record<Kind, string> = {
   cover: "image/*",
   avatar: "image/*",
+  banner: "image/*",
   blog: "image/*",
   video: "video/*",
   document: "*/*",
@@ -21,12 +22,15 @@ export function Uploader({
   kind,
   defaultUrl = "",
   label,
+  fallback,
   onUploaded,
 }: {
   name: string;
   kind: Kind;
   defaultUrl?: string | null;
   label?: string;
+  // Avatar only: what the round preview shows when there's no photo, e.g. the user's initial.
+  fallback?: string;
   onUploaded?: (file: Uploaded) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
@@ -62,8 +66,71 @@ export function Uploader({
     xhr.send(f);
   }
 
-  const isImage = kind === "cover" || kind === "avatar" || kind === "blog";
+  const isImage = kind === "cover" || kind === "avatar" || kind === "banner" || kind === "blog";
   const Icon = isImage ? ImageIcon : kind === "video" ? Video : FileUp;
+
+  const picker = (
+    <input
+      ref={input}
+      type="file"
+      accept={ACCEPT[kind]}
+      hidden
+      onChange={(e) => {
+        const f = e.target.files?.[0];
+        if (f) upload(f);
+        e.target.value = "";
+      }}
+    />
+  );
+
+  if (kind === "avatar") {
+    const busy = progress !== null;
+    return (
+      <div className="et-upload">
+        <input type="hidden" name={name} value={file?.url ?? ""} />
+        {picker}
+        <div className="et-upload-avatar">
+          <button
+            type="button"
+            className={`et-upload-avatar-img${dragging ? " is-drag" : ""}`}
+            onClick={() => input.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) upload(f);
+            }}
+            disabled={busy}
+            aria-label="Upload a photo"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {file?.url ? <img src={file.url} alt="" /> : fallback ? <span>{fallback}</span> : <Camera size={22} strokeWidth={1.7} />}
+            {busy && <em>{progress}%</em>}
+          </button>
+          <div className="et-upload-avatar-side">
+            <div className="et-inline">
+              <button type="button" className="et-btn et-btn-ghost et-btn-sm" onClick={() => input.current?.click()} disabled={busy}>
+                <Camera size={14} />
+                {busy ? "Uploading…" : file?.url ? "Change photo" : (label ?? "Upload photo")}
+              </button>
+              {file?.url && !busy && (
+                <button type="button" className="et-btn et-btn-danger-text et-btn-sm" onClick={() => setFile(null)}>
+                  Remove
+                </button>
+              )}
+            </div>
+            <small>JPG, PNG or WebP. A square photo works best.</small>
+          </div>
+        </div>
+        {error && <p className="et-upload-err">{error}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="et-upload">
@@ -76,17 +143,7 @@ export function Uploader({
           <input type="hidden" name={`${name}_type`} value={file?.type ?? ""} />
         </>
       )}
-      <input
-        ref={input}
-        type="file"
-        accept={ACCEPT[kind]}
-        hidden
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) upload(f);
-          e.target.value = "";
-        }}
-      />
+      {picker}
 
       {file?.url && isImage ? (
         <div className="et-upload-preview">

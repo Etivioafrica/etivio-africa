@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireFullSession } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/database.types";
 import { canAccess, isStaff, type AdminArea, type AppRole } from "@/lib/roles";
@@ -22,6 +23,7 @@ export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  await requireFullSession(supabase, "/admin");
   const [{ data: profile }, { data: roleRows }] = await Promise.all([
     supabase.from("profiles").select("full_name, avatar_url, status, deleted_at").eq("id", user.id).single(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),

@@ -1,17 +1,30 @@
 import Link from "next/link";
 import { Cover } from "@/components/dash/ui";
 import { formatPrice } from "@/lib/format";
-import { enrollFree } from "@/app/(app)/learn/actions";
+import { Heart } from "lucide-react";
+import { enrollFree, toggleSaved } from "@/app/(app)/learn/actions";
 import type { CourseCard } from "@/lib/data/learn";
 
-export function CourseGrid({ courses, enrolledIds }: { courses: CourseCard[]; enrolledIds: Set<string> }) {
+export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: CourseCard[]; enrolledIds: Set<string>; savedIds?: Set<string> }) {
   return (
     <div className="et-course-grid">
       {courses.map((c) => {
         const enrolled = enrolledIds.has(c.id);
+        const saved = savedIds?.has(c.id) ?? false;
         return (
           <article key={c.id} className="et-card et-course">
-            <Cover url={c.coverUrl} level={c.level} />
+            <div className="et-course-media">
+              <Cover url={c.coverUrl} level={c.level} />
+              {savedIds && !enrolled && (
+                <form action={toggleSaved}>
+                  <input type="hidden" name="courseId" value={c.id} />
+                  <input type="hidden" name="saved" value={saved ? "1" : "0"} />
+                  <button type="submit" className={`et-save${saved ? " is-on" : ""}`} aria-pressed={saved} aria-label={saved ? "Remove from saved" : "Save for later"} data-tip={saved ? "Saved" : "Save for later"}>
+                    <Heart size={16} />
+                  </button>
+                </form>
+              )}
+            </div>
             <div className="et-course-body">
               <h3>{c.title}</h3>
               {c.summary && <p>{c.summary}</p>}

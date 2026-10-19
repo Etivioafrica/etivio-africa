@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Empty, PageHead, Progress, Status } from "@/components/dash/ui";
 import { getCurrentUser } from "@/lib/auth";
@@ -33,11 +34,11 @@ export default async function Students() {
                 {students.map((s) => (
                   <tr key={`${s.userId}:${s.courseId}`}>
                     <td>
-                      <div className="et-cell-main">
+                      <Link href={`/teach/students/${s.userId}`} className="et-cell-main">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         {s.avatarUrl ? <img src={s.avatarUrl} alt="" className="et-avatar" /> : <span className="et-avatar">{s.name.charAt(0).toUpperCase()}</span>}
                         <b>{s.name}</b>
-                      </div>
+                      </Link>
                     </td>
                     <td>{s.courseTitle}</td>
                     <td className="et-hide-sm">{formatDate(s.enrolledAt)}</td>

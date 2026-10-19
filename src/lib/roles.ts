@@ -35,6 +35,9 @@ export const LIVE_CREATOR_ROLES: AppRole[] = ["tutor"];
 export const isStaff = (roles: AppRole[]) => roles.some((r) => STAFF_ROLES.includes(r));
 export const canTeach = (roles: AppRole[]) => roles.includes("tutor") || roles.includes("super_admin");
 
+// The Teach area stays hidden from learners until they've applied to teach (or can already teach).
+export const showsTeach = (roles: AppRole[], application: string | null) => canTeach(roles) || application === "pending" || application === "rejected";
+
 // Admin dashboard areas and who can open them. Super admins open everything.
 export const ADMIN_AREAS = {
   dashboard: ["super_admin", "editor", "accountant"],

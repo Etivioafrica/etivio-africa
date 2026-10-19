@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { parseSkills } from "@/lib/skills";
 import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/format";
@@ -92,6 +93,7 @@ export async function updateCourse(_prev: FormState, fd: FormData): Promise<Form
       summary: str(fd, "summary") || null,
       description: str(fd, "description") || null,
       cover_url: cover,
+      skills: parseSkills(str(fd, "skills")),
       level: LEVELS.includes(level) ? level : "beginner",
       price_minor: priceToMinor(str(fd, "price")),
     })

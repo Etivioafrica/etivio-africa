@@ -97,6 +97,50 @@ export type Database = {
           },
         ]
       }
+      billing_details: {
+        Row: {
+          address: string | null
+          city: string | null
+          company: string | null
+          country: string | null
+          name: string | null
+          receipt_email: string | null
+          tax_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company?: string | null
+          country?: string | null
+          name?: string | null
+          receipt_email?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company?: string | null
+          country?: string | null
+          name?: string | null
+          receipt_email?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           author_id: string | null
@@ -150,6 +194,51 @@ export type Database = {
           },
         ]
       }
+      certificates: {
+        Row: {
+          code: string
+          course_id: string | null
+          course_title: string
+          instructor_name: string | null
+          issued_at: string
+          recipient_name: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          course_id?: string | null
+          course_title: string
+          instructor_name?: string | null
+          issued_at?: string
+          recipient_name: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          course_id?: string | null
+          course_title?: string
+          instructor_name?: string | null
+          issued_at?: string
+          recipient_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_modules: {
         Row: {
           course_id: string
@@ -193,6 +282,7 @@ export type Database = {
           level: Database["public"]["Enums"]["course_level"]
           price_minor: number
           published_at: string | null
+          skills: string[]
           slug: string
           status: Database["public"]["Enums"]["course_status"]
           summary: string | null
@@ -209,6 +299,7 @@ export type Database = {
           level?: Database["public"]["Enums"]["course_level"]
           price_minor?: number
           published_at?: string | null
+          skills?: string[]
           slug: string
           status?: Database["public"]["Enums"]["course_status"]
           summary?: string | null
@@ -225,6 +316,7 @@ export type Database = {
           level?: Database["public"]["Enums"]["course_level"]
           price_minor?: number
           published_at?: string | null
+          skills?: string[]
           slug?: string
           status?: Database["public"]["Enums"]["course_status"]
           summary?: string | null
@@ -376,6 +468,45 @@ export type Database = {
           },
         ]
       }
+      lesson_notes: {
+        Row: {
+          body: string
+          bookmarked: boolean
+          lesson_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          bookmarked?: boolean
+          lesson_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          bookmarked?: boolean
+          lesson_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_notes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           content: string | null
@@ -429,6 +560,44 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          bank_name: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          bank_name: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_code?: string
+          bank_name?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -560,6 +729,56 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          authorization_code: string
+          bank: string | null
+          brand: string | null
+          created_at: string
+          exp_month: number | null
+          exp_year: number | null
+          id: string
+          is_default: boolean
+          last4: string | null
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          authorization_code: string
+          bank?: string | null
+          brand?: string | null
+          created_at?: string
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          is_default?: boolean
+          last4?: string | null
+          provider?: string
+          user_id: string
+        }
+        Update: {
+          authorization_code?: string
+          bank?: string | null
+          brand?: string | null
+          created_at?: string
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          is_default?: boolean
+          last4?: string | null
+          provider?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           commission_percent: number
@@ -596,38 +815,74 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          cover_url: string | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
           full_name: string | null
+          headline: string | null
           id: string
+          interests: string[]
           last_seen_at: string | null
+          linkedin_url: string | null
+          location: string | null
+          notification_prefs: Json
+          profile_public: boolean
+          show_current_learning: boolean
           status: Database["public"]["Enums"]["account_status"]
           updated_at: string
+          username: string | null
+          website_url: string | null
+          weekly_goal: number | null
+          x_url: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          cover_url?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
           full_name?: string | null
+          headline?: string | null
           id: string
+          interests?: string[]
           last_seen_at?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          notification_prefs?: Json
+          profile_public?: boolean
+          show_current_learning?: boolean
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
+          username?: string | null
+          website_url?: string | null
+          weekly_goal?: number | null
+          x_url?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          cover_url?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
           full_name?: string | null
+          headline?: string | null
           id?: string
+          interests?: string[]
           last_seen_at?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          notification_prefs?: Json
+          profile_public?: boolean
+          show_current_learning?: boolean
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
+          username?: string | null
+          website_url?: string | null
+          weekly_goal?: number | null
+          x_url?: string | null
         }
         Relationships: [
           {
@@ -683,6 +938,39 @@ export type Database = {
           },
           {
             foreignKeyName: "role_applications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_courses: {
+        Row: {
+          course_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_courses_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -776,6 +1064,35 @@ export type Database = {
           },
           {
             foreignKeyName: "support_threads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          seen_at: string | null
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          seen_at?: string | null
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          seen_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"

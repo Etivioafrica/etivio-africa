@@ -48,6 +48,9 @@
 .et-auth-link:hover{text-decoration:underline}
 .et-auth .et-auth-back{display:inline-flex;align-items:center;gap:6px;color:var(--a-muted);font-size:13px;margin-bottom:24px}
 .et-auth-back:hover{color:var(--a-fg)}
+.et-auth-switch{font-size:14px;color:var(--a-muted)}
+.et-auth-switch a{color:var(--accent);font-weight:600}
+.et-auth-switch a:hover{text-decoration:underline}
 .et-auth-alt{margin-top:28px;font-size:14px;color:var(--a-muted);text-align:center}
 .et-auth-alt a{color:var(--accent);font-weight:600}
 .et-auth-alt a:hover{text-decoration:underline}
@@ -57,3 +60,6 @@
 
 @media(max-width:1023px){.et-auth-hero{display:none}.et-auth-panel{margin:8px}}
 @media(max-width:600px){.et-auth-top,.et-auth-foot{padding:18px 16px}.et-auth-main{padding:32px 16px}.et-auth-panel{margin:0;border-radius:0}}
+.et-auth-box input.et-auth-code{font-size:22px;letter-spacing:.3em;text-align:center;font-variant-numeric:tabular-nums}
+.et-auth .et-auth-textbtn{padding:0;background:none;border:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
+.et-auth .et-auth-textbtn:hover{text-decoration:underline}

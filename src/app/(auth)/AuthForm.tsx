@@ -209,16 +209,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
               </Link>
             )}
           </form>
-          {mode === "login" && (
-            <p className="et-auth-alt">
-              New to Etivio? <Link href="/signup">Create an account</Link>
-            </p>
-          )}
-          {mode === "signup" && (
-            <p className="et-auth-alt">
-              Already have an account? <Link href="/login">Sign in</Link>
-            </p>
-          )}
         </>
       )}
     </div>

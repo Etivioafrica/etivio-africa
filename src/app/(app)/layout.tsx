@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Shell from "@/components/shell/Shell";
 import { getCurrentUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { showsTeach } from "@/lib/roles";
 import "./app.css";
 
 export const metadata: Metadata = {
@@ -19,6 +21,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 async function AuthedShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+  // Re-read whenever the layout re-renders (full loads and refresh() after actions), so a badge earned
+  // without a navigation still triggers the celebration.
+  const supabase = await createClient();
+  const { data: unseen } = await supabase.from("user_badges").select("badge_id").eq("user_id", user.id).is("seen_at", null);
   return (
     <Shell
       user={{
@@ -27,7 +33,9 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
         email: user.email,
         roles: user.roles,
         avatarUrl: user.avatarUrl,
+        showTeach: showsTeach(user.roles, user.tutorApplication),
       }}
+      unseenBadges={(unseen ?? []).map((b) => b.badge_id).join(",")}
     >
       {children}
     </Shell>

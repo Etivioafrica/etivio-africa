@@ -190,3 +190,24 @@ export async function getCoursePlayer(courseId: string) {
     progress: percent(doneCount, flat.length),
   };
 }
+
+export async function getSavedIds(): Promise<Set<string>> {
+  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data } = await supabase.from("saved_courses").select("course_id").eq("user_id", user.id);
+  return new Set((data ?? []).map((r) => r.course_id));
+}
+
+// Saved courses that are still published, newest save first.
+export async function getSavedCourses(): Promise<CourseCard[]> {
+  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("saved_courses")
+    .select(`created_at, course:courses(${COURSE_COLS}, status)`)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+  const rows = (data ?? []).map((r) => r.course).filter((c) => c && (c as { status: string }).status === "published") as unknown as CourseRow[];
+  const counts = await lessonCounts(rows.map((r) => r.id));
+  return rows.map((r) => toCard(r, counts));
+}
