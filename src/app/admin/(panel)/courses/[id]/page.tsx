@@ -1,15 +1,13 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertCircle, Award, BookOpen, CheckCircle2, Eye, FileText, ListChecks, Pencil, PlayCircle, Star, Trash2, Users, Wallet } from "lucide-react";
+import { AlertCircle, Award, BookOpen, CheckCircle2, ChevronRight, TrendingDown, Eye, FileText, ListChecks, Pencil, PlayCircle, Star, Trash2, Users, Wallet } from "lucide-react";
 import { Status, StatStrip } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
-import { Uploader } from "@/components/dash/Uploader";
 import { requireAdmin } from "@/lib/admin";
 import { compactMoney, formatDate, formatDuration } from "@/lib/format";
-import { courseMetrics, getCourseCategories, getStudentProgress, loadReviews } from "@/lib/data/courses-admin";
-import { adminAddLesson, adminAddModule, adminDeleteCourse, adminDeleteModule, adminSetCourseStatus, adminUpdateCourse, adminUpdatePricing } from "../actions";
-import { getInstructorOptions } from "../instructors";
+import { courseMetrics, getStudentProgress, loadReviews } from "@/lib/data/courses-admin";
+import { adminAddLesson, adminAddModule, adminDeleteCourse, adminDeleteModule, adminSetCourseStatus, adminUpdateSlug } from "../actions";
 import { StudentsTable } from "../students/StudentsTable";
 import { ReviewsClient } from "../reviews/ReviewsClient";
 import { AddQuizButton } from "./QuizButton";
@@ -19,7 +17,6 @@ const TABS = [
   { id: "curriculum", label: "Curriculum" },
   { id: "students", label: "Students" },
   { id: "reviews", label: "Reviews" },
-  { id: "pricing", label: "Pricing" },
   { id: "settings", label: "Settings" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
@@ -42,7 +39,7 @@ async function CourseEditor({ params, searchParams }: Props) {
   const { data: course } = await db.from("courses").select("*, instructor:profiles!courses_instructor_id_fkey(full_name)").eq("id", id).maybeSingle();
   if (!course) notFound();
 
-  const [{ data: modules }, { data: lessons }, { data: students }, { data: docs }, instructors, { data: quizzes }, categories, metricsAll, { data: questions }] = await Promise.all([
+  const [{ data: modules }, { data: lessons }, { data: students }, { data: docs }, { data: quizzes }, metricsAll, { data: questions }] = await Promise.all([
     db.from("course_modules").select("id, title, position").eq("course_id", id).order("position"),
     db.from("lessons").select("*").eq("course_id", id).order("position"),
     db
@@ -52,9 +49,7 @@ async function CourseEditor({ params, searchParams }: Props) {
       .order("enrolled_at", { ascending: false })
       .limit(50),
     db.from("documents").select("id, title, visibility").eq("course_id", id).order("created_at", { ascending: false }),
-    getInstructorOptions(db),
     db.from("course_quizzes").select("id, title, module_id, pass_mark").eq("course_id", id),
-    getCourseCategories(),
     courseMetrics(),
     db.from("quiz_questions").select("quiz_id"),
   ]);
@@ -96,6 +91,10 @@ async function CourseEditor({ params, searchParams }: Props) {
             <Eye size={15} />
             Preview
           </Link>
+          <Link href={`/admin/courses/${course.id}/edit`} className="et-btn et-btn-primary">
+            <Pencil size={15} />
+            Edit course
+          </Link>
           {(["draft", "published", "archived"] as const)
             .filter((s) => s !== course.status)
             .map((s) => (
@@ -131,7 +130,7 @@ async function CourseEditor({ params, searchParams }: Props) {
               { label: "Students", value: metrics.students, icon: Users, href: href("students") },
               { label: "Completion", value: completion === null ? "None yet" : `${completion}%`, icon: Award, hint: `${metrics.completed} certificates` },
               { label: "Rating", value: metrics.rating ? `${metrics.rating.toFixed(1)} ★` : "No reviews", icon: Star, href: href("reviews"), hint: metrics.pendingReviews ? `${metrics.pendingReviews} waiting` : undefined },
-              { label: "Revenue", value: course.price_minor ? compactMoney(metrics.revenue) : "Free course", icon: Wallet, href: href("pricing") },
+              { label: "Revenue", value: course.price_minor ? compactMoney(metrics.revenue) : "Free course", icon: Wallet, href: `/admin/courses/${course.id}/edit` },
             ]}
           />
           <div className="et-grid-2" style={{ alignItems: "start" }}>
@@ -174,9 +173,16 @@ async function CourseEditor({ params, searchParams }: Props) {
               ) : (
                 <p className="et-empty">No students yet.</p>
               )}
-              <div className="et-card-foot-link">
-                <Link href={`/admin/courses/metrics?course=${course.id}`}>See where learners stop →</Link>
-              </div>
+              <Link href={`/admin/courses/metrics?course=${course.id}`} className="et-card-cta">
+                <span className="et-card-cta-icon">
+                  <TrendingDown size={16} />
+                </span>
+                <span>
+                  <b>See where learners stop</b>
+                  <small>Lesson-by-lesson drop-off and the biggest gap</small>
+                </span>
+                <ChevronRight size={16} className="et-card-cta-arrow" />
+              </Link>
             </section>
           </div>
         </>
@@ -206,9 +212,10 @@ async function CourseEditor({ params, searchParams }: Props) {
                   </div>
                   {m.lessons.map((l) => (
                     <Link key={l.id} href={`/admin/courses/${course.id}/lessons/${l.id}`} className="et-lesson">
-                      {l.video_url ? <PlayCircle size={15} /> : <FileText size={15} />}
+                      {l.kind === "reading" ? <FileText size={15} /> : <PlayCircle size={15} />}
                       <span className="et-lesson-title">{l.title}</span>
                       {l.is_preview && <span className="et-tag">Preview</span>}
+                      {!l.video_url && !l.content && <span className="et-tag is-warn">Empty</span>}
                       {l.duration_seconds ? <small>{formatDuration(l.duration_seconds)}</small> : null}
                       <Pencil size={13} />
                     </Link>
@@ -284,120 +291,36 @@ async function CourseEditor({ params, searchParams }: Props) {
         </Suspense>
       )}
 
-      {tab === "pricing" && (
-        <section className="et-card et-card-pad" style={{ maxWidth: 640 }}>
-          <ActionForm action={adminUpdatePricing} toast>
-            <input type="hidden" name="id" value={course.id} />
-            <div className="et-wiz-choice et-wiz-choice-radio">
-              <label>
-                <input type="radio" name="mode" value="free" defaultChecked={!course.price_minor} />
-                <b>Free</b>
-                <small>Anyone can enrol straight away.</small>
-              </label>
-              <label>
-                <input type="radio" name="mode" value="paid" defaultChecked={!!course.price_minor} />
-                <b>Paid</b>
-                <small>Learners pay once through Paystack and keep access.</small>
-              </label>
-            </div>
-            <div className="et-field" style={{ maxWidth: 280 }}>
-              <label htmlFor="price">Price (₦)</label>
-              <input id="price" name="price" inputMode="decimal" defaultValue={course.price_minor ? course.price_minor / 100 : ""} placeholder="e.g. 15000" />
-              <small>Only used when the course is paid. Minimum ₦500.</small>
-            </div>
-            <p className="et-muted" style={{ fontSize: 12.5 }}>
-              Changing the price never affects people who already enrolled. Revenue so far: <b>{compactMoney(metrics.revenue)}</b>.
-            </p>
-            <div className="et-form-foot">
-              <SubmitButton>Save pricing</SubmitButton>
-            </div>
-          </ActionForm>
-        </section>
-      )}
-
       {tab === "settings" && (
-        <div className="et-grid-main" style={{ gridTemplateColumns: "minmax(0,1fr) 320px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 760 }}>
+          <section className="et-card et-card-cta-wrap">
+            <Link href={`/admin/courses/${course.id}/edit`} className="et-card-cta" style={{ borderTop: 0 }}>
+              <span className="et-card-cta-icon">
+                <Pencil size={16} />
+              </span>
+              <span>
+                <b>Edit details, outline and price</b>
+                <small>Title, cover, category, level, about, skills, modules and lessons, free or paid</small>
+              </span>
+              <ChevronRight size={16} className="et-card-cta-arrow" />
+            </Link>
+          </section>
           <section className="et-card">
             <div className="et-card-head">
-              <h2>Course details</h2>
+              <h2>Course link</h2>
             </div>
             <div className="et-card-pad">
-              <ActionForm action={adminUpdateCourse}>
+              <ActionForm action={adminUpdateSlug} toast className="et-inline-form">
                 <input type="hidden" name="id" value={course.id} />
-                <div className="et-field">
-                  <label>Cover image</label>
-                  <Uploader name="cover_url" kind="cover" defaultUrl={course.cover_url} label="Upload a cover image" />
-                </div>
-                <div className="et-field">
-                  <label htmlFor="title">Title</label>
-                  <input id="title" name="title" defaultValue={course.title} required />
-                </div>
-                <div className="et-field">
-                  <label htmlFor="instructor_id">Instructor</label>
-                  <select id="instructor_id" name="instructor_id" defaultValue={course.instructor_id}>
-                    {instructors.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="et-field">
-                  <label htmlFor="slug">URL slug</label>
-                  <input id="slug" name="slug" defaultValue={course.slug} required />
-                </div>
-                <div className="et-field">
-                  <label htmlFor="summary">Summary</label>
-                  <textarea id="summary" name="summary" rows={2} defaultValue={course.summary ?? ""} />
-                </div>
-                <div className="et-field">
-                  <label htmlFor="category_id">Category</label>
-                  <select id="category_id" name="category_id" defaultValue={course.category_id ?? ""}>
-                    <option value="">Choose a category</option>
-                    {categories
-                      .filter((c) => !c.parent_id)
-                      .flatMap((p) => [
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>,
-                        ...categories
-                          .filter((c) => c.parent_id === p.id)
-                          .map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {p.name} › {c.name}
-                            </option>
-                          )),
-                      ])}
-                  </select>
-                  <small>Used to recommend this course to learners interested in the topic.</small>
-                </div>
-                <div className="et-field">
-                  <label htmlFor="skills">Skills taught</label>
-                  <input id="skills" name="skills" defaultValue={(course.skills ?? []).join(", ")} placeholder="Figma, UI design, Prototyping" />
-                  <small>Learners earn these on their profile when they finish the course. Separate with commas, up to 12.</small>
-                </div>
-                <div className="et-field">
-                  <label htmlFor="description">Description</label>
-                  <textarea id="description" name="description" rows={5} defaultValue={course.description ?? ""} />
-                </div>
-                <div className="et-form-grid">
-                  <div className="et-field">
-                    <label htmlFor="level">Level</label>
-                    <select id="level" name="level" defaultValue={course.level}>
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="et-form-foot">
-                  <SubmitButton>Save details</SubmitButton>
-                </div>
+                <span className="et-muted" style={{ fontSize: 13 }}>
+                  etivio.co/courses/
+                </span>
+                <input name="slug" className="et-input" defaultValue={course.slug} required aria-label="URL slug" />
+                <SubmitButton className="et-btn et-btn-ghost et-btn-sm">Save</SubmitButton>
               </ActionForm>
             </div>
           </section>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <section className="et-card et-card-pad" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <section className="et-card et-card-pad" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <span style={{ fontSize: 13, color: "var(--a-muted)" }}>{students?.length ? "Courses with students can only be archived." : "Delete this course and its files."}</span>
             {!students?.length && (
               <form action={adminDeleteCourse}>
@@ -409,7 +332,6 @@ async function CourseEditor({ params, searchParams }: Props) {
               </form>
             )}
           </section>
-          </div>
         </div>
       )}
     </div>

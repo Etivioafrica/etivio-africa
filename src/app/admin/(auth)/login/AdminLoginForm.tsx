@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -68,9 +67,7 @@ export function AdminLoginForm() {
             </>
           )}
         </button>
-        <Link href="/forgot-password" className="et-auth-link">
-          Forgot password?
-        </Link>
+        <p className="et-auth-link">Forgot your password? Ask a super admin to send you a reset link.</p>
       </form>
     </div>
   );

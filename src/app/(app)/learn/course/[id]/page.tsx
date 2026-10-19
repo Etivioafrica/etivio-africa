@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { videoEmbed } from "@/lib/video";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Bookmark, Check, ChevronRight, Download, FileText, ListChecks, Lock, PlayCircle } from "lucide-react";
+import { ArrowLeft, Bookmark, Check, ChevronRight, Download, FileText, ListChecks, Lock, Paperclip, PlayCircle } from "lucide-react";
 import { Progress } from "@/components/dash/ui";
 import { getCoursePlayer } from "@/lib/data/learn";
 import { formatBytes, formatDuration } from "@/lib/format";
+import { toHtml } from "@/lib/blog";
+import { sanitizeRichText } from "@/lib/sanitize";
 import { createClient } from "@/lib/supabase/server";
 import { setLessonDone } from "../../actions";
 import { LessonNotes } from "./LessonNotes";
@@ -11,14 +14,6 @@ import { ReviewCard } from "./ReviewCard";
 
 export const metadata = { title: "Course" };
 
-// Turn YouTube/Vimeo page links into embeddable URLs; anything else plays as a file.
-function embed(url: string): { kind: "iframe" | "video"; src: string } {
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
-  if (yt) return { kind: "iframe", src: `https://www.youtube-nocookie.com/embed/${yt[1]}` };
-  const vimeo = url.match(/vimeo\.com\/(\d+)/);
-  if (vimeo) return { kind: "iframe", src: `https://player.vimeo.com/video/${vimeo[1]}` };
-  return { kind: "video", src: url };
-}
 
 export default async function CoursePlayer({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lesson?: string }> }) {
   const [{ id }, { lesson: lessonParam }] = await Promise.all([params, searchParams]);
@@ -33,6 +28,7 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
       .from("documents")
       .select("id, title, description, file_url, file_name, file_size")
       .eq("course_id", id)
+      .is("lesson_id", null)
       .neq("visibility", "private")
       .order("created_at"),
     supabase
@@ -44,6 +40,13 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
       ),
   ]);
   const noteBy = new Map((notes ?? []).map((n) => [n.lesson_id, n]));
+  const { data: lessonFiles } = await supabase
+    .from("documents")
+    .select("id, title, file_url, file_name, file_size, lesson_id")
+    .eq("course_id", id)
+    .not("lesson_id", "is", null)
+    .order("created_at");
+  const filesBy = (lessonId: string) => (lessonFiles ?? []).filter((f) => f.lesson_id === lessonId);
   const lockedIds = new Set(modules.filter((m) => m.locked).flatMap((m) => m.lessons.map((l) => l.id)));
   const open = lessons.filter((l) => !lockedIds.has(l.id));
   const current = lessons.find((l) => l.id === lessonParam) ?? open.find((l) => !l.done) ?? open[0] ?? lessons[0];
@@ -59,7 +62,7 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
     : nextLesson
       ? { id: nextLesson.id, href: `${base}?lesson=${nextLesson.id}`, label: "Next lesson" }
       : null;
-  const video = current?.videoUrl ? embed(current.videoUrl) : null;
+  const video = current?.videoUrl ? videoEmbed(current.videoUrl) : null;
 
   return (
     <div className="et-page">
@@ -106,10 +109,36 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
               )}
               <div className="et-lesson-body">
                 <h2>{current.title}</h2>
+                {current.kind === "reading" && current.durationSeconds ? (
+                  <p className="et-lesson-meta">
+                    <FileText size={13} /> Reading · {formatDuration(current.durationSeconds)}
+                  </p>
+                ) : null}
                 {current.content ? (
-                  <div className="et-prose">{current.content}</div>
+                  <div className="et-rich et-lesson-rich" dangerouslySetInnerHTML={{ __html: sanitizeRichText(toHtml(current.content)) }} />
                 ) : (
                   !video && <p style={{ color: "var(--a-faint)" }}>This lesson has no content yet.</p>
+                )}
+                {filesBy(current.id).length > 0 && (
+                  <div className="et-lesson-res">
+                    <h3>Resources</h3>
+                    <ul>
+                      {filesBy(current.id).map((f) => (
+                        <li key={f.id}>
+                          <span className="et-res-icon">
+                            <FileText size={16} />
+                          </span>
+                          <span>
+                            <b>{f.title}</b>
+                            <small>{f.file_size ? formatBytes(f.file_size) : f.file_name}</small>
+                          </span>
+                          <a href={f.file_url} target="_blank" rel="noreferrer" className="et-btn et-btn-ghost et-btn-sm">
+                            <Download size={14} /> Download
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
               <LessonNotes
@@ -167,7 +196,8 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
                         <span className={`et-lesson-dot${l.done ? " is-done" : ""}`}>{l.done ? <Check size={11} strokeWidth={3} /> : null}</span>
                         <span className="et-lesson-title">{l.title}</span>
                         {noteBy.get(l.id)?.bookmarked && <Bookmark size={13} fill="currentColor" aria-label="Bookmarked" />}
-                        {l.videoUrl && <PlayCircle size={14} />}
+                        {l.kind === "reading" ? <FileText size={14} /> : l.videoUrl ? <PlayCircle size={14} /> : null}
+                      {filesBy(l.id).length > 0 && <Paperclip size={12} aria-label="Has resources" />}
                         {l.durationSeconds ? <small>{formatDuration(l.durationSeconds)}</small> : null}
                       </Link>
                     ),

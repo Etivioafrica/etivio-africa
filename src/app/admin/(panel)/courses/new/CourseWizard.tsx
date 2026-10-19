@@ -2,35 +2,68 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, GripVertical, ImagePlus, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { CropUpload, type CropUploadHandle } from "@/components/dash/CropUpload";
 import { useToast } from "@/components/dash/useToast";
 import type { Category } from "@/components/dash/CategoryManager";
-import { createCourseFull } from "../actions";
+import { createCourseFull, updateCourseFull, type LessonFile } from "../actions";
+import { LessonCard, hasText, type LessonPatch, type WizLesson } from "./LessonCard";
 
 type Level = "beginner" | "intermediate" | "advanced";
-type Mod = { key: number; title: string; lessons: { key: number; title: string }[] };
+type Mod = { key: number; id?: string; title: string; lessons: WizLesson[] };
+export type WizardInitial = {
+  title: string;
+  summary: string;
+  description: string;
+  skills: string;
+  instructorId: string;
+  categoryId: string;
+  level: Level;
+  coverUrl: string;
+  priceNaira: number;
+  modules: { id: string; title: string; lessons: { id: string; title: string; videoUrl: string; hostedVideo: boolean; content: string; files: LessonFile[] }[] }[];
+};
 const STEPS = ["Basics", "Curriculum", "Pricing", "Review"] as const;
 let uid = 0;
 const nextKey = () => ++uid;
+const newLesson = (): WizLesson => ({ key: nextKey(), title: "", videoUrl: "", content: "", files: [] });
 
-// Four steps: basics, curriculum outline, pricing, then review and create (as a draft or published).
-export function CourseWizard({ instructors, categories, defaultInstructor }: { instructors: { id: string; label: string }[]; categories: Category[]; defaultInstructor: string }) {
+// Four steps: basics, curriculum outline, pricing, then review. Used to create a course and, with `edit`, to change one.
+export function CourseWizard({
+  instructors,
+  categories,
+  defaultInstructor,
+  initial,
+  edit,
+}: {
+  instructors: { id: string; label: string }[];
+  categories: Category[];
+  defaultInstructor: string;
+  initial?: WizardInitial;
+  edit?: { courseId: string; status: "draft" | "published" | "archived"; students: number };
+}) {
   const router = useRouter();
   const [toast, show] = useToast();
   const [saving, start] = useTransition();
   const cover = useRef<CropUploadHandle>(null);
   const [step, setStep] = useState(0);
-  const [title, setTitle] = useState("");
-  const [summary, setSummary] = useState("");
-  const [instructorId, setInstructorId] = useState(instructors.some((i) => i.id === defaultInstructor) ? defaultInstructor : (instructors[0]?.id ?? ""));
-  const [categoryId, setCategoryId] = useState("");
-  const [level, setLevel] = useState<Level>("beginner");
-  const [coverUrl, setCoverUrl] = useState("");
-  const [paid, setPaid] = useState(false);
-  const [price, setPrice] = useState("");
-  const [modules, setModules] = useState<Mod[]>([{ key: nextKey(), title: "Getting started", lessons: [{ key: nextKey(), title: "" }] }]);
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [summary, setSummary] = useState(initial?.summary ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [skills, setSkills] = useState(initial?.skills ?? "");
+  const [instructorId, setInstructorId] = useState(initial?.instructorId ?? (instructors.some((i) => i.id === defaultInstructor) ? defaultInstructor : (instructors[0]?.id ?? "")));
+  const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
+  const [level, setLevel] = useState<Level>(initial?.level ?? "beginner");
+  const [coverUrl, setCoverUrl] = useState(initial?.coverUrl ?? "");
+  const [paid, setPaid] = useState((initial?.priceNaira ?? 0) > 0);
+  const [price, setPrice] = useState(initial?.priceNaira ? String(initial.priceNaira) : "");
+  const [modules, setModules] = useState<Mod[]>(() =>
+    initial?.modules.length
+      ? initial.modules.map((m) => ({ key: nextKey(), id: m.id, title: m.title, lessons: m.lessons.map((l) => ({ key: nextKey(), ...l })) }))
+      : [{ key: nextKey(), title: "Getting started", lessons: [newLesson()] }],
+  );
   const [drag, setDrag] = useState<{ m: number; l: number } | null>(null);
+  const [openLesson, setOpenLesson] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const lessonTotal = modules.reduce((n, m) => n + m.lessons.filter((l) => l.title.trim()).length, 0);
@@ -63,7 +96,21 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
   }
 
   const setMod = (mi: number, patch: Partial<Mod>) => setModules((ms) => ms.map((m, i) => (i === mi ? { ...m, ...patch } : m)));
-  const setLesson = (mi: number, li: number, t: string) => setMod(mi, { lessons: modules[mi].lessons.map((l, i) => (i === li ? { ...l, title: t } : l)) });
+  const setLesson = (mk: number, lk: number, patch: LessonPatch) =>
+    setModules((ms) =>
+      ms.map((m) => (m.key !== mk ? m : { ...m, lessons: m.lessons.map((l) => (l.key !== lk ? l : { ...l, ...(typeof patch === "function" ? patch(l) : patch) })) })),
+    );
+  const addLesson = (mi: number, at: number) => {
+    const l = newLesson();
+    setModules((ms) => ms.map((m, i) => (i === mi ? { ...m, lessons: [...m.lessons.slice(0, at), l, ...m.lessons.slice(at)] } : m)));
+    return l;
+  };
+  const lessonPayload = () =>
+    modules.map((m) => ({
+      id: m.id,
+      title: m.title,
+      lessons: m.lessons.map((l) => ({ id: l.id, key: String(l.key), title: l.title, videoUrl: l.videoUrl, content: l.content, files: l.files })),
+    }));
   const moveLesson = (from: { m: number; l: number }, to: { m: number; l: number }) =>
     setModules((ms) => {
       const copy = ms.map((m) => ({ ...m, lessons: [...m.lessons] }));
@@ -72,18 +119,48 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
       return copy;
     });
 
+  function saveEdit(status: "keep" | "draft" | "published") {
+    if (!edit) return;
+    const removed = initial!.modules.flatMap((m) => m.lessons).filter((l) => !modules.some((m) => m.lessons.some((x) => x.id === l.id))).length;
+    if (removed && edit.students && !window.confirm(`You removed ${removed} ${removed === 1 ? "lesson" : "lessons"}. Learners lose their progress, notes and resources for ${removed === 1 ? "it" : "them"}. Save anyway?`)) return;
+    setError("");
+    start(async () => {
+      const res = await updateCourseFull(edit.courseId, {
+        title,
+        summary,
+        description,
+        skills,
+        instructorId,
+        categoryId,
+        level,
+        coverUrl,
+        priceNaira: paid ? String(priceNum) : "0",
+        modules: lessonPayload(),
+        status,
+      });
+      if (res.error) {
+        setError(res.error);
+        return show(res);
+      }
+      show(status === "published" ? "Saved and published." : "Changes saved.");
+      router.push(`/admin/courses/${edit.courseId}`);
+    });
+  }
+
   function create(publish: boolean) {
     setError("");
     start(async () => {
       const res = await createCourseFull({
         title,
         summary,
+        description,
+        skills,
         instructorId,
         categoryId,
         level,
         coverUrl,
         priceNaira: paid ? String(priceNum) : "0",
-        modules: modules.map((m) => ({ title: m.title, lessons: m.lessons.map((l) => l.title) })),
+        modules: lessonPayload(),
         publish,
       });
       if (res.error) {
@@ -99,12 +176,17 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
     <>
       {toast}
       <p className="et-set-crumb">
-        <Link href="/admin/courses">Courses</Link> <span>/</span> New course <span>/</span> {STEPS[step]}
+        <Link href="/admin/courses">Courses</Link> <span>/</span>{" "}
+        {edit ? <Link href={`/admin/courses/${edit.courseId}`}>{initial?.title}</Link> : "New course"} <span>/</span> {edit ? "Edit" : STEPS[step]}
       </p>
       <div className="et-page-head">
         <div>
-          <h1>New course</h1>
-          <p>Set it up in four steps. You can add videos, quizzes and documents after it&apos;s created.</p>
+          <h1>{edit ? "Edit course" : "New course"}</h1>
+          <p>
+            {edit
+              ? "Change the details, lessons, or price, then save from the Review step."
+              : "Set it up in four steps: details, lessons (with videos, text and files), price, then review."}
+          </p>
         </div>
       </div>
 
@@ -166,6 +248,15 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
                 </div>
               </div>
               <div className="et-field">
+                <label htmlFor="w-desc">About this course</label>
+                <textarea id="w-desc" rows={5} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} placeholder="What's covered, who it's for, and what learners need before starting." />
+              </div>
+              <div className="et-field">
+                <label htmlFor="w-skills">Skills learners will earn</label>
+                <input id="w-skills" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="Figma, UI design, Prototyping" />
+                <small>Shown on their profile when they finish. Separate with commas, up to 12.</small>
+              </div>
+              <div className="et-field">
                 <label>Level</label>
                 <div className="et-wiz-levels" role="radiogroup" aria-label="Level">
                   {(["beginner", "intermediate", "advanced"] as Level[]).map((l) => (
@@ -205,7 +296,7 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
         {step === 1 && (
           <div className="et-wiz-curr">
             <p className="et-muted" style={{ fontSize: 13 }}>
-              Outline the course: modules, and the lessons inside them. Just titles for now. Drag lessons to reorder or move them between modules. You&apos;ll add videos and text on the next screen.
+              Add modules and the lessons inside them. Give each lesson a title, then click <b>Add content</b> to paste a YouTube link, write text, or attach files. Drag lessons to reorder them or move them between modules.
             </p>
             {modules.map((m, mi) => (
               <div key={m.key} className="et-wiz-mod">
@@ -226,7 +317,7 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
                   {m.lessons.map((l, li) => (
                     <li
                       key={l.key}
-                      draggable
+                      draggable={openLesson !== l.key}
                       onDragStart={() => setDrag({ m: mi, l: li })}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
@@ -234,34 +325,29 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
                         if (drag && (drag.m !== mi || drag.l !== li)) moveLesson(drag, { m: mi, l: li });
                         setDrag(null);
                       }}
-                      className={drag?.m === mi && drag?.l === li ? "is-drag" : ""}
+                      className={`et-wiz-lesson${openLesson === l.key ? " is-open" : ""}${drag?.m === mi && drag?.l === li ? " is-drag" : ""}`}
                     >
-                      <GripVertical size={14} className="et-wiz-grip" />
-                      <input
-                        className="et-input"
-                        value={l.title}
-                        onChange={(e) => setLesson(mi, li, e.target.value)}
-                        placeholder={`Lesson ${li + 1} title`}
-                        aria-label={`Lesson ${li + 1} title`}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            setMod(mi, { lessons: [...m.lessons.slice(0, li + 1), { key: nextKey(), title: "" }, ...m.lessons.slice(li + 1)] });
-                          }
+                      <LessonCard
+                        lesson={l}
+                        index={li}
+                        open={openLesson === l.key}
+                        onToggle={() => setOpenLesson((k) => (k === l.key ? null : l.key))}
+                        onChange={(patch) => setLesson(m.key, l.key, patch)}
+                        onEnter={() => addLesson(mi, li + 1)}
+                        onRemove={() => {
+                          if ((l.videoUrl || hasText(l.content) || l.files.length) && !window.confirm(`Remove "${l.title || "this lesson"}" and its content?`)) return;
+                          setMod(mi, { lessons: m.lessons.filter((_, i) => i !== li) });
                         }}
                       />
-                      <button type="button" className="et-icon-btn" onClick={() => setMod(mi, { lessons: m.lessons.filter((_, i) => i !== li) })} aria-label="Remove lesson">
-                        <X size={14} />
-                      </button>
                     </li>
                   ))}
                 </ul>
-                <button type="button" className="et-wiz-add" onClick={() => setMod(mi, { lessons: [...m.lessons, { key: nextKey(), title: "" }] })}>
+                <button type="button" className="et-wiz-add" onClick={() => setOpenLesson(addLesson(mi, m.lessons.length).key)}>
                   <Plus size={13} /> Add lesson
                 </button>
               </div>
             ))}
-            <button type="button" className="et-btn et-btn-ghost" onClick={() => setModules((ms) => [...ms, { key: nextKey(), title: "", lessons: [{ key: nextKey(), title: "" }] }])}>
+            <button type="button" className="et-btn et-btn-ghost" onClick={() => setModules((ms) => [...ms, { key: nextKey(), title: "", lessons: [newLesson()] }])}>
               <Plus size={14} /> Add module
             </button>
           </div>
@@ -311,7 +397,13 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
                 </dd>
               </dl>
             </div>
-            {!lessonTotal && <p className="et-flash et-flash-warn">There are no lessons yet, so this can only be saved as a draft. Add lesson titles in step 2 to publish now.</p>}
+            {!lessonTotal && <p className="et-flash et-flash-warn">There are no lessons yet, so this can only be saved as a draft. Add lesson titles in step 2 to publish.</p>}
+            {edit && (
+              <p className="et-muted" style={{ fontSize: 12.5 }}>
+                Status now: <b style={{ textTransform: "capitalize" }}>{edit.status}</b>
+                {edit.students ? ` · ${edit.students} enrolled learners keep their progress on lessons you keep.` : ""}
+              </p>
+            )}
           </div>
         )}
       </section>
@@ -322,7 +414,7 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
             <ArrowLeft size={14} /> Back
           </button>
         ) : (
-          <Link href="/admin/courses" className="et-btn et-btn-ghost">
+          <Link href={edit ? `/admin/courses/${edit.courseId}` : "/admin/courses"} className="et-btn et-btn-ghost">
             Cancel
           </Link>
         )}
@@ -331,6 +423,22 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
             Continue <ArrowRight size={14} />
           </button>
         ) : (
+          edit ? (
+            <div className="et-inline">
+              {edit.status === "published" ? (
+                <button type="button" className="et-btn et-btn-ghost" onClick={() => saveEdit("draft")} disabled={saving}>
+                  Save and unpublish
+                </button>
+              ) : (
+                <button type="button" className="et-btn et-btn-ghost" onClick={() => saveEdit("keep")} disabled={saving}>
+                  {saving ? "Saving…" : edit.status === "archived" ? "Save" : "Save as draft"}
+                </button>
+              )}
+              <button type="button" className="et-btn et-btn-success" onClick={() => saveEdit(edit.status === "published" ? "keep" : "published")} disabled={saving || !lessonTotal}>
+                {saving ? "Saving…" : edit.status === "published" ? "Save changes" : "Save and publish"}
+              </button>
+            </div>
+          ) : (
           <div className="et-inline">
             <button type="button" className="et-btn et-btn-ghost" onClick={() => create(false)} disabled={saving}>
               {saving ? "Creating…" : "Save as draft"}
@@ -339,6 +447,7 @@ export function CourseWizard({ instructors, categories, defaultInstructor }: { i
               {saving ? "Creating…" : "Create and publish"}
             </button>
           </div>
+          )
         )}
       </div>
 

@@ -49,7 +49,7 @@ export function QuizEditor({
 
   function save() {
     start(async () => {
-      const res = await saveQuiz(quizId, { title, passMark, questions: questions.map(({ key: _k, ...q }) => q) });
+      const res = await saveQuiz(quizId, { title, passMark, questions: questions.map((q) => ({ prompt: q.prompt, options: q.options, correct: q.correct, explanation: q.explanation })) });
       show(res);
       if (!res.error) setDirty(false);
     });

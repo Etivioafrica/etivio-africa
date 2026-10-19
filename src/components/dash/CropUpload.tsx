@@ -6,6 +6,8 @@ import { formatBytes } from "@/lib/format";
 
 const MAX_SOURCE_MB = 20;
 const MAX_ZOOM = 3;
+// Once the bytes are sent, give the server this long to answer before giving up.
+const RESPONSE_TIMEOUT_MS = 60_000;
 
 type Size = { width: number; height: number };
 type Picked = { file: File; preview: string; img: HTMLImageElement; fill: string };
@@ -91,8 +93,18 @@ export const CropUpload = forwardRef<
     xhr.open("POST", `/api/upload?kind=${kind}`);
     xhr.setRequestHeader("content-type", file.type);
     xhr.setRequestHeader("x-file-name", encodeURIComponent(`${kind}.${file.ext}`));
+    let waiting: ReturnType<typeof setTimeout> | undefined;
     xhr.upload.onprogress = (e) => e.lengthComputable && setStage({ label: `Uploading ${size}`, progress: Math.round((e.loaded / e.total) * 100) });
+    xhr.upload.onload = () => {
+      setStage({ label: "Finishing upload…" });
+      waiting = setTimeout(() => {
+        xhr.abort();
+        setStage(null);
+        setError("The server is taking too long to respond. Try again in a moment.");
+      }, RESPONSE_TIMEOUT_MS);
+    };
     xhr.onload = async () => {
+      clearTimeout(waiting);
       let body: { url?: string; error?: string } = {};
       try {
         body = JSON.parse(xhr.responseText);
@@ -110,6 +122,7 @@ export const CropUpload = forwardRef<
       }
     };
     xhr.onerror = () => {
+      clearTimeout(waiting);
       setStage(null);
       setError("Network error during upload. Check your connection and try again.");
     };

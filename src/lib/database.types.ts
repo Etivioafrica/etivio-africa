@@ -763,6 +763,7 @@ export type Database = {
           file_size: number | null
           file_url: string
           id: string
+          lesson_id: string | null
           mime_type: string | null
           title: string
           updated_at: string
@@ -779,6 +780,7 @@ export type Database = {
           file_size?: number | null
           file_url: string
           id?: string
+          lesson_id?: string | null
           mime_type?: string | null
           title: string
           updated_at?: string
@@ -795,6 +797,7 @@ export type Database = {
           file_size?: number | null
           file_url?: string
           id?: string
+          lesson_id?: string | null
           mime_type?: string | null
           title?: string
           updated_at?: string
@@ -807,6 +810,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
           {
@@ -934,6 +944,7 @@ export type Database = {
           duration_seconds: number | null
           id: string
           is_preview: boolean
+          kind: string
           module_id: string
           position: number
           title: string
@@ -947,6 +958,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           is_preview?: boolean
+          kind?: string
           module_id: string
           position?: number
           title: string
@@ -960,6 +972,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           is_preview?: boolean
+          kind?: string
           module_id?: string
           position?: number
           title?: string

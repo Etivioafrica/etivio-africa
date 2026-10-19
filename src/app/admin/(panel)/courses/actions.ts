@@ -5,6 +5,7 @@ import { refresh } from "next/cache";
 import { audit, requireAdmin } from "@/lib/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { nairaToMinor, slugify } from "@/lib/format";
+import { sanitizeRichText } from "@/lib/sanitize";
 import type { Database } from "@/lib/database.types";
 import type { FormState } from "@/app/(app)/teach/actions";
 
@@ -124,9 +125,14 @@ export async function adminDeleteCourse(fd: FormData) {
   const { count } = await db.from("enrollments").select("user_id", { count: "exact", head: true }).eq("course_id", id);
   if (count) throw new Error("This course has students. Archive it instead.");
   const { data: course } = await db.from("courses").select("title, cover_url").eq("id", id).single();
-  const { data: lessons } = await db.from("lessons").select("video_url").eq("course_id", id);
+  const [{ data: lessons }, { data: docs }] = await Promise.all([
+    db.from("lessons").select("video_url").eq("course_id", id),
+    db.from("documents").select("file_url").eq("course_id", id).not("lesson_id", "is", null),
+  ]);
   await db.from("courses").delete().eq("id", id);
-  await Promise.all([course?.cover_url, ...(lessons ?? []).map((l) => l.video_url)].map((u) => deleteObject(keyFromUrl(u ?? null))));
+  await Promise.all(
+    [course?.cover_url, ...(lessons ?? []).map((l) => l.video_url), ...(docs ?? []).map((d) => d.file_url)].map((u) => deleteObject(keyFromUrl(u ?? null))),
+  );
   await audit(admin.id, "course.delete", { type: "course", id }, { title: course?.title ?? "" });
   redirect("/admin/courses");
 }
@@ -199,23 +205,138 @@ export async function adminDeleteLesson(fd: FormData) {
 export type NewCourseInput = {
   title: string;
   summary: string;
+  description: string;
+  skills: string;
   instructorId: string;
   categoryId: string;
   level: Level;
   coverUrl: string;
   priceNaira: string;
-  modules: { title: string; lessons: string[] }[];
+  modules: ModuleDraft[];
   publish: boolean;
 };
+
+export type LessonFile = { id?: string; url: string; key: string; name: string; size: number; type: string };
+export type LessonDraft = { id?: string; key?: string; title: string; videoUrl: string; content: string; files: LessonFile[] };
+export type ModuleDraft = { id?: string; title: string; lessons: LessonDraft[] };
+
+// Trims titles, drops empty rows and checks video links. Returns an error message for the first bad lesson.
+function cleanCurriculum(input: ModuleDraft[]) {
+  const modules = input
+    .map((m) => ({
+      ...m,
+      title: m.title.trim().slice(0, 140),
+      lessons: m.lessons
+        .map((l) => {
+          const content = sanitizeRichText(l.content ?? "");
+          return {
+            ...l,
+            title: l.title.trim().slice(0, 160),
+            video: l.videoUrl.trim() ? safeUrl(l.videoUrl.trim()) : null,
+            badVideo: !!l.videoUrl.trim() && !safeUrl(l.videoUrl.trim()),
+            content: content.replace(/<p><\/p>/g, "").trim() ? content : null,
+            files: (l.files ?? []).filter((f) => keyFromUrl(f.url)).slice(0, 20),
+          };
+        })
+        .filter((l) => l.title),
+    }))
+    .filter((m) => m.title);
+  const bad = modules.flatMap((m) => m.lessons).find((l) => l.badVideo);
+  return { modules, error: bad ? `"${bad.title}": the video link must be a full https:// address.` : null };
+}
+
+// Writes the outline plus each lesson's video, text and files. Rows keep their ids, so progress, notes and quiz
+// results survive renames and moves; anything missing from the outline is deleted along with its stored files.
+async function syncCurriculum(db: DB, adminId: string, courseId: string, modules: ReturnType<typeof cleanCurriculum>["modules"]) {
+  const [{ data: oldMods }, { data: oldLessons }, { data: oldDocs }] = await Promise.all([
+    db.from("course_modules").select("id").eq("course_id", courseId),
+    db.from("lessons").select("id, video_url").eq("course_id", courseId),
+    db.from("documents").select("id, lesson_id, file_url").eq("course_id", courseId).not("lesson_id", "is", null),
+  ]);
+  const modIds = new Set((oldMods ?? []).map((m) => m.id));
+  const lessonsById = new Map((oldLessons ?? []).map((l) => [l.id, l]));
+  const keptMods = new Set<string>();
+  const keptLessons = new Set<string>();
+  const created: Record<string, string> = {};
+  const trash: (string | null)[] = [];
+
+  for (const [mi, m] of modules.entries()) {
+    let moduleId = m.id && modIds.has(m.id) ? m.id : null;
+    if (moduleId) await db.from("course_modules").update({ title: m.title, position: mi }).eq("id", moduleId);
+    else moduleId = (await db.from("course_modules").insert({ course_id: courseId, title: m.title, position: mi }).select("id").single()).data?.id ?? null;
+    if (!moduleId) return { error: "Could not save a module. Try again." };
+    keptMods.add(moduleId);
+
+    for (const [li, l] of m.lessons.entries()) {
+      const fields = { title: l.title, module_id: moduleId, position: li, kind: l.video ? ("video" as const) : ("reading" as const), video_url: l.video, content: l.content };
+      const old = l.id ? lessonsById.get(l.id) : undefined;
+      let lessonId: string;
+      if (old) {
+        await db.from("lessons").update(fields).eq("id", old.id);
+        if (old.video_url && old.video_url !== l.video) trash.push(old.video_url);
+        lessonId = old.id;
+      } else {
+        const { data: row } = await db.from("lessons").insert({ ...fields, course_id: courseId }).select("id").single();
+        if (!row) return { error: `Could not save "${l.title}". Try again.` };
+        lessonId = row.id;
+        if (l.key) created[l.key] = row.id;
+      }
+      keptLessons.add(lessonId);
+
+      const keepDocs = new Set(l.files.map((f) => f.id).filter(Boolean));
+      const gone = (oldDocs ?? []).filter((d) => d.lesson_id === lessonId && !keepDocs.has(d.id));
+      if (gone.length) {
+        await db.from("documents").delete().in("id", gone.map((d) => d.id));
+        trash.push(...gone.map((d) => d.file_url));
+      }
+      const fresh = l.files.filter((f) => !f.id);
+      if (fresh.length)
+        await db.from("documents").insert(
+          fresh.map((f) => ({
+            title: f.name.slice(0, 160) || "File",
+            file_url: f.url,
+            file_key: f.key || keyFromUrl(f.url),
+            file_name: f.name.slice(0, 200),
+            file_size: f.size,
+            mime_type: f.type.slice(0, 120),
+            course_id: courseId,
+            lesson_id: lessonId,
+            visibility: "enrolled" as const,
+            uploaded_by: adminId,
+          })),
+        );
+    }
+  }
+
+  const dropLessons = (oldLessons ?? []).filter((l) => !keptLessons.has(l.id));
+  if (dropLessons.length) {
+    const dropped = new Set(dropLessons.map((l) => l.id));
+    trash.push(...dropLessons.map((l) => l.video_url), ...(oldDocs ?? []).filter((d) => d.lesson_id && dropped.has(d.lesson_id)).map((d) => d.file_url));
+    await db.from("lessons").delete().in("id", [...dropped]);
+  }
+  const dropMods = [...modIds].filter((id) => !keptMods.has(id));
+  if (dropMods.length) await db.from("course_modules").delete().in("id", dropMods);
+  await Promise.all(trash.map((u) => deleteObject(keyFromUrl(u))));
+  return { created };
+}
+
+// A file uploaded in the wizard but removed before saving. Only deletes it if nothing points at it yet.
+export async function discardUpload(url: string): Promise<Result> {
+  const { db } = await requireAdmin("courses");
+  const key = keyFromUrl(url);
+  if (!key?.startsWith("documents/")) return {};
+  const { count } = await db.from("documents").select("id", { count: "exact", head: true }).eq("file_url", url);
+  if (!count) await deleteObject(key);
+  return {};
+}
 
 export async function createCourseFull(input: NewCourseInput): Promise<Result> {
   const { admin, db } = await requireAdmin("courses");
   const title = input.title.trim().slice(0, 140);
   if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
   if (!input.instructorId) return { error: "Pick an instructor." };
-  const modules = input.modules
-    .map((m) => ({ title: m.title.trim().slice(0, 140), lessons: m.lessons.map((l) => l.trim().slice(0, 160)).filter(Boolean) }))
-    .filter((m) => m.title);
+  const { modules, error: curriculumError } = cleanCurriculum(input.modules);
+  if (curriculumError) return { error: curriculumError };
   const lessonCount = modules.reduce((n, m) => n + m.lessons.length, 0);
   if (input.publish && !lessonCount) return { error: "Add at least one lesson before publishing." };
 
@@ -230,6 +351,8 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
         title,
         slug,
         summary: input.summary.trim().slice(0, 300) || null,
+        description: input.description.trim().slice(0, 5000) || null,
+        skills: parseSkills(input.skills),
         cover_url: safeUrl(input.coverUrl),
         level: LEVELS.includes(input.level) ? input.level : "beginner",
         price_minor: nairaToMinor(input.priceNaira),
@@ -243,11 +366,8 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
   }
   if (!id) return { error: "Could not create a unique link for this course. Try a different title." };
 
-  const list = modules.length ? modules : [{ title: "Getting started", lessons: [] }];
-  for (const [mi, m] of list.entries()) {
-    const { data: mod } = await db.from("course_modules").insert({ course_id: id, title: m.title, position: mi }).select("id").single();
-    if (mod && m.lessons.length) await db.from("lessons").insert(m.lessons.map((l, li) => ({ module_id: mod.id, course_id: id, title: l, position: li })));
-  }
+  const synced = await syncCurriculum(db, admin.id, id, modules.length ? modules : [{ title: "Getting started", lessons: [] }]);
+  if ("error" in synced) return { error: synced.error, id };
   await audit(admin.id, "course.create", { type: "course", id }, { title });
   refresh();
   return { ok: "Course created.", id };
@@ -430,4 +550,147 @@ export async function deleteQuiz(quizId: string): Promise<Result> {
   await audit(admin.id, "quiz.delete", { type: "quiz", id: quizId });
   refresh();
   return { ok: "Quiz deleted." };
+}
+
+// Edit course (same four steps as creating one) ---------------------------------------------
+
+export type EditCourseInput = Omit<NewCourseInput, "publish"> & { status: "keep" | "draft" | "published" };
+
+// Saves details, pricing and the curriculum outline in one go. Modules and lessons keep their ids, so
+// progress, notes and quiz results survive renames and moves; anything removed from the outline is deleted.
+export async function updateCourseFull(courseId: string, input: EditCourseInput): Promise<Result & { created?: Record<string, string> }> {
+  const { admin, db } = await requireAdmin("courses");
+  const title = input.title.trim().slice(0, 140);
+  if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
+  if (!input.instructorId) return { error: "Pick an instructor." };
+  const { data: before } = await db.from("courses").select("cover_url, status").eq("id", courseId).maybeSingle();
+  if (!before) return { error: "That course no longer exists." };
+
+  const { modules, error: curriculumError } = cleanCurriculum(input.modules);
+  if (curriculumError) return { error: curriculumError };
+  if (!modules.length) return { error: "Keep at least one module." };
+  const lessonCount = modules.reduce((n, m) => n + m.lessons.length, 0);
+  const nextStatus = input.status === "keep" ? before.status : input.status;
+  if (nextStatus === "published" && !lessonCount) return { error: "A published course needs at least one lesson." };
+
+  const cover = safeUrl(input.coverUrl);
+  const { error } = await db
+    .from("courses")
+    .update({
+      title,
+      summary: input.summary.trim().slice(0, 300) || null,
+      description: input.description.trim().slice(0, 5000) || null,
+      skills: parseSkills(input.skills),
+      instructor_id: input.instructorId,
+      cover_url: cover,
+      level: LEVELS.includes(input.level) ? input.level : "beginner",
+      price_minor: nairaToMinor(input.priceNaira),
+      ...(await categoryColumns(db, input.categoryId)),
+      ...(nextStatus !== before.status ? { status: nextStatus, ...(nextStatus === "published" ? { published_at: new Date().toISOString() } : { featured: false }) } : {}),
+    })
+    .eq("id", courseId);
+  if (error) return { error: "Could not save the course." };
+
+  const synced = await syncCurriculum(db, admin.id, courseId, modules);
+  if ("error" in synced) return { error: synced.error };
+  if (before.cover_url && before.cover_url !== cover) await deleteObject(keyFromUrl(before.cover_url));
+
+  await audit(admin.id, "course.update", { type: "course", id: courseId }, { lessons: lessonCount });
+  refresh();
+  return { ok: "Course saved.", id: courseId, created: synced.created };
+}
+
+// Lesson editor -----------------------------------------------------------------------------
+
+export type LessonInput = { title: string; moduleId: string; kind: "video" | "reading"; videoUrl: string; minutes: string; content: string; isPreview: boolean };
+
+export async function saveLessonFull(lessonId: string, input: LessonInput): Promise<Result> {
+  const { db } = await requireAdmin("courses");
+  const title = input.title.trim().slice(0, 160);
+  if (!title) return { error: "Give the lesson a title." };
+  const video = input.kind === "video" ? safeUrl(input.videoUrl.trim()) : null;
+  if (input.kind === "video" && input.videoUrl.trim() && !video) return { error: "The video link must be a full https:// address." };
+  const minutes = Number(input.minutes || 0);
+  const { data: before } = await db.from("lessons").select("video_url, course_id").eq("id", lessonId).maybeSingle();
+  if (!before) return { error: "That lesson no longer exists." };
+  const { data: mod } = await db.from("course_modules").select("id").eq("id", input.moduleId).eq("course_id", before.course_id).maybeSingle();
+  if (!mod) return { error: "Pick a module from this course." };
+  const content = sanitizeRichText(input.content);
+  const { error } = await db
+    .from("lessons")
+    .update({
+      title,
+      module_id: mod.id,
+      kind: input.kind,
+      video_url: video,
+      content: content.replace(/<p><\/p>/g, "").trim() ? content : null,
+      duration_seconds: Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes * 60) : null,
+      is_preview: input.isPreview,
+    })
+    .eq("id", lessonId);
+  if (error) return { error: "Could not save the lesson." };
+  if (before.video_url && before.video_url !== video) await deleteObject(keyFromUrl(before.video_url));
+  refresh();
+  return { ok: "Lesson saved." };
+}
+
+export async function addLessonResource(lessonId: string, file: { url: string; key: string; name: string; size: number; type: string }, title: string): Promise<Result> {
+  const { admin, db } = await requireAdmin("courses");
+  const { data: lesson } = await db.from("lessons").select("course_id").eq("id", lessonId).maybeSingle();
+  if (!lesson) return { error: "That lesson no longer exists." };
+  if (!keyFromUrl(file.url)) return { error: "Upload the file first." };
+  const { data, error } = await db
+    .from("documents")
+    .insert({
+      title: (title.trim() || file.name).slice(0, 160),
+      file_url: file.url,
+      file_key: file.key || keyFromUrl(file.url),
+      file_name: file.name.slice(0, 200),
+      file_size: file.size,
+      mime_type: file.type.slice(0, 120),
+      course_id: lesson.course_id,
+      lesson_id: lessonId,
+      visibility: "enrolled",
+      uploaded_by: admin.id,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: "Could not attach the file." };
+  refresh();
+  return { ok: "Resource added.", id: data.id };
+}
+
+export async function removeLessonResource(docId: string): Promise<Result> {
+  const { db } = await requireAdmin("courses");
+  const { data } = await db.from("documents").select("file_url").eq("id", docId).maybeSingle();
+  await db.from("documents").delete().eq("id", docId);
+  await deleteObject(keyFromUrl(data?.file_url ?? null));
+  refresh();
+  return { ok: "Resource removed." };
+}
+
+export async function adminUpdateSlug(_prev: FormState, fd: FormData): Promise<FormState> {
+  const { admin, db } = await requireAdmin("courses");
+  const id = str(fd, "id");
+  const slug = slugify(str(fd, "slug"));
+  if (!slug) return { error: "Add a URL slug." };
+  const { error } = await db.from("courses").update({ slug }).eq("id", id);
+  if (error) return { error: error.code === "23505" ? "That link is already used by another course." : "Could not save the link." };
+  await audit(admin.id, "course.slug", { type: "course", id }, { slug });
+  refresh();
+  return { ok: "Link saved." };
+}
+
+export async function deleteLessonFromEditor(lessonId: string): Promise<Result> {
+  const { admin, db } = await requireAdmin("courses");
+  const [{ data: lesson }, { data: docs }] = await Promise.all([
+    db.from("lessons").select("video_url, course_id").eq("id", lessonId).maybeSingle(),
+    db.from("documents").select("file_url").eq("lesson_id", lessonId),
+  ]);
+  if (!lesson) return { error: "That lesson no longer exists." };
+  await db.from("lessons").delete().eq("id", lessonId);
+  await Promise.all([lesson.video_url, ...(docs ?? []).map((d) => d.file_url)].map((u) => deleteObject(keyFromUrl(u ?? null))));
+  await audit(admin.id, "lesson.delete", { type: "lesson", id: lessonId });
+  refresh();
+  return { ok: "Lesson deleted." };
 }

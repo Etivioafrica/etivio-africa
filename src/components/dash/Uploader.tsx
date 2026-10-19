@@ -3,6 +3,9 @@ import { useRef, useState } from "react";
 import { Camera, FileUp, ImageIcon, Video, X } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 
+// Once the bytes are sent, give the server this long to answer before giving up.
+const RESPONSE_TIMEOUT_MS = 60_000;
+
 export type Uploaded = { url: string; key: string; name: string; size: number; type: string };
 type Kind = "cover" | "avatar" | "banner" | "blog" | "video" | "document";
 
@@ -46,8 +49,18 @@ export function Uploader({
     xhr.open("POST", `/api/upload?kind=${kind}`);
     xhr.setRequestHeader("content-type", f.type || "application/octet-stream");
     xhr.setRequestHeader("x-file-name", encodeURIComponent(f.name));
+    let waiting: ReturnType<typeof setTimeout> | undefined;
     xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
+    xhr.upload.onload = () => {
+      setProgress(100);
+      waiting = setTimeout(() => {
+        xhr.abort();
+        setProgress(null);
+        setError("The server is taking too long to respond. Try again in a moment.");
+      }, RESPONSE_TIMEOUT_MS);
+    };
     xhr.onload = () => {
+      clearTimeout(waiting);
       setProgress(null);
       let body: { error?: string } & Partial<Uploaded> = {};
       try {
@@ -60,6 +73,7 @@ export function Uploader({
       } else setError(body.error ?? "Upload failed.");
     };
     xhr.onerror = () => {
+      clearTimeout(waiting);
       setProgress(null);
       setError("Network error during upload.");
     };
@@ -188,7 +202,7 @@ export function Uploader({
           disabled={progress !== null}
         >
           <Icon size={20} strokeWidth={1.7} />
-          <b>{progress !== null ? `Uploading… ${progress}%` : (label ?? "Click or drop a file to upload")}</b>
+          <b>{progress === 100 ? "Finishing upload…" : progress !== null ? `Uploading… ${progress}%` : (label ?? "Click or drop a file to upload")}</b>
           {progress !== null && (
             <span className="et-progress" style={{ width: "100%" }}>
               <span style={{ width: `${progress}%` }} />

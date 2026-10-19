@@ -12,7 +12,10 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
+  // Status 0 means the auth server couldn't be reached, not that the person is signed out.
+  if (authError?.status === 0) return NextResponse.json({ error: "Couldn't confirm your sign-in just now. Try again." }, { status: 503 });
   if (!user) return NextResponse.json({ error: "Sign in to upload." }, { status: 401 });
 
   const [{ data: profile }, { data: roleRows }] = await Promise.all([

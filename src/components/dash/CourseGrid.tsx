@@ -14,7 +14,9 @@ export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: (Cours
         return (
           <article key={c.id} className="et-card et-course">
             <div className="et-course-media">
-              <Cover url={c.coverUrl} level={c.level} />
+              <Link href={`/learn/browse/${c.id}`} className="et-course-link" aria-label={`View ${c.title}`}>
+                <Cover url={c.coverUrl} level={c.level} />
+              </Link>
               {savedIds && !enrolled && (
                 <form action={toggleSaved}>
                   <input type="hidden" name="courseId" value={c.id} />
@@ -32,7 +34,9 @@ export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: (Cours
                   {c.reason ?? c.category}
                 </p>
               )}
-              <h3>{c.title}</h3>
+              <h3>
+                <Link href={`/learn/browse/${c.id}`}>{c.title}</Link>
+              </h3>
               {c.summary && <p>{c.summary}</p>}
               <div className="et-course-meta">
                 <span>
@@ -47,6 +51,11 @@ export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: (Cours
               </div>
             </div>
             <div className="et-course-foot">
+              {!enrolled && (
+                <Link href={`/learn/browse/${c.id}`} className="et-btn et-btn-ghost">
+                  Details
+                </Link>
+              )}
               {enrolled ? (
                 <Link href={`/learn/course/${c.id}`} className="et-btn et-btn-ghost">
                   Continue
