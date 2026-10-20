@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Bookmark, NotebookPen } from "lucide-react";
-import { saveLessonNote, setBookmark } from "../../actions";
+import { saveLessonNote, setBookmark } from "@/app/(app)/learn/actions";
 
 // Private notes + bookmark for the current lesson. Notes autosave a moment after typing stops.
 export function LessonNotes({ lessonId, initialBody, initialBookmarked }: { lessonId: string; initialBody: string; initialBookmarked: boolean }) {

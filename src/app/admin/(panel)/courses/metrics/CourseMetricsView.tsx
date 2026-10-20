@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Award, GraduationCap, ListChecks, Star
 import { BarChart } from "@/components/dash/BarChart";
 import { Cover, StatStrip } from "@/components/dash/ui";
 import { compactMoney } from "@/lib/format";
+import { Select } from "@/components/dash/Select";
 
 type Row = { id: string; title: string; cover_url: string | null; status: string; price_minor: number; students: number; completed: number; revenue: number; rating: number | null; reviews: number; avgProgress: number | null };
 type Key = "students" | "completion" | "avgProgress" | "rating" | "revenue";
@@ -85,13 +86,13 @@ export function CourseMetricsView({
         <section className="et-card">
           <div className="et-card-head">
             <h2>Where learners stop</h2>
-            <select className="et-input" value={selected ?? ""} onChange={(e) => router.replace(`/admin/courses/metrics?course=${e.target.value}`, { scroll: false })} aria-label="Course" style={{ height: 32, width: "auto", maxWidth: 220, fontSize: 12.5 }}>
+            <Select className="et-input" value={selected ?? ""} onChange={(e) => router.replace(`/admin/courses/metrics?course=${e.target.value}`, { scroll: false })} aria-label="Course" style={{ height: 32, width: "auto", maxWidth: 220, fontSize: 12.5 }}>
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           {!funnel.length ? (
             <p className="et-empty">This course has no lessons yet.</p>

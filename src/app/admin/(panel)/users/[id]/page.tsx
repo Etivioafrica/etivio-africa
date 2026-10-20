@@ -11,6 +11,7 @@ import { compactMoney, formatDate, formatDateTime, formatMoney, percent } from "
 import { CREATOR_ROLES, LIVE_CREATOR_ROLES, ROLE_BLURBS, ROLE_LABELS, STAFF_ROLES } from "@/lib/roles";
 import { deleteUser, grantCourseAccess, purgeUser, restoreUser, revokeCourseAccess, sendPasswordReset, setUserRoles, setUserStatus } from "../actions";
 import { Avatar } from "@/components/dash/Avatar";
+import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "User" };
 
@@ -266,7 +267,7 @@ export default async function UserDetail({ params, searchParams }: { params: Pro
             <div style={{ borderTop: "1px solid var(--a-border)", padding: "14px 20px" }}>
               <ActionForm action={grantCourseAccess} className="et-inline">
                 <input type="hidden" name="id" value={id} />
-                <select name="course_id" className="et-input" aria-label="Course" defaultValue="" style={{ flex: 1 }}>
+                <Select name="course_id" className="et-input" aria-label="Course" defaultValue="" style={{ flex: 1 }}>
                   <option value="" disabled>
                     Grant access to a course…
                   </option>
@@ -277,7 +278,7 @@ export default async function UserDetail({ params, searchParams }: { params: Pro
                         {c.title}
                       </option>
                     ))}
-                </select>
+                </Select>
                 <SubmitButton className="et-btn et-btn-ghost et-btn-sm" pendingLabel="Granting…">
                   Grant access
                 </SubmitButton>

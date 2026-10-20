@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { Star } from "lucide-react";
-import { submitReview } from "../../course-actions";
+import { submitReview } from "@/app/(app)/learn/course-actions";
 
 type Mine = { rating: number; body: string | null; approved: boolean; admin_reply: string | null } | null;
 

@@ -7,7 +7,8 @@ import { profileNames, usersWithRoles } from "@/lib/data/admin";
 import { ROLE_LABELS, primaryRole } from "@/lib/roles";
 import { formatDate } from "@/lib/format";
 import { ChatList, parseFilter } from "../ChatList";
-import { assignThread, setThreadStatus, staffReply } from "../actions";
+import { setThreadStatus, staffReply } from "../actions";
+import { AssignSelect } from "./AssignSelect";
 
 export const metadata = { title: "Chat" };
 
@@ -47,21 +48,8 @@ export default async function AdminChat({ params, searchParams }: { params: Prom
                 <Link href={`/admin/users/${thread.user?.id}`}>{thread.user?.full_name || "Unnamed"}</Link> · {ROLE_LABELS[primaryRole((thread.user?.roles ?? []).map((r) => r.role))]} · started {formatDate(thread.created_at)}
               </p>
             </div>
-            <div className="et-inline">
-              <form action={assignThread} className="et-inline">
-                <input type="hidden" name="id" value={id} />
-                <select name="assignee" defaultValue={thread.assigned_to ?? ""} className="et-input" aria-label="Assign to" style={{ height: 32 }}>
-                  <option value="">Unassigned</option>
-                  {staff.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                <button type="submit" className="et-btn et-btn-ghost et-btn-sm">
-                  Assign
-                </button>
-              </form>
+            <div className="et-chat-actions">
+              <AssignSelect id={id} value={thread.assigned_to ?? ""} staff={staff} />
               <form action={setThreadStatus}>
                 <input type="hidden" name="id" value={id} />
                 <input type="hidden" name="status" value={closed ? "open" : "closed"} />

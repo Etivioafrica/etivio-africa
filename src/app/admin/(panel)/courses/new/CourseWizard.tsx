@@ -8,6 +8,7 @@ import { useToast } from "@/components/dash/useToast";
 import type { Category } from "@/components/dash/CategoryManager";
 import { createCourseFull, updateCourseFull, type Created, type LessonFile } from "../actions";
 import { LessonCard, hasText, type LessonPatch, type WizLesson } from "./LessonCard";
+import { Select } from "@/components/dash/Select";
 
 type Level = "beginner" | "intermediate" | "advanced";
 type Mod = { key: number; id?: string; title: string; lessons: WizLesson[] };
@@ -281,17 +282,17 @@ export function CourseWizard({
               <div className="et-form-grid">
                 <div className="et-field">
                   <label htmlFor="w-instructor">Instructor</label>
-                  <select id="w-instructor" value={instructorId} onChange={(e) => setInstructorId(e.target.value)}>
+                  <Select id="w-instructor" value={instructorId} onChange={(e) => setInstructorId(e.target.value)}>
                     {instructors.map((i) => (
                       <option key={i.id} value={i.id}>
                         {i.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div className="et-field">
                   <label htmlFor="w-cat">Category</label>
-                  <select id="w-cat" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                  <Select id="w-cat" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                     <option value="">Choose a category</option>
                     {parents.map((p) => [
                       <option key={p.id} value={p.id}>
@@ -306,7 +307,7 @@ export function CourseWizard({
                           </option>
                         )),
                     ])}
-                  </select>
+                  </Select>
                 </div>
               </div>
               <div className="et-field">

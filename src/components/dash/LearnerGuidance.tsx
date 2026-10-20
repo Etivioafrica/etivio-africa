@@ -4,7 +4,7 @@ import { Ring } from "@/components/dash/ui";
 import type { LearningGoal } from "@/lib/learner-prefs";
 
 // Advice tied to what the learner said brought them to Etivio (welcome guide).
-const GOAL_TIPS: Record<LearningGoal, { tip: string; cta: { label: string; href: string } }> = {
+export const GOAL_TIPS: Record<LearningGoal, { tip: string; cta: { label: string; href: string } }> = {
   new_skill: { tip: "Pick one course and see it through. A few lessons a week beats cramming.", cta: { label: "Browse courses", href: "/learn/browse" } },
   career: { tip: "Every course you finish gives you a verified certificate you can add to LinkedIn.", cta: { label: "See certificates", href: "/profile/certificates" } },
   job: { tip: "Employers want proof. Finish courses, then share your certificates and public profile.", cta: { label: "Set up your profile", href: "/settings" } },

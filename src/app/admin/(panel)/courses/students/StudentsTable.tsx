@@ -6,6 +6,7 @@ import { Progress } from "@/components/dash/ui";
 import { fmtShort } from "@/lib/blog";
 import type { StudentRow } from "@/lib/data/courses-admin";
 import { Avatar } from "@/components/dash/Avatar";
+import { Select } from "@/components/dash/Select";
 
 type State = "all" | "not_started" | "in_progress" | "completed";
 const stateOf = (r: StudentRow): Exclude<State, "all"> => (r.completed ? "completed" : r.progress > 0 ? "in_progress" : "not_started");
@@ -47,14 +48,14 @@ export function StudentsTable({ rows, courses, initialCourse = "all", fixedCours
         </nav>
         <div className="et-inline">
           {!fixedCourse && (
-            <select className="et-input" value={course} onChange={(e) => setCourse(e.target.value)} aria-label="Filter by course">
+            <Select className="et-input" value={course} onChange={(e) => setCourse(e.target.value)} aria-label="Filter by course">
               <option value="all">All courses</option>
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
           <label className="et-blog-search">
             <Search size={14} />

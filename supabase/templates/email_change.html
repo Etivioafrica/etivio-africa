@@ -16,7 +16,7 @@
 <p style="margin:0 0 8px;font-size:16px;font-weight:700;line-height:1.4;color:#1f2430">Email change</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:6px 0;font-size:13.5px;color:#7a8294;width:42%">Current email</td><td style="padding:6px 0;font-size:13.5px;color:#1f2430;font-weight:600">{{ .Email }}</td></tr><tr><td style="padding:6px 0;font-size:13.5px;color:#7a8294;width:42%">New email</td><td style="padding:6px 0;font-size:13.5px;color:#1f2430;font-weight:600">{{ .NewEmail }}</td></tr></table>
 </td></tr></table>
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 26px"><tr><td style="border-radius:8px;background:#2563eb"><a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px">Confirm new email</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 26px"><tr><td style="border-radius:8px;background:#2563eb"><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=%2Fsettings%2Faccount" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px">Confirm new email</a></td></tr></table>
 <p style="margin:0 0 30px;font-size:15px;line-height:1.6;color:#4a5160">Regards,<br><b style="color:#1f2430">The Etivio team</b></p>
 </td></tr>
 <tr><td style="padding:20px 40px 24px;border-top:1px solid #e6e9f0;background:#fafbfd;font-size:12.5px;line-height:1.6;color:#7a8294">If you didn't ask for this change, ignore this email and consider changing your password.</td></tr>

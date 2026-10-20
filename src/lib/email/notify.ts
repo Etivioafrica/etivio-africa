@@ -5,7 +5,7 @@ import { formatPrice } from "@/lib/format";
 import { everyone, recipient } from "./recipients";
 import { sendBatch, sendEmail, sentRecently, siteUrl, type Mail } from "./send";
 import { compose, fillStored, storedTemplate } from "./stored";
-import { announcementEmail, applicationEmail, productApprovedEmail, productChangesEmail, productSubmittedEmail, receiptEmail, certificateEmail, enrolledEmail, reviewReplyEmail, supportReplyEmail, testEmail, welcomeEmail } from "./templates";
+import { announcementEmail, applicationEmail, productApprovedEmail, productChangesEmail, productSubmittedEmail, receiptEmail, guestAccessEmail, checkoutReminderEmail, certificateEmail, enrolledEmail, reviewReplyEmail, supportReplyEmail, testEmail, welcomeEmail } from "./templates";
 
 // Every email Etivio sends from the app. Callers run these inside after() so a slow mail API never delays a page.
 // Account emails (welcome, enrolment, certificates, application decisions) always send; the rest follow the
@@ -82,12 +82,18 @@ export async function sendDueAnnouncements() {
   const now = new Date().toISOString();
   const { data: due } = await db.from("announcements").select("id").is("emailed_at", null).or(`status.eq.published,and(status.eq.scheduled,scheduled_at.lte.${now})`).limit(5);
   for (const { id } of due ?? []) {
-    const { data: a } = await db.from("announcements").update({ emailed_at: now }).eq("id", id).is("emailed_at", null).select("id, title, body").maybeSingle();
+    const { data: a } = await db.from("announcements").update({ emailed_at: now }).eq("id", id).is("emailed_at", null).select("id, title, body, course_id").maybeSingle();
     if (!a) continue;
-    const people = await everyone("course_updates");
+    let people = await everyone("course_updates");
+    // A course announcement only goes to learners enrolled in that course.
+    if (a.course_id) {
+      const { data: enrolled } = await db.from("enrollments").select("user_id").eq("course_id", a.course_id);
+      const ids = new Set((enrolled ?? []).map((e) => e.user_id));
+      people = people.filter((p) => ids.has(p.userId));
+    }
     const summary = stripHtml(a.body);
     const stored = await storedTemplate("announcement");
-    const url = `${siteUrl()}/learn/announcements`;
+    const url = a.course_id ? `${siteUrl()}/learn/announcements/${a.id}` : `${siteUrl()}/learn/announcements`;
     const mails: Mail[] = people.map((r) => ({
       to: r.email,
       userId: r.userId,
@@ -100,28 +106,67 @@ export async function sendDueAnnouncements() {
   }
 }
 
-export async function emailReceipt(paymentId: string) {
+// What an order contains, for its emails: item titles and where to open them.
+async function orderSummary(orderId: string) {
   const db = createAdminClient();
-  const { data: pay } = await db
-    .from("payments")
-    .select("user_id, amount_minor, currency, reference, paid_at, course_id, product_id, course:courses(title), product:products(title)")
-    .eq("id", paymentId)
-    .maybeSingle();
-  if (!pay?.user_id) return;
-  const r = await recipient(pay.user_id);
+  const [{ data: order }, { data: items }] = await Promise.all([
+    db.from("orders").select("id, reference, user_id, email, first_name, total_minor, currency, paid_at, status, reminders_sent").eq("id", orderId).maybeSingle(),
+    db.from("payments").select("course_id, product_id, course:courses(title), product:products(title)").eq("order_id", orderId).order("reference"),
+  ]);
+  if (!order) return null;
+  const rows = items ?? [];
+  const titles = rows.map((r) => r.course?.title ?? r.product?.title ?? "Item");
+  // One course goes straight to it; anything else opens the dashboard, where courses and the library both are.
+  const onlyCourse = rows.length === 1 && rows[0].course_id ? rows[0].course_id : null;
+  const next = onlyCourse ? `/learn/course/${onlyCourse}` : rows.every((r) => r.product_id) ? "/learn/library" : "/learn";
+  return { order, titles, next, onlyCourse: !!onlyCourse };
+}
+
+export async function emailOrderReceipt(orderId: string) {
+  const s = await orderSummary(orderId);
+  if (!s?.order.user_id) return;
+  const r = await recipient(s.order.user_id);
   if (!r) return;
-  const item = pay.course?.title ?? pay.product?.title ?? "Your purchase";
-  const isCourse = !!pay.course_id;
   const vars = {
     name: r.name,
-    item,
-    amount: formatPrice(pay.amount_minor, pay.currency),
-    reference: pay.reference,
-    date: new Date(pay.paid_at ?? Date.now()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
-    item_url: isCourse ? `${siteUrl()}/learn/course/${pay.course_id}` : `${siteUrl()}/learn/library`,
+    item: s.titles.join(", "),
+    amount: formatPrice(s.order.total_minor, s.order.currency),
+    reference: s.order.reference,
+    date: new Date(s.order.paid_at ?? Date.now()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+    item_url: `${siteUrl()}${s.next}`,
   };
-  const email = await compose("receipt", vars, () => receiptEmail({ ...vars, url: vars.item_url, cta: isCourse ? "Start the course" : "Go to your library" }));
-  await sendEmail({ to: r.email, userId: r.userId, kind: "receipt", ref: pay.reference, ...email });
+  const cta = s.onlyCourse ? "Start the course" : s.next === "/learn/library" ? "Go to your library" : "Go to my dashboard";
+  const email = await compose("receipt", vars, () => receiptEmail({ ...vars, url: vars.item_url, cta }));
+  await sendEmail({ to: r.email, userId: r.userId, kind: "receipt", ref: s.order.reference, ...email });
+}
+
+// Login details for someone whose account was just created by a guest purchase. The button signs them straight in
+// with a one-time link (valid for an hour); the temporary password works after that until they choose their own.
+export async function emailGuestAccess(orderId: string, password: string) {
+  const s = await orderSummary(orderId);
+  if (!s?.order.user_id) return;
+  const r = await recipient(s.order.user_id);
+  if (!r) return;
+  const db = createAdminClient();
+  const { data: link } = await db.auth.admin.generateLink({ type: "magiclink", email: r.email });
+  const token = link?.properties?.hashed_token;
+  const accessUrl = token ? `${siteUrl()}/auth/confirm?token_hash=${token}&type=magiclink&next=${encodeURIComponent(s.next)}` : `${siteUrl()}/login?next=${encodeURIComponent(s.next)}`;
+  const item = s.titles.join(", ");
+  const vars = { name: r.name, item, email: r.email, password, access_url: accessUrl, login_url: `${siteUrl()}/login` };
+  const email = await compose("guest_access", vars, () => guestAccessEmail({ name: r.name, item, email: r.email, password, accessUrl, loginUrl: vars.login_url }));
+  await sendEmail({ to: r.email, userId: r.userId, kind: "guest_access", ref: s.order.reference, ...email });
+}
+
+// Abandoned-checkout reminder number `attempt` (1 to 4). Sent to the address on the order, account or not.
+export async function emailCheckoutReminder(orderId: string, attempt: number) {
+  const s = await orderSummary(orderId);
+  if (!s || s.order.status === "success") return;
+  const name = (s.order.first_name || "there").split(/\s+/)[0];
+  const total = formatPrice(s.order.total_minor, s.order.currency);
+  const resumeUrl = `${siteUrl()}/checkout/resume?order=${s.order.reference}`;
+  const vars = { name, items: s.titles.join(", "), total, reminder: String(attempt), resume_url: resumeUrl };
+  const email = await compose("checkout_reminder", vars, () => checkoutReminderEmail({ name, items: s.titles, total, resumeUrl, attempt }));
+  await sendEmail({ to: s.order.email, userId: s.order.user_id, kind: "checkout_reminder", ref: `${s.order.reference}#${attempt}`, ...email });
 }
 
 const KIND_LABELS: Record<string, string> = { template: "Template", ebook: "E-book", resource_pack: "Resource pack", bundle: "Bundle" };

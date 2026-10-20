@@ -1,7 +1,9 @@
 import { siteUrl } from "./site";
 import { starterDesign, type StarterPart } from "./starter";
+import { authLink } from "./auth-links";
+import type { AuthEmail } from "./templates";
 
-// The 14 emails that can be designed in Admin → Emails → Templates. Each lists the {{placeholders}} it can use, with
+// The 15 emails that can be designed in Admin → Emails → Templates. Each lists the {{placeholders}} it can use, with
 // sample values for previews and test sends, and the starter design it opens with before anyone customises it.
 
 export type Placeholder = { tag: string; label: string; sample: string };
@@ -200,6 +202,55 @@ export const TEMPLATES: TemplateDef[] = [
     },
   },
   {
+    key: "checkout_reminder",
+    label: "Checkout reminder",
+    group: "app",
+    when: "A checkout isn't paid: right away if payment fails or is cancelled (else after 30 minutes), then about 6, 24 and 47 hours later",
+    subject: "You left something in your cart",
+    placeholders: [
+      name,
+      P("items", "Items in the cart", "Introduction To Web-Design, Startup Pitch Deck Template"),
+      P("total", "Order total", "₦15,100"),
+      P("reminder", "Which reminder this is (1 to 4)", "1"),
+      P("resume_url", "Link back to payment", `${SITE()}/checkout/resume`),
+    ],
+    starter: {
+      banner: "receipt",
+      parts: [
+        { type: "heading", text: "Your order is waiting" },
+        { type: "text", html: "<p><strong>Hi {{name}},</strong></p><p>Looks like your payment didn't go through. Your items are saved, so you can pick up right where you left off.</p>" },
+        { type: "box", html: "<p style=\"font-size:16px\"><strong>Your order</strong></p><p>{{items}}<br>Total: <strong>{{total}}</strong></p>" },
+        { type: "button", label: "Complete your purchase", href: "{{resume_url}}" },
+      ],
+      footer: "You're getting this because you started a checkout on Etivio and didn't finish paying. We send at most 4 reminders, then stop.",
+    },
+  },
+  {
+    key: "guest_access",
+    label: "Guest login details",
+    group: "app",
+    when: "Someone buys without an account and one is created for them",
+    subject: "Your Etivio login: {{item}}",
+    placeholders: [
+      name,
+      P("item", "What they bought", "Introduction To Web-Design"),
+      P("email", "Sign-in email", "ada@example.com"),
+      P("password", "Temporary password", "k7MpQ2xRw9Td"),
+      P("access_url", "One-click sign-in link (1 hour)", `${SITE()}/auth/confirm`),
+      P("login_url", "Sign-in page", `${SITE()}/login`),
+    ],
+    starter: {
+      banner: "welcome",
+      parts: [
+        { type: "heading", text: "Your purchase is ready" },
+        { type: "text", html: "<p><strong>Hi {{name}},</strong></p><p>Thanks for your purchase. We've created an Etivio account for you so you can get to it any time, on any device.</p><p>Tap the button to go straight in (it works for the next hour). After that, sign in with the details below. The first time you sign in, you'll choose your own password.</p>" },
+        { type: "box", html: "<p style=\"font-size:16px\"><strong>{{item}}</strong></p><p>Sign-in email: <strong>{{email}}</strong><br>Temporary password: <strong>{{password}}</strong><br>Sign in at: <strong>{{login_url}}</strong></p>" },
+        { type: "button", label: "Go to my purchase", href: "{{access_url}}" },
+      ],
+      footer: "You're getting this because you bought something on Etivio without an account. Didn't make this purchase? Reply to this email.",
+    },
+  },
+  {
     key: "product_approved",
     label: "Product approved",
     group: "app",
@@ -301,6 +352,8 @@ export const starterFor = (t: TemplateDef) => starterDesign(t.starter);
 
 // Supabase fills its own tags when it sends the auth emails.
 export const SUPABASE_TAGS: Record<string, string> = { confirmation_url: "{{ .ConfirmationURL }}", email: "{{ .Email }}", new_email: "{{ .NewEmail }}", site_url: "{{ .SiteURL }}" };
+// The button link for one sign-in email: our /auth/confirm link, which works across devices.
+export const supabaseTags = (kind: AuthEmail) => ({ ...SUPABASE_TAGS, confirmation_url: authLink(kind) });
 
 const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 

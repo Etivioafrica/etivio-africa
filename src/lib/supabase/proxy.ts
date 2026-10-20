@@ -47,11 +47,14 @@ export async function updateSession(request: NextRequest) {
   // Do not put logic between client creation and this call.
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims?.sub ? { id: data.claims.sub } : null;
+  // Accounts created by a guest purchase must swap their emailed temporary password first.
+  const mustSetPassword = !!(data?.claims?.app_metadata as { must_set_password?: boolean } | undefined)?.must_set_password;
 
   // Optimistic routing only. Layouts and Server Actions re-check the session.
   const path = request.nextUrl.pathname;
   const isApp = APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
-  const isAuthPage = path === "/login" || path === "/signup";
+  // The app's start screen counts as an auth page: signed-in people go straight to the dashboard.
+  const isAuthPage = path === "/login" || path === "/signup" || path === "/welcome";
   const isAdmin = (path === "/admin" || path.startsWith("/admin/")) && path !== "/admin/login";
 
   if (!user && isAdmin) {
@@ -75,6 +78,18 @@ export async function updateSession(request: NextRequest) {
       url.search = `?next=${encodeURIComponent(path === "/admin/login" ? "/admin" : path)}`;
       return redirectWithCookies(url, response);
     }
+  }
+  if (user && mustSetPassword && isApp) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/set-password";
+    url.search = `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
+    return redirectWithCookies(url, response);
+  }
+  if (!user && path === "/set-password") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    return redirectWithCookies(url, response);
   }
   if (!user && path === "/verify") {
     const url = request.nextUrl.clone();

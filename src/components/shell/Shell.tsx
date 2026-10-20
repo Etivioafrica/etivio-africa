@@ -35,6 +35,7 @@ import {
   Mail,
   FolderDown,
   Store,
+  House,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -45,6 +46,7 @@ import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
 import { ROLE_LABELS, canAccess, canTeach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
 import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
+import { CartButton } from "@/components/market/CartButton";
 
 export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null; showTeach?: boolean };
 type SubItem = { label: string; href: string; badge?: number };
@@ -369,6 +371,7 @@ export default function Shell({
             </p>
           </div>
           <div className="et-header-right">
+            {!admin && <CartButton />}
             <button
               className="et-icon-btn"
               onClick={() => writeTheme(!light)}
@@ -391,13 +394,38 @@ export default function Shell({
             </div>
           </div>
         </header>
-        <main className="et-main">{children}</main>
+        <main className={`et-main${admin ? "" : " has-bottom-nav"}`}>{children}</main>
+        {!admin && <BottomNav pathname={pathname} />}
         <TipLayer />
         {!admin && guideOpen && <Onboarding name={user.name || user.email} onClosed={() => setGuideOpen(false)} />}
         {/* Badge celebrations wait until the welcome guide is out of the way. */}
         {!admin && !guideOpen && <BadgeCelebration trigger={unseenBadges} />}
       </div>
     </div>
+  );
+}
+
+// Phone navigation for learners: the four places people go most. Everything else is in the menu.
+const BOTTOM_NAV: { label: string; href: string; icon: LucideIcon; match: (p: string) => boolean }[] = [
+  { label: "Home", href: "/learn", icon: House, match: (p) => p === "/learn" },
+  { label: "Courses", href: "/learn/courses", icon: BookOpen, match: (p) => /^\/learn\/(courses|browse)(\/|$)/.test(p) },
+  { label: "Profile", href: "/profile", icon: UserRound, match: (p) => p === "/profile" || p.startsWith("/profile/") },
+  { label: "Settings", href: "/settings", icon: Settings, match: (p) => p === "/settings" || p.startsWith("/settings/") },
+];
+
+function BottomNav({ pathname }: { pathname: string }) {
+  return (
+    <nav className="et-bottom-nav" aria-label="Main">
+      {BOTTOM_NAV.map(({ label, href, icon: Icon, match }) => {
+        const on = match(pathname);
+        return (
+          <Link key={href} href={href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined}>
+            <Icon size={21} strokeWidth={on ? 2.2 : 1.8} />
+            <span>{label}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 

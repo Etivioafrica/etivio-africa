@@ -30,6 +30,10 @@ export function AuthFrame({
       </aside>
       <section className="et-auth-panel">
         <header className="et-auth-top">
+          {/* Phones don't show the photo side, so the logo sits here (and leads back to the app's start screen). */}
+          <Link href="/welcome" className="et-auth-mlogo" aria-label="Etivio">
+            <img src="/etiviologo.svg" alt="Etivio" />
+          </Link>
           <button
             type="button"
             className="et-auth-theme"

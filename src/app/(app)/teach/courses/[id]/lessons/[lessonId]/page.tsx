@@ -5,6 +5,7 @@ import { PageHead } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { getLessonForEditing } from "@/lib/data/teach";
 import { deleteLesson, updateLesson } from "../../../../actions";
+import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "Edit lesson" };
 
@@ -32,13 +33,13 @@ export default async function LessonEditor({ params }: { params: Promise<{ id: s
             </div>
             <div className="et-field">
               <label htmlFor="module_id">Module</label>
-              <select id="module_id" name="module_id" defaultValue={lesson.module_id}>
+              <Select id="module_id" name="module_id" defaultValue={lesson.module_id}>
                 {modules.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="et-field">
               <label htmlFor="video_url">Video URL</label>

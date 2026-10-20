@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatDate } from "@/lib/format";
 import { ROLE_BLURBS, ROLE_LABELS, STAFF_ROLES } from "@/lib/roles";
 import { addStaff, removeStaffRole } from "./actions";
+import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "Team" };
 
@@ -81,13 +82,13 @@ export default async function Team() {
                 </div>
                 <div className="et-field">
                   <label htmlFor="role">Role</label>
-                  <select id="role" name="role" defaultValue="editor">
+                  <Select id="role" name="role" defaultValue="editor">
                     {STAFF_ROLES.map((r) => (
                       <option key={r} value={r}>
                         {ROLE_LABELS[r]}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div className="et-form-foot">
                   <SubmitButton pendingLabel="Adding…">Add to team</SubmitButton>

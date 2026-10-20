@@ -12,6 +12,8 @@ export type Announcement = {
   scheduled_at: string | null;
   cover_image_url: string | null;
   cover_video_url: string | null;
+  // Set for announcements that only go to one course's learners.
+  course_id?: string | null;
 };
 
 export type ViewMode = "grid" | "list";

@@ -9,6 +9,7 @@ import { canTeach } from "@/lib/roles";
 import { formatDate, formatMoney } from "@/lib/format";
 import { removeCard, saveBillingDetails, savePayoutAccount, setDefaultCard } from "../actions";
 import { SetRow } from "../SetRow";
+import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "Billing" };
 
@@ -237,7 +238,7 @@ export default async function BillingSettings() {
             <div className="et-form-grid">
               <div className="et-field">
                 <label htmlFor="p-bank">Bank</label>
-                <select id="p-bank" name="bank_code" defaultValue={payout?.bank_code ?? ""} required>
+                <Select id="p-bank" name="bank_code" defaultValue={payout?.bank_code ?? ""} required>
                   <option value="" disabled>
                     Choose your bank
                   </option>
@@ -246,7 +247,7 @@ export default async function BillingSettings() {
                       {b.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="et-field">
                 <label htmlFor="p-number">Account number</label>

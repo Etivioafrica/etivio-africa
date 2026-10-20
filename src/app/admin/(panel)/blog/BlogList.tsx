@@ -7,6 +7,7 @@ import { useToast } from "@/components/dash/useToast";
 import { fmtShort, liveStatus, type PostStatus } from "@/lib/blog";
 import type { AdminPost, Category, Metrics, PostCat } from "@/lib/data/blog";
 import { deletePost, setFeatured, setPostStatus } from "./actions";
+import { Select } from "@/components/dash/Select";
 
 type Filter = "all" | PostStatus;
 const STATUS_LABEL: Record<PostStatus, string> = { published: "Published", scheduled: "Scheduled", draft: "Draft" };
@@ -90,14 +91,14 @@ export function BlogList({ posts, categories, postCats, metrics }: { posts: Admi
           </nav>
           <div className="et-inline">
             {parents.length > 0 && (
-              <select className="et-input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Filter by category">
+              <Select className="et-input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Filter by category">
                 <option value="all">All categories</option>
                 {parents.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
             <label className="et-blog-search">
               <Search size={14} />

@@ -1,7 +1,8 @@
 "use server";
 import { refresh } from "next/cache";
 import { audit, requireAdmin } from "@/lib/admin";
-import { SUPABASE_TAGS, fillTags, sampleVars, templateDef } from "@/lib/email/registry";
+import { fillTags, sampleVars, supabaseTags, templateDef } from "@/lib/email/registry";
+import { authLink } from "@/lib/email/auth-links";
 import { sendEmail } from "@/lib/email/send";
 import { fillStored } from "@/lib/email/stored";
 import { authEmail, type AuthEmail } from "@/lib/email/templates";
@@ -36,7 +37,7 @@ export async function saveTemplate(key: string, input: { subject: string; design
   await audit(admin.id, "email_template.save", { type: "email_template", id: key });
   refresh();
   if (def.group === "auth") {
-    const warning = await pushToSupabase(key as AuthEmail, fillTags(subject, SUPABASE_TAGS, "text"), fillTags(input.html, SUPABASE_TAGS, "html"));
+    const warning = await pushToSupabase(key as AuthEmail, fillTags(subject, supabaseTags(key as AuthEmail), "text"), fillTags(input.html, supabaseTags(key as AuthEmail), "html"));
     if (warning) return { error: warning };
     return { ok: "Saved. Supabase now sends this design." };
   }
@@ -51,7 +52,7 @@ export async function resetTemplate(key: string): Promise<Result> {
   await audit(admin.id, "email_template.reset", { type: "email_template", id: key });
   refresh();
   if (def.group === "auth") {
-    const built = authEmail(key as AuthEmail, { url: "{{ .ConfirmationURL }}", email: "{{ .Email }}", newEmail: "{{ .NewEmail }}" });
+    const built = authEmail(key as AuthEmail, { url: authLink(key as AuthEmail), email: "{{ .Email }}", newEmail: "{{ .NewEmail }}" });
     const warning = await pushToSupabase(key as AuthEmail, built.subject, built.html);
     if (warning) return { error: warning.replace("Saved", "Reset") };
   }

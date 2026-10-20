@@ -7,6 +7,7 @@ import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { getCourseForEditing } from "@/lib/data/teach";
 import { formatDuration } from "@/lib/format";
 import { addLesson, addModule, deleteCourse, deleteModule, setCourseStatus, updateCourse } from "../../actions";
+import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "Edit course" };
 
@@ -124,14 +125,14 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
                 </div>
                 <div className="et-field">
                   <label htmlFor="category">Category</label>
-                  <select id="category" name="category" defaultValue={course.category ?? ""}>
+                  <Select id="category" name="category" defaultValue={course.category ?? ""}>
                     <option value="">Choose a category</option>
                     {TOPICS.map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   <small>Used to recommend this course to learners interested in the topic.</small>
                 </div>
                 <div className="et-field">
@@ -150,11 +151,11 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
                 <div className="et-form-grid">
                   <div className="et-field">
                     <label htmlFor="level">Level</label>
-                    <select id="level" name="level" defaultValue={course.level}>
+                    <Select id="level" name="level" defaultValue={course.level}>
                       <option value="beginner">Beginner</option>
                       <option value="intermediate">Intermediate</option>
                       <option value="advanced">Advanced</option>
-                    </select>
+                    </Select>
                   </div>
                   <div className="et-field">
                     <label htmlFor="price">Price (₦)</label>

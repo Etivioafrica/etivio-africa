@@ -2,12 +2,13 @@
 //   npx tsx scripts/build-auth-templates.ts
 import { mkdirSync, writeFileSync } from "node:fs";
 import { AUTH_EMAILS, authEmail } from "../src/lib/email/templates";
+import { authLink } from "../src/lib/email/auth-links";
 
 const dir = new URL("../supabase/templates/", import.meta.url);
 mkdirSync(dir, { recursive: true });
 const subjects: Record<string, string> = {};
 for (const kind of AUTH_EMAILS) {
-  const e = authEmail(kind, { url: "{{ .ConfirmationURL }}", email: "{{ .Email }}", newEmail: "{{ .NewEmail }}" });
+  const e = authEmail(kind, { url: authLink(kind), email: "{{ .Email }}", newEmail: "{{ .NewEmail }}" });
   writeFileSync(new URL(`${kind}.html`, dir), `${e.html}\n`);
   subjects[kind] = e.subject;
 }

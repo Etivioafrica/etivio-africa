@@ -9,6 +9,7 @@ import { Uploader, type Uploaded } from "@/components/dash/Uploader";
 import { useToast } from "@/components/dash/useToast";
 import { formatBytes } from "@/lib/format";
 import { addLessonResource, deleteLessonFromEditor, removeLessonResource, saveLessonFull, type LessonInput } from "../../../actions";
+import { Select } from "@/components/dash/Select";
 
 type Resource = { id: string; title: string; file_url: string; file_name: string | null; file_size: number | null; mime_type: string | null };
 type Nav = { id: string; title: string } | null;
@@ -234,13 +235,13 @@ export function LessonEditor({
             </div>
             <div className="et-field">
               <label htmlFor="l-mod">Module</label>
-              <select id="l-mod" value={form.moduleId} onChange={(e) => set({ moduleId: e.target.value })}>
+              <Select id="l-mod" value={form.moduleId} onChange={(e) => set({ moduleId: e.target.value })}>
                 {modules.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="et-field">
               <label htmlFor="l-min">{form.kind === "reading" ? "Reading time (minutes)" : "Length (minutes)"}</label>

@@ -15,10 +15,13 @@ export default function AdminAnnouncementsPage() {
 
 async function AdminAnnouncements() {
   const { db } = await requireAdmin("announcements");
-  const { data } = await db
-    .from("announcements")
-    .select("id, title, body, status, pinned, created_at, scheduled_at, cover_image_url, cover_video_url")
-    .order("pinned", { ascending: false })
-    .order("created_at", { ascending: false });
-  return <AnnouncementsAdmin announcements={(data ?? []) as Announcement[]} />;
+  const [{ data }, { data: courses }] = await Promise.all([
+    db
+      .from("announcements")
+      .select("id, title, body, status, pinned, created_at, scheduled_at, cover_image_url, cover_video_url, course_id")
+      .order("pinned", { ascending: false })
+      .order("created_at", { ascending: false }),
+    db.from("courses").select("id, title").neq("status", "archived").order("title"),
+  ]);
+  return <AnnouncementsAdmin announcements={(data ?? []) as Announcement[]} courses={courses ?? []} />;
 }

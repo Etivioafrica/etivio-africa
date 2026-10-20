@@ -45,7 +45,7 @@ async function Orders({ searchParams }: Props) {
   const { data } = await db
     .from("payments")
     .select(
-      "id, reference, amount_minor, currency, platform_fee_minor, instructor_share_minor, status, provider, note, paid_at, created_at, course_id, product_id, buyer:profiles!payments_user_id_fkey(full_name), seller:profiles!payments_instructor_id_fkey(full_name), course:courses(title, slug), product:products(title, slug, kind)",
+      "id, reference, amount_minor, currency, platform_fee_minor, instructor_share_minor, status, provider, note, paid_at, created_at, course_id, product_id, buyer:profiles!payments_user_id_fkey(full_name), seller:profiles!payments_instructor_id_fkey(full_name), course:courses(title, slug), product:products(title, slug, kind), order:orders(reference, email, first_name, last_name, phone, country, state, reminders_sent)",
     )
     .order("created_at", { ascending: false })
     .limit(1000);
@@ -55,7 +55,7 @@ async function Orders({ searchParams }: Props) {
     (p) =>
       (!s.status || p.status === s.status) &&
       (!s.type || (s.type === "course" ? !!p.course_id : !!p.product_id)) &&
-      (!q || [p.reference, p.buyer?.full_name ?? "", p.course?.title ?? "", p.product?.title ?? ""].join(" ").toLowerCase().includes(q)),
+      (!q || [p.reference, p.buyer?.full_name ?? "", p.order?.email ?? "", p.order?.phone ?? "", `${p.order?.first_name ?? ""} ${p.order?.last_name ?? ""}`, p.course?.title ?? "", p.product?.title ?? ""].join(" ").toLowerCase().includes(q)),
   );
   const paid = all.filter((p) => p.status === "success");
   const sum = (key: "amount_minor" | "platform_fee_minor" | "instructor_share_minor") => paid.reduce((n, p) => n + p[key], 0);
@@ -96,7 +96,7 @@ async function Orders({ searchParams }: Props) {
           <form action="/admin/marketplace/orders" style={{ marginLeft: "auto" }}>
             {s.status && <input type="hidden" name="status" value={s.status} />}
             {s.type && <input type="hidden" name="type" value={s.type} />}
-            <input name="q" defaultValue={s.q ?? ""} className="et-input" placeholder="Reference, buyer or item" aria-label="Search orders" />
+            <input name="q" defaultValue={s.q ?? ""} className="et-input" placeholder="Reference, buyer, email or item" aria-label="Search orders" />
           </form>
         </div>
         {shown.length ? (
@@ -120,7 +120,21 @@ async function Orders({ searchParams }: Props) {
                   return (
                     <tr key={p.id}>
                       <td style={{ whiteSpace: "nowrap" }}>{formatDateTime(p.paid_at ?? p.created_at)}</td>
-                      <td>{p.buyer?.full_name || "Deleted account"}</td>
+                      <td>
+                        {p.order ? `${p.order.first_name} ${p.order.last_name}` : p.buyer?.full_name || "Deleted account"}
+                        {p.order && (
+                          <small style={{ display: "block", color: "var(--a-muted)" }}>
+                            {p.order.email}
+                            {p.order.phone ? ` · ${p.order.phone}` : ""}
+                            {p.order.country ? ` · ${[p.order.state, p.order.country].filter(Boolean).join(", ")}` : ""}
+                          </small>
+                        )}
+                        {p.status !== "success" && p.order && p.order.reminders_sent > 0 && (
+                          <small style={{ display: "block", color: "var(--a-muted)" }}>
+                            {p.order.reminders_sent} of 4 reminders sent
+                          </small>
+                        )}
+                      </td>
                       <td>
                         {href ? <Link href={href}>{title}</Link> : title}
                         <small style={{ display: "block", color: "var(--a-muted)" }}>

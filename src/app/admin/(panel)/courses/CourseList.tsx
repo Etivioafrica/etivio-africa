@@ -8,6 +8,7 @@ import { compactMoney } from "@/lib/format";
 import type { Category } from "@/components/dash/CategoryManager";
 import type { AdminCourse, CourseMetric } from "@/lib/data/courses-admin";
 import { setCourseFeatured, setCourseStatus } from "./actions";
+import { Select } from "@/components/dash/Select";
 
 type Status = "published" | "draft" | "archived";
 type Filter = "all" | Status;
@@ -61,14 +62,14 @@ export function CourseList({ courses, categories, metrics }: { courses: AdminCou
             ))}
           </nav>
           <div className="et-inline">
-            <select className="et-input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Filter by category">
+            <Select className="et-input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Filter by category">
               <option value="all">All categories</option>
               {parents.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
-            </select>
+            </Select>
             <label className="et-blog-search">
               <Search size={14} />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search courses or instructors…" aria-label="Search courses" />

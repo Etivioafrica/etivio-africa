@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { BookOpen, CheckCircle2, Flame, ListChecks } from "lucide-react";
-import { Cover, Empty, Progress, Stat } from "@/components/dash/ui";
+import { ArrowRight, Award, BookOpen, Clock, Compass, Flame, ListChecks, PlayCircle, Store, Target } from "lucide-react";
+import { Cover, Progress, Ring } from "@/components/dash/ui";
 import { CourseGrid } from "@/components/dash/CourseGrid";
-import { getMyCourses, getSavedIds } from "@/lib/data/learn";
+import { getCoursePlayer, getMyCourses, getSavedIds } from "@/lib/data/learn";
+import { formatDuration } from "@/lib/format";
 import { getLearnerPrefs, getRecommendations } from "@/lib/data/recommend";
 import { getLearnerProfile } from "@/lib/data/profile";
-import { LearnerGuidance } from "@/components/dash/LearnerGuidance";
+import { GOAL_TIPS } from "@/components/dash/LearnerGuidance";
 import { WelcomeHero } from "@/components/dash/WelcomeHero";
 import { getPlatformSettings } from "@/lib/platform";
 import { AnnouncementBar } from "@/components/dash/AnnouncementBar";
@@ -52,83 +53,199 @@ export default async function LearnDashboard() {
       ? { message: "You've finished every course you started. Ready for the next one?", cta: { label: "Find a new course", href: "/learn/browse" } }
       : { message: "Find your first course and start learning today. Your progress, badges, and certificates start here.", cta: { label: "Browse courses", href: "/learn/browse" } };
 
+  // The resume card names the exact lesson to pick up.
+  const player = current ? await getCoursePlayer(current.id) : null;
+  const upNext = player?.lessons.find((l) => !l.done) ?? null;
+  const week = profile?.heatmap.weeks.at(-1) ?? [];
+  const streak = profile?.heatmap.currentStreak ?? 0;
+  const tip = prefs.goal ? GOAL_TIPS[prefs.goal] : null;
+  const others = active.slice(current ? 1 : 0, 7);
+
   return (
     <div className="et-page">
       {platform.announcement && <AnnouncementBar text={platform.announcement.text} link={platform.announcement.link} />}
       <WelcomeHero name={(user.name || "there").split(" ")[0]} date={today} message={hero.message} cta={hero.cta} background={platform.heroBgUrl} />
 
-      <LearnerGuidance goal={prefs.goal} weeklyGoal={prefs.weeklyGoal} thisWeek={thisWeek} />
-
-      <div className="et-stats">
-        <Stat label="Enrolled" value={mine.length} icon={BookOpen} href="/learn/courses" />
-        <Stat label="In progress" value={active.length} icon={Flame} href="/learn/courses" />
-        <Stat label="Completed" value={completed.length} icon={CheckCircle2} href="/learn/courses" />
-        <Stat label="Lessons done" value={lessonsDone} icon={ListChecks} />
-      </div>
-
-      <div className="et-grid-main">
-        <section className="et-card">
-          <div className="et-card-head">
-            <h2>Continue learning</h2>
-            <Link href="/learn/courses">View all</Link>
-          </div>
-          {active.length ? (
-            <div className="et-list">
-              {active.slice(0, 5).map((c) => (
-                <Link key={c.id} href={`/learn/course/${c.id}`} className="et-list-item">
-                  <Cover url={c.coverUrl} small />
-                  <div className="et-list-main">
-                    <b>{c.title}</b>
-                    <Progress value={c.progress} label={`${c.done}/${c.lessonCount} lessons`} />
-                  </div>
+      <div className="et-dash-top">
+        {current ? (
+          <section className="et-card et-dash-resume">
+            <Link href={`/learn/course/${current.id}`} className="et-dash-resume-cover" aria-label={`Resume ${current.title}`}>
+              <Cover url={current.coverUrl} />
+              <span className="et-dash-play">
+                <PlayCircle size={30} />
+              </span>
+            </Link>
+            <div className="et-dash-resume-body">
+              <span className="et-dash-eyebrow">{current.done ? "Pick up where you left off" : "Ready when you are"}</span>
+              <h2>{current.title}</h2>
+              <p className="et-muted">{current.instructor}</p>
+              <Progress value={current.progress} label={`${current.progress}% complete`} />
+              <p className="et-dash-left">
+                {current.secondsLeft > 0 ? `${formatDuration(current.secondsLeft)} left` : `${current.lessonsLeft} ${current.lessonsLeft === 1 ? "lesson" : "lessons"} left`}
+              </p>
+              {upNext && (
+                <p className="et-dash-next">
+                  <PlayCircle size={15} /> <span>Up next:</span> <b>{upNext.title}</b>
+                </p>
+              )}
+              <div className="et-inline">
+                <Link href={upNext ? `/learn/course/${current.id}?lesson=${upNext.id}` : `/learn/course/${current.id}`} className="et-btn et-btn-primary">
+                  {current.done ? "Resume" : "Start course"} <ArrowRight size={15} />
                 </Link>
-              ))}
+                <Link href={`/learn/browse/${current.id}`} className="et-btn et-btn-ghost">
+                  Course details
+                </Link>
+              </div>
             </div>
-          ) : (
-            <Empty title="Nothing in progress" action={{ href: "/learn/browse", label: "Browse courses" }}>
-              Enroll in a course and it will show up here.
-            </Empty>
+          </section>
+        ) : (
+          <section className="et-card et-dash-start">
+            <span className="et-cta-icon">
+              <Compass size={24} />
+            </span>
+            <h2>{mine.length ? "You've finished everything you started" : "Start your first course"}</h2>
+            <p>{mine.length ? "Pick your next skill. Your progress and certificates carry on from here." : "Courses, templates and guides from creators across Africa. Your progress, badges and certificates start here."}</p>
+            <div className="et-inline">
+              <Link href="/learn/browse" className="et-btn et-btn-primary">
+                <BookOpen size={15} /> Browse courses
+              </Link>
+              <Link href="/explore" className="et-btn et-btn-ghost">
+                <Store size={15} /> Explore the marketplace
+              </Link>
+            </div>
+            {prefs.interests.length > 0 && (
+              <div className="et-dash-chips">
+                <small>Your interests:</small>
+                {prefs.interests.slice(0, 6).map((i) => (
+                  <Link key={i} href={`/explore?q=${encodeURIComponent(i)}`}>
+                    {i}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        <section className="et-card et-dash-week">
+          <div className="et-dash-week-head">
+            {prefs.weeklyGoal ? (
+              <Ring value={thisWeek} max={prefs.weeklyGoal} size={76}>
+                <b style={{ fontSize: 17 }}>{thisWeek}</b>
+                <small>of {prefs.weeklyGoal}</small>
+              </Ring>
+            ) : (
+              <span className="et-set-icon et-dash-goal-icon">
+                <Target size={22} />
+              </span>
+            )}
+            <div>
+              <b>
+                {!prefs.weeklyGoal
+                  ? "Set a weekly goal"
+                  : thisWeek >= prefs.weeklyGoal
+                    ? "Weekly goal reached!"
+                    : `${prefs.weeklyGoal - thisWeek} ${prefs.weeklyGoal - thisWeek === 1 ? "lesson" : "lessons"} to go this week`}
+              </b>
+              <small>{prefs.weeklyGoal ? "Resets every Sunday." : <Link href="/profile">Choose 3, 5 or 7 lessons a week</Link>}</small>
+            </div>
+          </div>
+
+          <div className="et-dash-days" aria-label="This week">
+            {week.map((d, i) => (
+              <span key={d.date} className={`${d.count ? "is-on" : ""}${d.future ? " is-future" : ""}`} title={`${d.date}: ${d.count} ${d.count === 1 ? "lesson" : "lessons"}`}>
+                <i>{d.count ? <Flame size={13} /> : null}</i>
+                <small>{"SMTWTFS"[i]}</small>
+              </span>
+            ))}
+          </div>
+
+          <ul className="et-dash-mini">
+            <li>
+              <Flame size={16} />
+              <b>{streak}</b>
+              <small>day streak</small>
+            </li>
+            <li>
+              <ListChecks size={16} />
+              <b>{lessonsDone}</b>
+              <small>lessons done</small>
+            </li>
+            <li>
+              <Clock size={16} />
+              <b>{formatDuration(profile?.stats.secondsLearned ?? 0) || "0 min"}</b>
+              <small>learned</small>
+            </li>
+            <li>
+              <Award size={16} />
+              <b>{completed.length}</b>
+              <small>{completed.length === 1 ? "certificate" : "certificates"}</small>
+            </li>
+          </ul>
+
+          {tip && (
+            <p className="et-dash-tip">
+              {tip.tip} <Link href={tip.cta.href}>{tip.cta.label}</Link>
+            </p>
           )}
         </section>
-
-        <section className="et-card">
-          <div className="et-card-head">
-            <h2>Completed</h2>
-          </div>
-          {completed.length ? (
-            <div className="et-list">
-              {completed.slice(0, 5).map((c) => (
-                <Link key={c.id} href={`/learn/course/${c.id}`} className="et-list-item">
-                  <Cover url={c.coverUrl} small />
-                  <div className="et-list-main">
-                    <b>{c.title}</b>
-                    <small style={{ color: "var(--a-faint)", fontSize: 12 }}>{c.lessonCount} lessons</small>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="et-empty">Finished courses land here.</p>
-          )}
-        </section>
       </div>
+
+      {others.length > 0 && (
+        <section className="et-dash-section">
+          <div className="et-dash-head">
+            <h2>Also in progress</h2>
+            <Link href="/learn/courses">My courses</Link>
+          </div>
+          <div className="et-dash-row">
+            {others.map((c) => (
+              <Link key={c.id} href={`/learn/course/${c.id}`} className="et-card et-dash-mini-course">
+                <Cover url={c.coverUrl} />
+                <div>
+                  <b>{c.title}</b>
+                  <Progress value={c.progress} label={`${c.done}/${c.lessonCount}`} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {recommended.length > 0 && (
-        <section className="et-page" style={{ gap: 14 }}>
-          <div className="et-toolbar">
+        <section className="et-dash-section">
+          <div className="et-dash-head">
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 600 }}>{prefs.interests.length || prefs.level ? "Recommended for you" : "Explore courses"}</h2>
+              <h2>{prefs.interests.length || prefs.level ? "Recommended for you" : "Popular on Etivio"}</h2>
               {(prefs.interests.length > 0 || prefs.level) && (
-                <p className="et-muted" style={{ fontSize: 12.5, marginTop: 2 }}>
-                  Based on your interests{prefs.level ? " and level" : ""}. <Link href="/settings" style={{ color: "var(--accent)" }}>Update interests</Link>
+                <p className="et-muted">
+                  Based on your interests{prefs.level ? " and level" : ""}. <Link href="/settings">Update interests</Link>
                 </p>
               )}
             </div>
-            <Link href="/learn/browse" className="et-btn et-btn-ghost et-btn-sm">
-              Browse all
-            </Link>
+            <Link href="/learn/browse">Browse all</Link>
           </div>
           <CourseGrid courses={recommended} enrolledIds={enrolledIds} savedIds={savedIds} />
+        </section>
+      )}
+
+      {completed.length > 0 && (
+        <section className="et-dash-section">
+          <div className="et-dash-head">
+            <h2>Completed</h2>
+            <Link href="/profile/certificates">Your certificates</Link>
+          </div>
+          <div className="et-dash-row">
+            {completed.slice(0, 6).map((c) => (
+              <Link key={c.id} href={`/learn/course/${c.id}`} className="et-card et-dash-done">
+                <Cover url={c.coverUrl} small />
+                <div>
+                  <b>{c.title}</b>
+                  <small>
+                    <Award size={13} /> Certificate earned
+                  </small>
+                </div>
+              </Link>
+            ))}
+          </div>
         </section>
       )}
     </div>

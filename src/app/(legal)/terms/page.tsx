@@ -48,8 +48,8 @@ export default function TermsPage() {
 
       <h2>4. Payments and refunds</h2>
       <p>
-        Prices are shown before you pay. Payments are handled by our payment provider. If a course is not as described or you
-        cannot access it, contact us and we will review your request for a refund.
+        Prices are shown in naira before you pay. Payments are handled by our payment provider, Paystack, and access is granted once
+        the payment is confirmed. Refunds follow our <Link href="/refund-policy">Refund Policy</Link>.
       </p>
 
       <h2>5. Acceptable use</h2>

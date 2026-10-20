@@ -10,8 +10,8 @@ import { ITEM_TYPES, itemHref, type ItemType } from "@/lib/marketplace";
 import { formatBytes, formatPrice } from "@/lib/format";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { claimFreeProduct, toggleSavedProduct } from "../actions";
-import { startCheckout } from "@/app/checkout/actions";
 import { PaymentNotice } from "@/components/market/PaymentNotice";
+import { AddToCart } from "@/components/market/AddToCart";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -60,23 +60,17 @@ function ProductView({ data }: { data: PublicProduct }) {
     <Link href="/learn/library" className="et-btn et-btn-primary et-ud-cta">
       <Download size={16} /> {p.kind === "bundle" ? "Open in your library" : "Download"}
     </Link>
+  ) : !free ? (
+    <AddToCart item={{ type: "product", id: p.id, slug: p.slug, title: p.title, kind: p.kind, priceMinor: p.priceMinor, currency: p.currency, coverUrl: p.coverUrl }} />
   ) : !signedIn ? (
     <Link href={`/signup?next=${encodeURIComponent(path)}`} className="et-btn et-btn-primary et-ud-cta">
-      {free ? "Sign up to get it free" : "Sign up to buy"}
+      Sign up to get it free
     </Link>
-  ) : free ? (
+  ) : (
     <form action={claimFreeProduct}>
       <input type="hidden" name="slug" value={p.slug} />
       <button type="submit" className="et-btn et-btn-primary et-ud-cta">
         Get it free
-      </button>
-    </form>
-  ) : (
-    <form action={startCheckout}>
-      <input type="hidden" name="type" value="product" />
-      <input type="hidden" name="slug" value={p.slug} />
-      <button type="submit" className="et-btn et-btn-primary et-ud-cta">
-        Buy now
       </button>
     </form>
   );

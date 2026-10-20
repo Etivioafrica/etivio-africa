@@ -36,3 +36,17 @@ export async function userReply(fd: FormData): Promise<SendResult> {
   refresh();
   return { message: data };
 }
+
+// Asked from the course player's Support tab: same as a new conversation, but stays on the lesson.
+export async function askFromLesson(_prev: FormState, fd: FormData): Promise<FormState> {
+  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const subject = str(fd, "subject").slice(0, 140);
+  const body = str(fd, "body").slice(0, 5000);
+  if (body.length < 5) return { error: "Tell us a little more so we can help." };
+  const { data: thread, error } = await supabase.from("support_threads").insert({ user_id: user.id, subject: subject || "Question about a lesson" }).select("id").single();
+  if (error || !thread) return { error: "Could not send your message. Please try again." };
+  await supabase.from("support_messages").insert({ thread_id: thread.id, sender_id: user.id, body });
+  refresh();
+  return { ok: "Sent. The Etivio team will reply here and by email." };
+}

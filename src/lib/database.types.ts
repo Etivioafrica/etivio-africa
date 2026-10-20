@@ -102,6 +102,7 @@ export type Database = {
           author_id: string | null
           body: string
           cover_image_url: string | null
+          course_id: string | null
           cover_video_url: string | null
           created_at: string
           emailed_at: string | null
@@ -116,6 +117,7 @@ export type Database = {
           author_id?: string | null
           body?: string
           cover_image_url?: string | null
+          course_id?: string | null
           cover_video_url?: string | null
           created_at?: string
           emailed_at?: string | null
@@ -130,6 +132,7 @@ export type Database = {
           author_id?: string | null
           body?: string
           cover_image_url?: string | null
+          course_id?: string | null
           cover_video_url?: string | null
           created_at?: string
           emailed_at?: string | null
@@ -1177,6 +1180,74 @@ export type Database = {
           },
         ]
       }
+      orders: {
+        Row: {
+          created_at: string
+          currency: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          note: string | null
+          paid_at: string | null
+          phone: string | null
+          reference: string
+          reminders_sent: number
+          last_reminded_at: string | null
+          state: string | null
+          country: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          total_minor: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          note?: string | null
+          paid_at?: string | null
+          phone?: string | null
+          reference: string
+          reminders_sent?: number
+          last_reminded_at?: string | null
+          state?: string | null
+          country?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          total_minor: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          note?: string | null
+          paid_at?: string | null
+          phone?: string | null
+          reference?: string
+          reminders_sent?: number
+          last_reminded_at?: string | null
+          state?: string | null
+          country?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          total_minor?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_minor: number
@@ -1187,6 +1258,7 @@ export type Database = {
           instructor_id: string | null
           instructor_share_minor: number
           note: string | null
+          order_id: string | null
           paid_at: string | null
           platform_fee_minor: number
           product_id: string | null
@@ -1204,6 +1276,7 @@ export type Database = {
           instructor_id?: string | null
           instructor_share_minor?: number
           note?: string | null
+          order_id?: string | null
           paid_at?: string | null
           platform_fee_minor?: number
           product_id?: string | null
@@ -1221,6 +1294,7 @@ export type Database = {
           instructor_id?: string | null
           instructor_share_minor?: number
           note?: string | null
+          order_id?: string | null
           paid_at?: string | null
           platform_fee_minor?: number
           product_id?: string | null
@@ -1230,6 +1304,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_course_id_fkey"
             columns: ["course_id"]
@@ -2184,6 +2265,10 @@ export type Database = {
       course_is_published: {
         Args: { p_course_id: string }
         Returns: boolean
+      }
+      user_id_by_email: {
+        Args: { p_email: string }
+        Returns: string
       }
       course_lesson_counts: {
         Args: { p_course_ids: string[] }

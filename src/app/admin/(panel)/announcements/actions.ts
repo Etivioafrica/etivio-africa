@@ -7,7 +7,7 @@ import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { stripHtml, type Announcement, type AnnouncementStatus } from "@/lib/announcements";
 
-const COLS = "id, title, body, status, pinned, created_at, scheduled_at, cover_image_url, cover_video_url";
+const COLS = "id, title, body, status, pinned, created_at, scheduled_at, cover_image_url, cover_video_url, course_id";
 
 export type AnnouncementInput = {
   title: string;
@@ -17,6 +17,8 @@ export type AnnouncementInput = {
   scheduled_at: string | null;
   cover_image_url: string | null;
   cover_video_url: string | null;
+  // null sends it to everyone; a course id sends it only to that course's learners.
+  course_id: string | null;
 };
 
 type Result = { data?: Announcement; error?: string };
@@ -30,6 +32,7 @@ function validate(input: AnnouncementInput): string | null {
   }
   if (input.cover_image_url && !/^https?:\/\//.test(input.cover_image_url)) return "Cover image must be an uploaded image.";
   if (input.cover_video_url && !/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(input.cover_video_url)) return "Cover video must be a YouTube link.";
+  if (input.course_id && !/^[0-9a-f-]{36}$/i.test(input.course_id)) return "Pick a course from the list.";
   return null;
 }
 
@@ -41,6 +44,7 @@ const clean = (input: AnnouncementInput) => ({
   scheduled_at: input.status === "scheduled" ? input.scheduled_at : null,
   cover_image_url: input.cover_image_url || null,
   cover_video_url: input.cover_video_url?.trim() || null,
+  course_id: input.course_id || null,
 });
 
 export async function createAnnouncement(input: AnnouncementInput): Promise<Result> {

@@ -1,0 +1,32 @@
+.et-welcome{position:fixed;inset:0;overflow:hidden;background:#060b18;color:#fff;font-family:var(--font-geist-sans),system-ui,sans-serif}
+.et-welcome-track{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.et-welcome-track::-webkit-scrollbar{display:none}
+.et-welcome-slide{position:relative;flex:0 0 100%;height:100%;scroll-snap-align:center}
+.et-welcome-slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
+.et-welcome-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#060b18 0%,rgba(6,11,24,.92) 28%,rgba(6,11,24,0) 58%)}
+.et-welcome-text{position:absolute;z-index:1;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 170px);padding:0 32px;text-align:center}
+.et-welcome-text h2{font-size:28px;font-weight:700;letter-spacing:-.02em}
+.et-welcome-text p{max-width:28ch;margin:10px auto 0;font-size:15px;line-height:1.5;color:#c7d2e8}
+.et-welcome-top{position:absolute;z-index:2;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 14px) 20px 0}
+.et-welcome-bars{display:flex;gap:6px}
+.et-welcome-bars button{flex:1;height:4px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.3);overflow:hidden;cursor:pointer}
+.et-welcome-bars span{display:block;width:0;height:100%;border-radius:inherit;background:#fff;transition:width .3s}
+.et-welcome-bars span.is-on{width:100%}
+.et-welcome-logo{display:block;height:24px;margin:14px auto 0;filter:brightness(0) invert(1)}
+.et-welcome-actions{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:12px;padding:0 24px calc(env(safe-area-inset-bottom) + 24px)}
+.et-welcome-actions a{display:block;padding:15px;border-radius:999px;text-align:center;font-size:15px;font-weight:700;text-decoration:none}
+.et-welcome-primary{background:#fff;color:#0a0f1a}
+.et-welcome-secondary{border:1.5px solid rgba(255,255,255,.45);color:#fff}
+.et-welcome-actions a:active{transform:scale(.98)}
+/* Wider screens (desktop browsers) see the slides as a phone-sized column. */
+@media(min-width:640px){.et-welcome{max-width:430px;margin:0 auto;box-shadow:0 0 80px rgba(0,0,0,.5)}}
+
+.et-splash{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#2563eb;transition:opacity .5s}
+.et-splash.is-done{opacity:0;pointer-events:none}
+.et-splash-tile{width:76px;height:76px;display:grid;place-items:center;border-radius:20px;background:#fff;box-shadow:0 14px 34px rgba(0,0,0,.25);animation:et-pop .5s ease-out both}
+.et-splash-tile img{width:44px;height:44px}
+.et-splash-word{position:relative;overflow:hidden;padding:0 4px;font-size:30px;font-weight:700;letter-spacing:-.03em;color:#fff}
+.et-splash-word i{position:absolute;inset:0;background:#2563eb;animation:et-reveal .8s cubic-bezier(.65,0,.35,1) .4s both}
+@keyframes et-pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes et-reveal{0%{transform:translateX(0)}100%{transform:translateX(101%)}}
+@media(prefers-reduced-motion:reduce){.et-splash-tile,.et-splash-word i{animation:none}.et-splash-word i{display:none}}

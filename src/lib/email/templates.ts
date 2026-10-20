@@ -135,6 +135,44 @@ export function receiptEmail({ name, item, amount, reference, date, url, cta }: 
   });
 }
 
+export function guestAccessEmail({ name, item, email, password, accessUrl, loginUrl }: { name: string; item: string; email: string; password: string; accessUrl: string; loginUrl: string }) {
+  return build(`Your Etivio login: ${item}`, {
+    preheader: `You're in. Here's how to get to ${item}.`,
+    banner: "welcome",
+    heading: "Your purchase is ready",
+    greeting: name,
+    blocks: [
+      { p: "Thanks for your purchase. We've created an Etivio account for you so you can get to it any time, on any device." },
+      { p: "Tap the button to go straight in (it works for the next hour). After that, sign in with the details below. The first time you sign in, you'll choose your own password." },
+    ],
+    info: { title: item, rows: [["Sign-in email", email], ["Temporary password", password], ["Sign in at", loginUrl.replace(/^https?:\/\//, "")]] },
+    cta: { label: "Go to my purchase", url: accessUrl },
+    reason: "You're getting this because you bought something on Etivio without an account. Didn't make this purchase? Reply to this email.",
+  });
+}
+
+// Abandoned checkout, sent up to 4 times over 2 days. The wording moves from a nudge to a final reminder.
+const REMINDER_COPY = [
+  { subject: "You left something in your cart", heading: "Your order is waiting", p: "Looks like your payment didn't go through. Your items are saved, so you can pick up right where you left off." },
+  { subject: "Still thinking it over?", heading: "Still interested?", p: "Your cart is still saved. Finish your order in a minute and start learning today." },
+  { subject: "Your cart is waiting for you", heading: "Don't miss out", p: "Everything you picked is still here, ready when you are. It only takes a moment to finish." },
+  { subject: "Last reminder about your cart", heading: "Last reminder", p: "This is the last email we'll send about this order. Complete it now to get lifetime access." },
+] as const;
+
+export function checkoutReminderEmail({ name, items, total, resumeUrl, attempt }: { name: string; items: string[]; total: string; resumeUrl: string; attempt: number }) {
+  const copy = REMINDER_COPY[Math.min(Math.max(attempt, 1), 4) - 1];
+  return build(copy.subject, {
+    preheader: `${items[0]}${items.length > 1 ? ` and ${items.length - 1} more` : ""} is still in your cart.`,
+    banner: "receipt",
+    heading: copy.heading,
+    greeting: name,
+    blocks: [{ p: copy.p }, { list: items }],
+    info: { title: "Your order", rows: [["Items", String(items.length)], ["Total", total]] },
+    cta: { label: "Complete your purchase", url: resumeUrl },
+    reason: "You're getting this because you started a checkout on Etivio and didn't finish paying. We send at most 4 reminders, then stop.",
+  });
+}
+
 export function productApprovedEmail({ name, product, url }: { name: string; product: string; url: string }) {
   return build(`Your product is live: ${product}`, {
     preheader: `${product} is now on the Etivio marketplace.`,
@@ -276,6 +314,20 @@ export function sampleEmails(): { key: string; label: string; group: "App" | "Si
       group: "App",
       when: "An announcement is published, or its scheduled time arrives",
       email: announcementEmail({ name: "Ada", title: "New: course details pages", summary: "You can now open any course to see its full outline, what's included, reviews from other learners, and the instructor, before you enroll. Head to Browse courses to try it." }),
+    },
+    {
+      key: "guest_access",
+      label: "Guest login details",
+      group: "App",
+      when: "Someone buys without an account and one is created for them",
+      email: guestAccessEmail({ name: "Ada", item: "Introduction To Web-Design", email: "ada@example.com", password: "k7MpQ2xRw9Td", accessUrl: `${siteUrl()}/auth/confirm`, loginUrl: `${siteUrl()}/login` }),
+    },
+    {
+      key: "checkout_reminder",
+      label: "Checkout reminder",
+      group: "App",
+      when: "A checkout isn't paid: right away if payment fails or is cancelled (else after 30 minutes), then about 6, 24 and 47 hours later",
+      email: checkoutReminderEmail({ name: "Ada", items: ["Introduction To Web-Design", "Startup Pitch Deck Template"], total: "₦15,100", resumeUrl: `${siteUrl()}/checkout/resume`, attempt: 1 }),
     },
     { key: "test", label: "Test email", group: "App", when: "Admin presses Send a test email", email: testEmail() },
     { key: "confirmation", label: "Confirm sign-up", group: "Sign-in (Supabase)", when: "Someone creates an account", email: auth("confirmation") },

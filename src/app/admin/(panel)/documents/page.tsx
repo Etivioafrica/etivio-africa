@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatBytes, formatDate } from "@/lib/format";
 import { addDocument, deleteDocument } from "./actions";
 import { VisibilitySelect } from "./VisibilitySelect";
+import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "Documents" };
 
@@ -32,14 +33,14 @@ export default async function AdminDocuments({ searchParams }: { searchParams: P
           <div className="et-filters">
             <form action="/admin/documents" className="et-inline" style={{ flex: 1 }}>
               <input name="q" defaultValue={q} className="et-input" placeholder="Search documents" aria-label="Search documents" />
-              <select name="course" defaultValue={sp.course ?? ""} className="et-input" aria-label="Filter by course">
+              <Select name="course" defaultValue={sp.course ?? ""} className="et-input" aria-label="Filter by course">
                 <option value="">All courses</option>
                 {(courses ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.title}
                   </option>
                 ))}
-              </select>
+              </Select>
               <button type="submit" className="et-btn et-btn-ghost et-btn-sm">
                 Filter
               </button>
@@ -112,22 +113,22 @@ export default async function AdminDocuments({ searchParams }: { searchParams: P
               </div>
               <div className="et-field">
                 <label htmlFor="course_id">Course</label>
-                <select id="course_id" name="course_id" defaultValue={sp.course ?? ""}>
+                <Select id="course_id" name="course_id" defaultValue={sp.course ?? ""}>
                   <option value="">Not attached to a course</option>
                   {(courses ?? []).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.title}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="et-field">
                 <label htmlFor="visibility">Visible to</label>
-                <select id="visibility" name="visibility" defaultValue="enrolled">
+                <Select id="visibility" name="visibility" defaultValue="enrolled">
                   <option value="enrolled">Students enrolled in the course</option>
                   <option value="public">Everyone</option>
                   <option value="private">Admins only</option>
-                </select>
+                </Select>
               </div>
               <div className="et-form-foot">
                 <SubmitButton>Add document</SubmitButton>

@@ -17,6 +17,8 @@ export type Mail = {
   ref?: string | null;
   // Bulk mail (announcements) gets a List-Unsubscribe header pointing at notification settings.
   bulk?: boolean;
+  // Overrides EMAIL_REPLY_TO, e.g. so a reply to a contact-form message goes to the visitor.
+  replyTo?: string;
 };
 
 const API = "https://api.resend.com";
@@ -30,7 +32,7 @@ function payload(m: Mail) {
     subject: m.subject,
     html: m.html,
     text: m.text,
-    ...(process.env.EMAIL_REPLY_TO ? { reply_to: process.env.EMAIL_REPLY_TO } : {}),
+    ...(m.replyTo || process.env.EMAIL_REPLY_TO ? { reply_to: m.replyTo || process.env.EMAIL_REPLY_TO } : {}),
     ...(m.bulk ? { headers: { "List-Unsubscribe": `<${siteUrl()}/settings/notifications>` } } : {}),
   };
 }

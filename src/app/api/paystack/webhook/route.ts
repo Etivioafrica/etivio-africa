@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { fulfillPayment } from "@/lib/data/checkout";
+import { fulfillOrder } from "@/lib/data/checkout";
 import { validSignature, verifyTransaction } from "@/lib/paystack";
 
 // Paystack's server-to-server notice. Covers buyers who close the tab before returning to Etivio.
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (event.event === "charge.success" && event.data?.reference) {
     // Re-check with Paystack rather than trusting the payload's amounts.
     const verified = await verifyTransaction(event.data.reference);
-    if (verified.status && verified.data) await fulfillPayment(verified.data);
+    if (verified.status && verified.data) await fulfillOrder(verified.data);
   }
   return NextResponse.json({ received: true });
 }

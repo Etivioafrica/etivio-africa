@@ -10,6 +10,7 @@ import { fmtLong, readMinutes, seoChecks, type PostStatus } from "@/lib/blog";
 import { slugify } from "@/lib/format";
 import type { Category } from "@/lib/data/blog";
 import { savePost } from "./actions";
+import { Select } from "@/components/dash/Select";
 
 export type EditorPost = {
   id?: string;
@@ -194,13 +195,13 @@ export function BlogEditor({ initial, categories, authors }: { initial: EditorPo
               {authors.length > 0 && (
                 <div className="et-field">
                   <label htmlFor="author">Author</label>
-                  <select id="author" value={authorId} onChange={(e) => setAuthorId(e.target.value)}>
+                  <Select id="author" value={authorId} onChange={(e) => setAuthorId(e.target.value)}>
                     {authors.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               )}
             </section>

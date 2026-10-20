@@ -2,6 +2,7 @@
 import { useRef, useState, useTransition } from "react";
 import { AlertCircle, CalendarClock, ImagePlus, Trash2, X } from "lucide-react";
 import { RichTextEditor } from "@/components/dash/RichTextEditor";
+import { Select } from "@/components/dash/Select";
 import { CropUpload, type CropUploadHandle } from "@/components/dash/CropUpload";
 import { stripHtml, type Announcement } from "@/lib/announcements";
 import { createAnnouncement, deleteAnnouncement, updateAnnouncement, type AnnouncementInput } from "./actions";
@@ -24,6 +25,7 @@ type Props = {
   editing: Announcement | null;
   onSaved: (a: Announcement) => void;
   onDeleted: (id: string) => void;
+  courses: { id: string; title: string }[];
 };
 
 // The panel remounts per open (keyed below), so its fields always start from the announcement being edited.
@@ -32,13 +34,14 @@ export function AnnouncementPanel(props: Props) {
   return <PanelBody key={props.editing?.id ?? "new"} {...props} />;
 }
 
-function PanelBody({ onClose, editing, onSaved, onDeleted }: Props) {
+function PanelBody({ onClose, editing, onSaved, onDeleted, courses }: Props) {
   const cover = useRef<CropUploadHandle>(null);
   const [title, setTitle] = useState(editing?.title ?? "");
   const [body, setBody] = useState(editing?.body ?? "");
   const [status, setStatus] = useState<PanelStatus>(editing?.status ?? "draft");
   const [scheduledAt, setScheduledAt] = useState(() => toLocalInput(editing?.scheduled_at ? new Date(editing.scheduled_at) : new Date(Date.now() + 60 * 60 * 1000)));
   const [pinned, setPinned] = useState(editing?.pinned ?? false);
+  const [courseId, setCourseId] = useState(editing?.course_id ?? "");
   const [coverImage, setCoverImage] = useState(editing?.cover_image_url ?? "");
   const [coverVideo, setCoverVideo] = useState(editing?.cover_video_url ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +61,7 @@ function PanelBody({ onClose, editing, onSaved, onDeleted }: Props) {
       scheduled_at: status === "scheduled" ? new Date(scheduledAt).toISOString() : null,
       cover_image_url: coverImage || null,
       cover_video_url: coverVideo || null,
+      course_id: courseId || null,
     };
     startSaving(async () => {
       const res = editing ? await updateAnnouncement(editing.id, input) : await createAnnouncement(input);
@@ -147,6 +151,19 @@ function PanelBody({ onClose, editing, onSaved, onDeleted }: Props) {
                 </span>
               </label>
             )}
+          </div>
+
+          <div className="et-field">
+            <label htmlFor="ann-audience">Who gets it</label>
+            <Select id="ann-audience" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+              <option value="">Everyone on Etivio</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  Learners in {c.title}
+                </option>
+              ))}
+            </Select>
+            <small>{courseId ? "Only learners enrolled in this course see it and get the email." : "Every learner sees it and gets the email."}</small>
           </div>
 
           <label className="et-set-box et-set-box-row" style={{ cursor: "pointer" }}>

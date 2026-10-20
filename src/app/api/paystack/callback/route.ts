@@ -1,7 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { fulfillPayment } from "@/lib/data/checkout";
+import { NextResponse, after, type NextRequest } from "next/server";
+import { fulfillOrder } from "@/lib/data/checkout";
+import { remindNow } from "@/lib/data/reminders";
 import { verifyTransaction } from "@/lib/paystack";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 // Where Paystack sends the buyer after paying. We ask Paystack directly whether the charge succeeded; the query
 // string alone is never trusted.
@@ -12,11 +12,10 @@ export async function GET(request: NextRequest) {
 
   const verified = await verifyTransaction(reference);
   if (verified.status && verified.data) {
-    const res = await fulfillPayment(verified.data);
+    const res = await fulfillOrder(verified.data);
     if (res.ok && res.destination) return to(res.destination);
   }
-  // Failed or abandoned: send them back to the item with a message.
-  const { data: pay } = await createAdminClient().from("payments").select("course:courses(slug), product:products(slug)").eq("reference", reference).maybeSingle();
-  const page = pay?.course ? `/courses/${pay.course.slug}` : pay?.product ? `/products/${pay.product.slug}` : "/explore";
-  return to(`${page}?payment=failed`);
+  // Failed or abandoned: back to checkout with a message (the cart is still there), and a reminder by email.
+  after(() => remindNow(reference));
+  return to("/checkout?payment=failed");
 }

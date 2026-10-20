@@ -57,10 +57,12 @@ export async function deleteProduct(id: string): Promise<Result> {
 export async function recheckPayment(reference: string): Promise<Result> {
   const { admin } = await requireAdmin("marketplace");
   const { verifyTransaction } = await import("@/lib/paystack");
-  const { fulfillPayment } = await import("@/lib/data/checkout");
-  const verified = await verifyTransaction(reference);
+  const { fulfillOrder } = await import("@/lib/data/checkout");
+  // Each item's reference is the order's Paystack reference plus "-1", "-2"…; Paystack only knows the order's.
+  const orderRef = reference.replace(/-\d+$/, "");
+  const verified = await verifyTransaction(orderRef);
   if (!verified.status || !verified.data) return { error: verified.message || "Paystack couldn't find that payment." };
-  const res = await fulfillPayment(verified.data);
+  const res = await fulfillOrder(verified.data);
   await audit(admin.id, "payment.recheck", { type: "payment", id: reference }, { result: res.ok ? "paid" : (res.reason ?? "not paid") });
   refresh();
   return res.ok ? { ok: "Paid. Access has been granted." } : { error: `Not paid: ${res.reason === "abandoned" ? "the buyer didn't finish checkout" : (res.reason ?? "unknown")}.` };

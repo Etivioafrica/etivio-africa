@@ -23,7 +23,7 @@ function callbackUrl(next: string) {
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 }
 
-function PasswordField({ name, label, autoComplete, placeholder }: { name: string; label: string; autoComplete: string; placeholder: string }) {
+export function PasswordField({ name, label, autoComplete, placeholder }: { name: string; label: string; autoComplete: string; placeholder: string }) {
   const [show, setShow] = useState(false);
   return (
     <label>
@@ -51,11 +51,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
 
-  // Set by /auth/callback when a Google or email-link sign-in fails.
+  // Set by /auth/callback when a Google sign-in fails ("auth"), or by /auth/confirm when an email link is used
+  // twice or has expired ("link").
   const callbackFailed = useSyncExternalStore(
     () => () => {},
-    () => new URLSearchParams(window.location.search).get("error") === "auth",
-    () => false,
+    () => new URLSearchParams(window.location.search).get("error") ?? "",
+    () => "",
   );
 
   async function withGoogle() {
@@ -136,7 +137,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   const { title, sub, submit } = copy[mode];
   const withSocial = mode === "login" || mode === "signup";
-  const message = error ?? (callbackFailed ? "Sign-in didn't complete. Please try again." : null);
+  const message =
+    error ??
+    (callbackFailed === "link"
+      ? "That link has expired or was already used. Sign in with your password, or request a new link."
+      : callbackFailed
+        ? "Sign-in didn't complete. Please try again."
+        : null);
 
   return (
     <div className="et-auth-box">

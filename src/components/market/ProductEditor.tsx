@@ -10,6 +10,7 @@ import { useToast } from "@/components/dash/useToast";
 import { formatBytes, formatPrice } from "@/lib/format";
 import { ITEM_TYPES, PRODUCT_KINDS, type ProductKind } from "@/lib/marketplace";
 import type { ProductFileInput, ProductInput } from "@/lib/data/products-admin";
+import { Select } from "@/components/dash/Select";
 
 type BundleOption = { type: "course" | "product"; id: string; title: string; priceMinor: number; kind: string };
 type Result = { ok?: string; error?: string; id?: string; slug?: string };
@@ -145,7 +146,7 @@ export function ProductEditor({
                 {!bundleRows.length && <li className="et-muted">Add at least two courses or products.</li>}
               </ul>
               <div className="et-inline" style={{ marginTop: 12 }}>
-                <select className="et-select" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Add to bundle" style={{ flex: 1 }}>
+                <Select className="et-select" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Add to bundle" style={{ flex: 1 }}>
                   <option value="">Choose a course or product…</option>
                   {bundleOptions
                     .filter((o) => !inBundle.has(optionKey(o)))
@@ -154,7 +155,7 @@ export function ProductEditor({
                         {o.type === "course" ? "Course" : ITEM_TYPES[o.kind as ProductKind]?.label ?? "Product"}: {o.title}
                       </option>
                     ))}
-                </select>
+                </Select>
                 <button
                   type="button"
                   className="et-btn et-btn-ghost"
@@ -268,14 +269,14 @@ export function ProductEditor({
             </div>
             <div className="et-field">
               <label htmlFor="pe-cat">Category</label>
-              <select id="pe-cat" className="et-select" value={f.categoryId} onChange={(e) => set({ categoryId: e.target.value })}>
+              <Select id="pe-cat" className="et-select" value={f.categoryId} onChange={(e) => set({ categoryId: e.target.value })}>
                 <option value="">None</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             {f.kind !== "bundle" && (
               <div className="et-field">

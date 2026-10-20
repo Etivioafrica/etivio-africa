@@ -6,6 +6,7 @@ import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { getCurrentUser } from "@/lib/auth";
 import { canTeach } from "@/lib/roles";
 import { createCourse } from "../../actions";
+import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "New course" };
 
@@ -33,11 +34,11 @@ export default async function NewCourse() {
           <div className="et-form-grid">
             <div className="et-field">
               <label htmlFor="level">Level</label>
-              <select id="level" name="level" defaultValue="beginner">
+              <Select id="level" name="level" defaultValue="beginner">
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
                 <option value="advanced">Advanced</option>
-              </select>
+              </Select>
             </div>
             <div className="et-field">
               <label htmlFor="price">Price (₦)</label>

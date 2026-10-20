@@ -63,3 +63,9 @@
 .et-auth-box input.et-auth-code{font-size:22px;letter-spacing:.3em;text-align:center;font-variant-numeric:tabular-nums}
 .et-auth .et-auth-textbtn{padding:0;background:none;border:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
 .et-auth .et-auth-textbtn:hover{text-decoration:underline}
+/* Installed app: clear of the iPhone status bar (zero in browsers). */
+.et-auth-top{padding-top:calc(24px + env(safe-area-inset-top))}
+@media(max-width:600px){.et-auth-top{padding-top:calc(18px + env(safe-area-inset-top))}.et-auth-foot{padding-bottom:calc(18px + env(safe-area-inset-bottom))}}
+.et-auth-mlogo{display:none}
+@media(max-width:1023px){.et-auth-mlogo{display:block;margin-right:auto}.et-auth-mlogo img{display:block;height:24px;width:auto}.et-auth-top{gap:12px}}
+@media(max-width:600px){.et-auth-switch{font-size:13px}}

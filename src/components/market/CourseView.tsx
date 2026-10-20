@@ -5,10 +5,12 @@ import { Avatar } from "@/components/dash/Avatar";
 import { ShareButton } from "@/components/dash/ShareButton";
 import { Suspense } from "react";
 import { enrollFree, toggleSaved } from "@/app/(app)/learn/actions";
-import { startCheckout } from "@/app/checkout/actions";
+import { AddToCart } from "./AddToCart";
 import { PaymentNotice } from "./PaymentNotice";
 import type { getCourseDetails } from "@/lib/data/learn";
 import { formatDate, formatDuration, formatPrice } from "@/lib/format";
+import { toHtml } from "@/lib/blog";
+import { sanitizeRichText } from "@/lib/sanitize";
 
 const plural = (n: number, word: string) => `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
 const monthYear = (d: string) => new Date(d).toLocaleDateString("en-GB", { month: "numeric", year: "numeric" });
@@ -41,27 +43,22 @@ export function CourseView({ data }: { data: CourseData }) {
     isRecent(course.publishedAt) && { label: "New", tone: "green" },
   ].filter(Boolean) as { label: string; tone: string }[];
 
-  const cta = !signedIn ? (
-    <Link href={`/signup?next=${encodeURIComponent(publicPath)}`} className="et-btn et-btn-primary et-ud-cta">
-      {free ? "Sign up to enroll for free" : "Sign up to enroll"}
-    </Link>
-  ) : enrolled ? (
+  const cartItem = { type: "course" as const, id: course.id, slug: course.slug, title: course.title, kind: "course", priceMinor: course.priceMinor, currency: course.currency, coverUrl: course.coverUrl };
+  const cta = enrolled ? (
     <Link href={`/learn/course/${course.id}`} className="et-btn et-btn-primary et-ud-cta">
       Go to course
     </Link>
-  ) : free ? (
+  ) : !free ? (
+    <AddToCart item={cartItem} />
+  ) : !signedIn ? (
+    <Link href={`/signup?next=${encodeURIComponent(publicPath)}`} className="et-btn et-btn-primary et-ud-cta">
+      Sign up to enroll for free
+    </Link>
+  ) : (
     <form action={enrollFree}>
       <input type="hidden" name="courseId" value={course.id} />
       <button type="submit" className="et-btn et-btn-primary et-ud-cta">
         Enroll for free
-      </button>
-    </form>
-  ) : (
-    <form action={startCheckout}>
-      <input type="hidden" name="type" value="course" />
-      <input type="hidden" name="slug" value={course.slug} />
-      <button type="submit" className="et-btn et-btn-primary et-ud-cta">
-        Buy now
       </button>
     </form>
   );
@@ -261,7 +258,8 @@ export function CourseView({ data }: { data: CourseData }) {
           {course.description && (
             <section className="et-ud-section">
               <h2>Description</h2>
-              <p className="et-cd-about">{course.description}</p>
+              {/* Plain text from the course editor: blank lines make paragraphs and "## " lines make headings. */}
+              <div className="et-rich et-cd-desc" dangerouslySetInnerHTML={{ __html: sanitizeRichText(toHtml(course.description)) }} />
             </section>
           )}
 

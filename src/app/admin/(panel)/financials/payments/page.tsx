@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatDateTime, formatMoney, formatPrice } from "@/lib/format";
 import type { Database } from "@/lib/database.types";
 import { recordPayment, refundPayment } from "../actions";
+import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "Payments" };
 
@@ -129,7 +130,7 @@ export default async function Payments({ searchParams }: { searchParams: Promise
               </div>
               <div className="et-field">
                 <label htmlFor="course_id">Course</label>
-                <select id="course_id" name="course_id" required defaultValue="">
+                <Select id="course_id" name="course_id" required defaultValue="">
                   <option value="" disabled>
                     Pick a course
                   </option>
@@ -138,7 +139,7 @@ export default async function Payments({ searchParams }: { searchParams: Promise
                       {c.title} · {formatPrice(c.price_minor, c.currency)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="et-form-grid">
                 <div className="et-field">

@@ -19,8 +19,9 @@ const when = (a: Announcement) =>
     ? `Scheduled for ${new Date(a.scheduled_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
     : new Date(a.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-export function AnnouncementsAdmin({ announcements: initial }: { announcements: Announcement[] }) {
+export function AnnouncementsAdmin({ announcements: initial, courses }: { announcements: Announcement[]; courses: { id: string; title: string }[] }) {
   const [list, setList] = useState(initial);
+  const courseTitle = new Map(courses.map((c) => [c.id, c.title]));
   const [panelOpen, setPanelOpen] = useState(false);
   const [editing, setEditing] = useState<Announcement | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -53,7 +54,7 @@ export function AnnouncementsAdmin({ announcements: initial }: { announcements: 
 
   return (
     <>
-      <AnnouncementPanel open={panelOpen} onClose={() => setPanelOpen(false)} editing={editing} onSaved={onSaved} onDeleted={onDeleted} />
+      <AnnouncementPanel open={panelOpen} onClose={() => setPanelOpen(false)} editing={editing} onSaved={onSaved} onDeleted={onDeleted} courses={courses} />
 
       <div className="et-page">
         <div className="et-page-head">
@@ -112,7 +113,9 @@ export function AnnouncementsAdmin({ announcements: initial }: { announcements: 
                     <span className={`et-status ${STATUS_CLASS[a.status]}`}>{a.status}</span>
                   </span>
                   <small className="et-ann-excerpt">{stripHtml(a.body)}</small>
-                  <small className="et-muted">{when(a)}</small>
+                  <small className="et-muted">
+                    {when(a)} · {a.course_id ? `Learners in ${courseTitle.get(a.course_id) ?? "a course"}` : "Everyone"}
+                  </small>
                 </span>
                 <Eye size={15} className="et-muted" />
               </button>
