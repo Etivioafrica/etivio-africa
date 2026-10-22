@@ -3,6 +3,7 @@ import { TOPICS } from "@/lib/learner-prefs";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, Eye, FileText, Pencil, PlayCircle, Trash2 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { AiAssistant } from "./AiAssistant";
 import { Status } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { getCourseForEditing } from "@/lib/data/teach";
@@ -131,6 +132,7 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
         </section>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <AiAssistant courseId={course.id} hasModules={modules.length > 0} coverUrl={course.cover_url} />
           <section className="et-card">
             <div className="et-card-head">
               <h2>Details</h2>

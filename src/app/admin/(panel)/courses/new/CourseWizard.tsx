@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { COURSE_STATUS_LABEL, type CourseStatus } from "@/lib/course-status";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, ArrowRight, Check, CloudUpload, ImagePlus, Plus, Trash2, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Check, CloudUpload, ImagePlus, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { aiCopy, aiCover, aiOutline } from "@/app/(app)/teach/ai-actions";
 import { CropUpload, type CropUploadHandle } from "@/components/dash/CropUpload";
 import { useToast } from "@/components/dash/useToast";
 import type { Category } from "@/components/dash/CategoryManager";
@@ -63,6 +64,9 @@ export function CourseWizard({
   const [coverUrl, setCoverUrl] = useState(initial?.coverUrl ?? "");
   const [paid, setPaid] = useState((initial?.priceNaira ?? 0) > 0);
   const [listed, setListed] = useState(initial?.listed ?? true);
+  // AI helpers: which one is running, and whether the outline should research the web first.
+  const [aiBusy, setAiBusy] = useState<"copy" | "cover" | "outline" | null>(null);
+  const [aiWeb, setAiWeb] = useState(true);
   const [price, setPrice] = useState(initial?.priceNaira ? String(initial.priceNaira) : "");
   const [modules, setModules] = useState<Mod[]>(() =>
     initial?.modules.length
@@ -103,6 +107,44 @@ export function CourseWizard({
   }
 
   const setMod = (mi: number, patch: Partial<Mod>) => setModules((ms) => ms.map((m, i) => (i === mi ? { ...m, ...patch } : m)));
+
+  async function aiDetails() {
+    setAiBusy("copy");
+    const res = await aiCopy({ title, level, outline: modules.flatMap((m) => m.lessons.map((l) => l.title)).filter(Boolean) });
+    setAiBusy(null);
+    if (!res.ok) return show({ error: res.error });
+    if (res.data.summary) setSummary(res.data.summary);
+    if (res.data.description) setDescription(res.data.description);
+    if (res.data.skills.length) setSkills(res.data.skills.join(", "));
+    show({ ok: "Details written. Read them through and edit anything that isn't right." });
+  }
+
+  async function aiMakeCover() {
+    setAiBusy("cover");
+    const res = await aiCover({ title, summary });
+    setAiBusy(null);
+    if (!res.ok) return show({ error: res.error });
+    setCoverUrl(res.data);
+  }
+
+  async function aiPlan() {
+    const hasContent = modules.some((m) => m.title.trim() || m.lessons.some((l) => l.title.trim()));
+    const warning = edit?.students ? ` ${edit.students} enrolled learners would lose progress on removed lessons.` : "";
+    if (hasContent && !window.confirm(`Replace the current curriculum with an AI outline?${warning}`)) return;
+    setAiBusy("outline");
+    const res = await aiOutline({ title, summary, level, useWeb: aiWeb });
+    setAiBusy(null);
+    if (!res.ok) return show({ error: res.error });
+    const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    setModules(
+      res.data.modules.map((m) => ({
+        key: nextKey(),
+        title: m.title,
+        lessons: m.lessons.map((l) => ({ key: nextKey(), title: l.title, videoUrl: "", content: l.summary ? `<p>${esc(l.summary)}</p>` : "", files: [] })),
+      })),
+    );
+    show({ ok: "Outline added. Rename, reorder or delete anything, then add videos and notes to each lesson." });
+  }
   const setLesson = (mk: number, lk: number, patch: LessonPatch) =>
     setModules((ms) =>
       ms.map((m) => (m.key !== mk ? m : { ...m, lessons: m.lessons.map((l) => (l.key !== lk ? l : { ...l, ...(typeof patch === "function" ? patch(l) : patch) })) })),
@@ -278,6 +320,9 @@ export function CourseWizard({
                 <label htmlFor="w-title">Course title</label>
                 <input id="w-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Product design fundamentals" maxLength={140} autoFocus />
               </div>
+              <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiDetails}>
+                <Sparkles size={13} /> {aiBusy === "copy" ? "Writing…" : "Write the summary, description and skills with AI"}
+              </button>
               <div className="et-field">
                 <label htmlFor="w-summary">Short summary</label>
                 <textarea id="w-summary" rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={300} placeholder="One or two sentences on what learners will be able to do after this course." />
@@ -344,6 +389,9 @@ export function CourseWizard({
                     <button type="button" className="et-btn et-btn-ghost et-btn-sm" onClick={() => cover.current?.open()}>
                       Replace
                     </button>
+                    <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiMakeCover}>
+                      <Sparkles size={13} /> {aiBusy === "cover" ? "Creating…" : "New AI cover"}
+                    </button>
                     <button type="button" className="et-icon-btn" onClick={() => setCoverUrl("")} aria-label="Remove cover">
                       <X size={15} />
                     </button>
@@ -356,6 +404,11 @@ export function CourseWizard({
                   <small>16:9 · crop and zoom before upload</small>
                 </button>
               )}
+              {!coverUrl && (
+                <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiMakeCover}>
+                  <Sparkles size={13} /> {aiBusy === "cover" ? "Creating a cover…" : "Or generate a cover with AI"}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -365,6 +418,14 @@ export function CourseWizard({
             <p className="et-muted" style={{ fontSize: 13 }}>
               Add modules and the lessons inside them. Give each lesson a title, then click <b>Add content</b> to paste a YouTube link, write text, or attach files. Drag lessons to reorder them or move them between modules.
             </p>
+            <div className="et-ai-bar">
+              <button type="button" className="et-btn et-btn-ghost et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiPlan}>
+                <Sparkles size={14} /> {aiBusy === "outline" ? "Planning your course…" : "Generate outline with AI"}
+              </button>
+              <label className="et-check">
+                <input type="checkbox" checked={aiWeb} onChange={(e) => setAiWeb(e.target.checked)} /> Research how this topic is taught online first
+              </label>
+            </div>
             {modules.map((m, mi) => (
               <div key={m.key} className="et-wiz-mod">
                 <div className="et-wiz-mod-head">
@@ -401,6 +462,7 @@ export function CourseWizard({
                         onToggle={() => setOpenLesson((k) => (k === l.key ? null : l.key))}
                         onChange={(patch) => setLesson(m.key, l.key, patch)}
                         onEnter={() => addLesson(mi, li + 1)}
+                        ai={{ courseTitle: title, moduleTitle: m.title, level }}
                         onRemove={() => {
                           const learners = edit?.students && l.id ? ` ${edit.students} enrolled learners lose their progress and notes on it.` : "";
                           if ((learners || l.videoUrl || hasText(l.content) || l.files.length) && !window.confirm(`Remove "${l.title || "this lesson"}" and its content?${learners}`)) return;

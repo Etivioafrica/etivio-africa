@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { ChevronDown, FileText, GripVertical, Paperclip, PlayCircle, Video, X } from "lucide-react";
+import { aiLesson } from "@/app/(app)/teach/ai-actions";
+import { ChevronDown, FileText, GripVertical, Paperclip, PlayCircle, Sparkles, Video, X } from "lucide-react";
 import { RichTextEditor } from "@/components/dash/RichTextEditor";
 import { Uploader } from "@/components/dash/Uploader";
 import { formatBytes } from "@/lib/format";
@@ -21,6 +22,7 @@ export function LessonCard({
   onChange,
   onRemove,
   onEnter,
+  ai,
 }: {
   lesson: WizLesson;
   index: number;
@@ -29,8 +31,22 @@ export function LessonCard({
   onChange: (patch: LessonPatch) => void;
   onRemove: () => void;
   onEnter: () => void;
+  // Course context for "Draft with AI".
+  ai?: { courseTitle: string; moduleTitle: string; level: string };
 }) {
   const [uploaderKey, setUploaderKey] = useState(0);
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState("");
+  async function draft() {
+    if (!ai) return;
+    if (hasText(lesson.content) && !window.confirm("Rewrite these notes with AI? It keeps your points and extends them.")) return;
+    setDrafting(true);
+    setDraftError("");
+    const res = await aiLesson({ ...ai, lessonTitle: lesson.title, existing: lesson.content });
+    setDrafting(false);
+    if (res.ok) onChange({ content: res.data });
+    else setDraftError(res.error);
+  }
   const video = lesson.videoUrl.trim() ? videoEmbed(lesson.videoUrl.trim()) : null;
   const text = hasText(lesson.content);
   const empty = !lesson.videoUrl && !text && !lesson.files.length;
@@ -126,7 +142,13 @@ export function LessonCard({
           <section>
             <h4>
               <FileText size={14} /> Text <small>Optional · notes, a reading, or a summary under the video</small>
+              {ai && (
+                <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={drafting || !lesson.title.trim()} onClick={draft}>
+                  <Sparkles size={13} /> {drafting ? "Writing…" : hasText(lesson.content) ? "Improve with AI" : "Draft with AI"}
+                </button>
+              )}
             </h4>
+            {draftError && <p className="et-ai-error">{draftError}</p>}
             <RichTextEditor value={lesson.content} onChange={(html) => onChange({ content: html })} />
           </section>
 

@@ -19,9 +19,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { askFromLesson } from "@/app/(app)/support/actions";
 import { formatAnnouncementDate, liveDate, stripHtml } from "@/lib/announcements";
 import { ReviewCard } from "@/components/learn/ReviewCard";
+import { AskAi } from "@/components/learn/AskAi";
+import { LESSON_CHAT_DAILY_LIMIT } from "@/lib/ai";
 
 export const metadata = { title: "Course" };
 
+
+// Read per request (the player is dynamic), outside render so it stays pure.
+const dayAgo = () => new Date(Date.now() - 86_400_000).toISOString();
 
 export default async function CoursePlayer({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lesson?: string }> }) {
   const [{ id }, { lesson: lessonParam }] = await Promise.all([params, searchParams]);
@@ -74,6 +79,13 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
   const isLocked = !!current && lockedIds.has(current.id);
   // After a module's last lesson, its quiz comes next (if not passed yet).
   const quizNext = currentModule?.quiz && !currentModule.quiz.passed && currentModule.lessons.at(-1)?.id === current?.id ? currentModule.quiz : null;
+  // Study assistant: this lesson's earlier questions and how many are left today (RLS returns only the viewer's own).
+  const [{ data: aiHistory }, { count: aiUsed }] = current && !isLocked
+    ? await Promise.all([
+        supabase.from("ai_messages").select("role, content").eq("lesson_id", current.id).eq("feature", "lesson_chat").order("created_at", { ascending: false }).limit(20),
+        supabase.from("ai_messages").select("id", { count: "exact", head: true }).eq("feature", "lesson_chat").eq("role", "user").gte("created_at", dayAgo()),
+      ])
+    : [{ data: [] }, { count: 0 }];
   const nextLesson = idx >= 0 ? lessons[idx + 1] : undefined;
   const next = quizNext
     ? { id: quizNext.id, href: `${base}/quiz/${quizNext.id}`, label: "Take the module quiz" }
@@ -329,6 +341,24 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
           ),
         },
         ...(!data.isOwner ? [{ id: "reviews", label: "Reviews", content: <ReviewCard courseId={id} canReview={review.canReview} mine={review.mine} progress={progress} /> }] : []),
+        ...(current && !isLocked
+          ? [
+              {
+                id: "ai",
+                label: "Ask AI",
+                content: (
+                  <AskAi
+                    key={current.id}
+                    courseId={id}
+                    lessonId={current.id}
+                    lessonTitle={current.title}
+                    initial={(aiHistory ?? []).reverse().map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))}
+                    remaining={Math.max(0, LESSON_CHAT_DAILY_LIMIT - (aiUsed ?? 0))}
+                  />
+                ),
+              },
+            ]
+          : []),
         { id: "support", label: "Support", content: support },
         { id: "announcements", label: "Announcements", content: announcements },
       ]}
