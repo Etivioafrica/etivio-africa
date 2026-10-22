@@ -6,6 +6,7 @@ import {
   BarChart3,
   BookOpen,
   FileText,
+  Globe,
   LifeBuoy,
   MessagesSquare,
   Newspaper,
@@ -125,6 +126,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         label: "Insights",
         items: [
           { label: "Tracking", href: "/admin/tracking", icon: BarChart3, area: "tracking" },
+          { label: "Traffic", href: "/admin/tracking/traffic", icon: Globe, area: "tracking" },
           { label: "Financials", href: "/admin/financials", icon: Wallet, area: "financials" },
         ],
       },

@@ -101,8 +101,8 @@ export type Database = {
         Row: {
           author_id: string | null
           body: string
-          cover_image_url: string | null
           course_id: string | null
+          cover_image_url: string | null
           cover_video_url: string | null
           created_at: string
           emailed_at: string | null
@@ -116,8 +116,8 @@ export type Database = {
         Insert: {
           author_id?: string | null
           body?: string
-          cover_image_url?: string | null
           course_id?: string | null
+          cover_image_url?: string | null
           cover_video_url?: string | null
           created_at?: string
           emailed_at?: string | null
@@ -131,8 +131,8 @@ export type Database = {
         Update: {
           author_id?: string | null
           body?: string
-          cover_image_url?: string | null
           course_id?: string | null
+          cover_image_url?: string | null
           cover_video_url?: string | null
           created_at?: string
           emailed_at?: string | null
@@ -149,6 +149,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcements_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
             referencedColumns: ["id"]
           },
         ]
@@ -1130,6 +1137,74 @@ export type Database = {
           },
         ]
       }
+      orders: {
+        Row: {
+          country: string | null
+          created_at: string
+          currency: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          last_reminded_at: string | null
+          note: string | null
+          paid_at: string | null
+          phone: string | null
+          reference: string
+          reminders_sent: number
+          state: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          total_minor: number
+          user_id: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          currency?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          last_reminded_at?: string | null
+          note?: string | null
+          paid_at?: string | null
+          phone?: string | null
+          reference: string
+          reminders_sent?: number
+          state?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          total_minor: number
+          user_id?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          currency?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          last_reminded_at?: string | null
+          note?: string | null
+          paid_at?: string | null
+          phone?: string | null
+          reference?: string
+          reminders_sent?: number
+          state?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          total_minor?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_methods: {
         Row: {
           authorization_code: string
@@ -1173,74 +1248,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "payment_methods_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      orders: {
-        Row: {
-          created_at: string
-          currency: string
-          email: string
-          first_name: string
-          id: string
-          last_name: string
-          note: string | null
-          paid_at: string | null
-          phone: string | null
-          reference: string
-          reminders_sent: number
-          last_reminded_at: string | null
-          state: string | null
-          country: string | null
-          status: Database["public"]["Enums"]["payment_status"]
-          total_minor: number
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          currency?: string
-          email: string
-          first_name: string
-          id?: string
-          last_name: string
-          note?: string | null
-          paid_at?: string | null
-          phone?: string | null
-          reference: string
-          reminders_sent?: number
-          last_reminded_at?: string | null
-          state?: string | null
-          country?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          total_minor: number
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          currency?: string
-          email?: string
-          first_name?: string
-          id?: string
-          last_name?: string
-          note?: string | null
-          paid_at?: string | null
-          phone?: string | null
-          reference?: string
-          reminders_sent?: number
-          last_reminded_at?: string | null
-          state?: string | null
-          country?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          total_minor?: number
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1305,13 +1312,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "payments_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "payments_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
@@ -1323,6 +1323,13 @@ export type Database = {
             columns: ["instructor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
@@ -1630,6 +1637,60 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_reviews: {
+        Row: {
+          admin_reply: string | null
+          approved: boolean
+          body: string | null
+          created_at: string
+          id: string
+          product_id: string
+          rating: number
+          replied_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          approved?: boolean
+          body?: string | null
+          created_at?: string
+          id?: string
+          product_id: string
+          rating: number
+          replied_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_reply?: string | null
+          approved?: boolean
+          body?: string | null
+          created_at?: string
+          id?: string
+          product_id?: string
+          rating?: number
+          replied_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2174,6 +2235,89 @@ export type Database = {
           },
         ]
       }
+      visits: {
+        Row: {
+          browser: string | null
+          channel: string
+          city: string | null
+          country: string | null
+          created_at: string
+          device: string | null
+          id: string
+          landing_path: string
+          last_path: string | null
+          last_seen_at: string
+          os: string | null
+          pages: number
+          referrer: string | null
+          referrer_host: string | null
+          region: string | null
+          user_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_id: string
+        }
+        Insert: {
+          browser?: string | null
+          channel?: string
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          id?: string
+          landing_path: string
+          last_path?: string | null
+          last_seen_at?: string
+          os?: string | null
+          pages?: number
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id: string
+        }
+        Update: {
+          browser?: string | null
+          channel?: string
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          id?: string
+          landing_path?: string
+          last_path?: string | null
+          last_seen_at?: string
+          os?: string | null
+          pages?: number
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2251,6 +2395,10 @@ export type Database = {
           visitors: number
         }[]
       }
+      admin_traffic_report: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
       blog_post_metrics: {
         Args: never
         Returns: {
@@ -2265,10 +2413,6 @@ export type Database = {
       course_is_published: {
         Args: { p_course_id: string }
         Returns: boolean
-      }
-      user_id_by_email: {
-        Args: { p_email: string }
-        Returns: string
       }
       course_lesson_counts: {
         Args: { p_course_ids: string[] }
@@ -2337,6 +2481,14 @@ export type Database = {
         Args: { p_course_id: string }
         Returns: boolean
       }
+      product_ratings: {
+        Args: { p_product_ids: string[] }
+        Returns: {
+          product_id: string
+          rating: number
+          reviews: number
+        }[]
+      }
       quiz_progress: {
         Args: { p_user_id: string; p_course_ids: string[] }
         Returns: {
@@ -2348,6 +2500,14 @@ export type Database = {
       rls_auto_enable: {
         Args: never
         Returns: unknown
+      }
+      track_visit: {
+        Args: { p_visit_id: string; p_visitor_id: string; p_user_id: string; p_path: string; p_new_campaign: boolean; p_referrer: string; p_referrer_host: string; p_utm_source: string; p_utm_medium: string; p_utm_campaign: string; p_utm_term: string; p_utm_content: string; p_channel: string; p_country: string; p_region: string; p_city: string; p_device: string; p_browser: string; p_os: string }
+        Returns: string
+      }
+      user_id_by_email: {
+        Args: { p_email: string }
+        Returns: string
       }
     }
     Enums: {
