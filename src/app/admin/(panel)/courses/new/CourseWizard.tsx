@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { COURSE_STATUS_LABEL, type CourseStatus } from "@/lib/course-status";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowLeft, ArrowRight, Check, CloudUpload, ImagePlus, Plus, Trash2, X } from "lucide-react";
@@ -45,7 +46,7 @@ export function CourseWizard({
   categories: Category[];
   defaultInstructor: string;
   initial?: WizardInitial;
-  edit?: { courseId: string; status: "draft" | "published" | "archived"; students: number };
+  edit?: { courseId: string; status: CourseStatus; students: number };
 }) {
   const router = useRouter();
   const [toast, show] = useToast();
@@ -474,7 +475,7 @@ export function CourseWizard({
             {!lessonTotal && <p className="et-flash et-flash-warn">There are no lessons yet, so this can only be saved as a draft. Add lesson titles in step 2 to publish.</p>}
             {edit && (
               <p className="et-muted" style={{ fontSize: 12.5 }}>
-                Status now: <b style={{ textTransform: "capitalize" }}>{edit.status}</b>
+                Status now: <b>{COURSE_STATUS_LABEL[edit.status]}</b>
                 {edit.students ? ` · ${edit.students} enrolled learners keep their progress on lessons you keep.` : ""}
               </p>
             )}

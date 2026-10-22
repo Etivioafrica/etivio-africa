@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { COURSE_STATUS_LABEL } from "@/lib/course-status";
 import Link from "next/link";
 import { UserTimeline } from "./UserTimeline";
 import { LearnerAchievements, LearnerBilling, LearnerProfile } from "./LearnerDetails";
@@ -304,7 +305,7 @@ export default async function UserDetail({ params, searchParams }: { params: Pro
                           </Link>
                         </td>
                         <td>
-                          <Status value={c.status} />
+                          <Status value={c.status} label={COURSE_STATUS_LABEL[c.status]} />
                         </td>
                         <td>{formatDate(c.created_at)}</td>
                       </tr>
@@ -423,6 +424,14 @@ export default async function UserDetail({ params, searchParams }: { params: Pro
                       </span>
                     </label>
                   ))}
+                  <label className="et-check" style={{ alignItems: "flex-start" }}>
+                    <input type="checkbox" name="trusted" value="1" defaultChecked={profile.trusted_tutor} style={{ marginTop: 2 }} />
+                    <span>
+                      <b style={{ color: "var(--a-fg)" }}>Trusted tutor</b>
+                      <br />
+                      <small>Their new courses go live without waiting in the review queue.</small>
+                    </span>
+                  </label>
                   <p className="et-nav-label" style={{ padding: "8px 0 0" }}>
                     Staff
                   </p>

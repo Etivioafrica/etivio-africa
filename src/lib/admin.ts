@@ -42,10 +42,14 @@ export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
 });
 
 // Staff gate for an admin area. Staff without access to the area land on the dashboard.
-export async function requireAdmin(area: AdminArea = "dashboard") {
+// Pass several areas when any one of them is enough (product decisions: Marketplace or the review queue).
+export async function requireAdmin(area: AdminArea | AdminArea[] = "dashboard") {
   const admin = await getAdminUser();
   if (!admin) redirect("/admin/login");
-  if (!canAccess(admin.roles, area)) redirect("/admin?denied=1");
+  if (![area].flat().some((a) => canAccess(admin.roles, a))) {
+    // Reviewers have no dashboard; send them to their queue instead of back to a page they can't open.
+    redirect(canAccess(admin.roles, "dashboard") ? "/admin?denied=1" : "/admin/review");
+  }
   return { admin, db: createAdminClient() };
 }
 

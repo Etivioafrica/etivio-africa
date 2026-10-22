@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { parseSkills } from "@/lib/skills";
 import { TOPICS } from "@/lib/learner-prefs";
 import { refresh } from "next/cache";
+import { after } from "next/server";
+import { emailCourseSubmitted } from "@/lib/email/notify";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/format";
 import type { Database } from "@/lib/database.types";
@@ -10,7 +12,8 @@ import type { Database } from "@/lib/database.types";
 type Level = Database["public"]["Enums"]["course_level"];
 type Status = Database["public"]["Enums"]["course_status"];
 const LEVELS: Level[] = ["beginner", "intermediate", "advanced"];
-const STATUSES: Status[] = ["draft", "published", "archived"];
+// Tutors can submit for review (pending) or publish once approved; the database enforces the rules (0039).
+const STATUSES: Status[] = ["draft", "pending", "published", "archived"];
 
 export type FormState = { ok?: string; error?: string } | null;
 
@@ -111,11 +114,8 @@ export async function setCourseStatus(fd: FormData) {
   const id = str(fd, "id");
   const status = str(fd, "status") as Status;
   if (!STATUSES.includes(status)) return;
-  await supabase
-    .from("courses")
-    .update({ status, ...(status === "published" ? { published_at: new Date().toISOString() } : {}) })
-    .eq("id", id)
-    .eq("instructor_id", userId);
+  const { error } = await supabase.from("courses").update({ status }).eq("id", id).eq("instructor_id", userId);
+  if (!error && status === "pending") after(() => emailCourseSubmitted(id));
   refresh();
 }
 

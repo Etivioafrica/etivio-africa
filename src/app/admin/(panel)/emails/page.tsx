@@ -22,6 +22,9 @@ const KINDS: Record<string, string> = {
   product_approved: "Product approved",
   product_rejected: "Product needs changes",
   product_submitted: "Product to review",
+  course_approved: "Course approved",
+  course_rejected: "Course needs changes",
+  course_submitted: "Course to review",
   test: "Test",
 };
 

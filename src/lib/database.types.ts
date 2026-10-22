@@ -748,9 +748,13 @@ export type Database = {
           marketplace_listed: boolean
           price_minor: number
           published_at: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           skills: string[]
           slug: string
           status: Database["public"]["Enums"]["course_status"]
+          submitted_at: string | null
           summary: string | null
           title: string
           updated_at: string
@@ -769,9 +773,13 @@ export type Database = {
           marketplace_listed?: boolean
           price_minor?: number
           published_at?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           skills?: string[]
           slug: string
           status?: Database["public"]["Enums"]["course_status"]
+          submitted_at?: string | null
           summary?: string | null
           title: string
           updated_at?: string
@@ -790,9 +798,13 @@ export type Database = {
           marketplace_listed?: boolean
           price_minor?: number
           published_at?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           skills?: string[]
           slug?: string
           status?: Database["public"]["Enums"]["course_status"]
+          submitted_at?: string | null
           summary?: string | null
           title?: string
           updated_at?: string
@@ -808,6 +820,13 @@ export type Database = {
           {
             foreignKeyName: "courses_instructor_id_fkey"
             columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1807,6 +1826,7 @@ export type Database = {
           show_current_learning: boolean
           skill_level: string | null
           status: Database["public"]["Enums"]["account_status"]
+          trusted_tutor: boolean
           updated_at: string
           username: string | null
           website_url: string | null
@@ -1835,6 +1855,7 @@ export type Database = {
           show_current_learning?: boolean
           skill_level?: string | null
           status?: Database["public"]["Enums"]["account_status"]
+          trusted_tutor?: boolean
           updated_at?: string
           username?: string | null
           website_url?: string | null
@@ -1863,6 +1884,7 @@ export type Database = {
           show_current_learning?: boolean
           skill_level?: string | null
           status?: Database["public"]["Enums"]["account_status"]
+          trusted_tutor?: boolean
           updated_at?: string
           username?: string | null
           website_url?: string | null
@@ -2516,10 +2538,10 @@ export type Database = {
     Enums: {
       account_status: "active" | "suspended"
       announcement_status: "draft" | "scheduled" | "published" | "archived"
-      app_role: "super_admin" | "editor" | "accountant" | "tutor" | "student" | "coach" | "event_manager" | "community_owner"
+      app_role: "super_admin" | "editor" | "accountant" | "tutor" | "student" | "coach" | "event_manager" | "community_owner" | "reviewer"
       application_status: "pending" | "approved" | "rejected"
       course_level: "beginner" | "intermediate" | "advanced"
-      course_status: "draft" | "published" | "archived"
+      course_status: "draft" | "pending" | "published" | "rejected" | "archived"
       document_visibility: "public" | "enrolled" | "private"
       payment_status: "pending" | "success" | "failed" | "refunded"
       payout_status: "pending" | "paid" | "cancelled"
@@ -2656,10 +2678,10 @@ export const Constants = {
     Enums: {
       account_status: ["active", "suspended"],
       announcement_status: ["draft", "scheduled", "published", "archived"],
-      app_role: ["super_admin", "editor", "accountant", "tutor", "student", "coach", "event_manager", "community_owner"],
+      app_role: ["super_admin", "editor", "accountant", "tutor", "student", "coach", "event_manager", "community_owner", "reviewer"],
       application_status: ["pending", "approved", "rejected"],
       course_level: ["beginner", "intermediate", "advanced"],
-      course_status: ["draft", "published", "archived"],
+      course_status: ["draft", "pending", "published", "rejected", "archived"],
       document_visibility: ["public", "enrolled", "private"],
       payment_status: ["pending", "success", "failed", "refunded"],
       payout_status: ["pending", "paid", "cancelled"],

@@ -211,6 +211,43 @@ export function productSubmittedEmail({ product, creator, kind, url }: { product
   });
 }
 
+export function courseApprovedEmail({ name, course, url }: { name: string; course: string; url: string }) {
+  return build(`Your course is live: ${course}`, {
+    preheader: `${course} is now live on Etivio.`,
+    banner: "application_approved",
+    heading: "Your course is live!",
+    greeting: name,
+    blocks: [{ p: "Good news: the Etivio team reviewed your course and it's now live. Learners can find it, enrol and start learning. Share the link with your audience to get your first students." }],
+    info: { title: course, rows: [["Status", "Live"]] },
+    cta: { label: "View your course", url },
+    reason: "You're getting this because you submitted a course for review on Etivio.",
+  });
+}
+
+export function courseChangesEmail({ name, course, note, url }: { name: string; course: string; note: string; url: string }) {
+  return build(`Changes requested: ${course}`, {
+    preheader: `A few changes are needed before ${course} goes live.`,
+    banner: "application_rejected",
+    heading: "A few changes needed",
+    greeting: name,
+    blocks: [{ p: `Thanks for submitting ${course}. Before it goes live, the Etivio team asked for a few changes:` }, { quote: note }, { p: "Make the changes, then submit it for review again from Teach." }],
+    cta: { label: "Edit your course", url },
+    reason: "You're getting this because you submitted a course for review on Etivio.",
+  });
+}
+
+export function courseSubmittedEmail({ course, tutor, url }: { course: string; tutor: string; url: string }) {
+  return build(`New course to review: ${course}`, {
+    preheader: `${tutor} submitted ${course} for review.`,
+    banner: "product_review",
+    heading: "A course is waiting for review",
+    blocks: [{ p: `${tutor} submitted a course for review. Approve it to make it live, or request changes with a note.` }],
+    info: { title: course, rows: [["Tutor", tutor]] },
+    cta: { label: "Review it", url },
+    reason: "You're getting this because you review courses on Etivio.",
+  });
+}
+
 export function testEmail() {
   return build("Etivio test email", {
     preheader: "Your Etivio email setup works.",

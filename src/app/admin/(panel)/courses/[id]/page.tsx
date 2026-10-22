@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { COURSE_STATUS_LABEL } from "@/lib/course-status";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertCircle, Award, BookOpen, CheckCircle2, ChevronRight, TrendingDown, Eye, FileText, ListChecks, Pencil, PlayCircle, Star, Trash2, Users, Wallet } from "lucide-react";
@@ -80,7 +81,7 @@ async function CourseEditor({ params, searchParams }: Props) {
       <div className="et-page-head">
         <div>
           <h1>
-            {course.title} <Status value={course.status} />
+            {course.title} <Status value={course.status} label={COURSE_STATUS_LABEL[course.status]} />
           </h1>
           <p>
             {course.instructor?.full_name || "No instructor"} · {lessonCount} lessons · {quizzes?.length ?? 0} quizzes · created {formatDate(course.created_at)}

@@ -44,8 +44,17 @@ export async function setUserRoles(_prev: FormState, fd: FormData): Promise<Form
         .in("role", add);
 
     if (add.length || remove.length) await audit(admin.id, "user.roles", { type: "user", id: target.id }, { added: add, removed: remove });
+
+    // Trusted tutors skip the course review queue.
+    const trusted = fd.get("trusted") === "1";
+    const { data: before } = await db.from("profiles").select("trusted_tutor").eq("id", target.id).maybeSingle();
+    const trustChanged = !!before && before.trusted_tutor !== trusted;
+    if (trustChanged) {
+      await db.from("profiles").update({ trusted_tutor: trusted }).eq("id", target.id);
+      await audit(admin.id, trusted ? "user.trust" : "user.untrust", { type: "user", id: target.id });
+    }
     refresh();
-    return { ok: add.length || remove.length ? "Roles updated." : "No changes." };
+    return { ok: add.length || remove.length || trustChanged ? "Roles updated." : "No changes." };
   } catch (e) {
     return { error: (e as Error).message };
   }

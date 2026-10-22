@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  ClipboardCheck,
   BookOpen,
   FileText,
   LifeBuoy,
@@ -65,7 +66,13 @@ const account: Group = {
 const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
   (
     [
-      { label: "Overview", items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true, area: "dashboard" }] },
+      {
+        label: "Overview",
+        items: [
+          { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true, area: "dashboard" },
+          { label: "Review queue", href: "/admin/review", icon: ClipboardCheck, area: "review", badge: badges.queue },
+        ],
+      },
       {
         label: "Manage",
         items: [

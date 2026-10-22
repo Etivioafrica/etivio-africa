@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { COURSE_STATUS_LABEL } from "@/lib/course-status";
 import { redirect } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { Cover, Empty, PageHead, Status } from "@/components/dash/ui";
@@ -53,7 +54,7 @@ export default async function TeachCourses() {
                     <td>{c.studentCount}</td>
                     <td className="et-hide-sm">{formatPrice(c.price_minor, c.currency)}</td>
                     <td>
-                      <Status value={c.status} />
+                      <Status value={c.status} label={COURSE_STATUS_LABEL[c.status]} />
                     </td>
                     <td className="et-hide-sm">{formatDate(c.updated_at)}</td>
                     <td>

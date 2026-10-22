@@ -7,6 +7,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   super_admin: "Super admin",
   editor: "Editor",
   accountant: "Accounts",
+  reviewer: "Reviewer",
   tutor: "Tutor",
   student: "Student",
   coach: "Coach",
@@ -18,6 +19,7 @@ export const ROLE_BLURBS: Record<AppRole, string> = {
   super_admin: "Owns the platform. Manages everything.",
   editor: "Runs the blog, newsletters, and posts.",
   accountant: "Manages money and tutor payouts.",
+  reviewer: "Approves tutor courses and products before they go live.",
   tutor: "Publishes courses and earns a share of each sale.",
   student: "Takes courses and uses course materials.",
   coach: "Meets learners 1-on-1 over video or phone calls.",
@@ -26,7 +28,7 @@ export const ROLE_BLURBS: Record<AppRole, string> = {
 };
 
 // Granted only by a super admin; these open the admin dashboard.
-export const STAFF_ROLES: AppRole[] = ["super_admin", "editor", "accountant"];
+export const STAFF_ROLES: AppRole[] = ["super_admin", "editor", "accountant", "reviewer"];
 // Applied for by users and approved by a super admin.
 export const CREATOR_ROLES: AppRole[] = ["tutor", "coach", "event_manager", "community_owner"];
 // Creator roles whose features exist today. The rest can be assigned but show as coming soon.
@@ -44,6 +46,8 @@ export const ADMIN_AREAS = {
   users: ["super_admin"],
   courses: ["super_admin"],
   marketplace: ["super_admin"],
+  // The review queue: tutor courses and products waiting to go live.
+  review: ["super_admin", "reviewer"],
   blog: ["super_admin", "editor"],
   announcements: ["super_admin", "editor"],
   documents: ["super_admin"],
@@ -61,5 +65,5 @@ export type AdminArea = keyof typeof ADMIN_AREAS;
 export const canAccess = (roles: AppRole[], area: AdminArea) => roles.some((r) => (ADMIN_AREAS[area] as AppRole[]).includes(r));
 
 // Most senior role first, for one-word labels.
-const ORDER: AppRole[] = ["super_admin", "accountant", "editor", "tutor", "coach", "event_manager", "community_owner", "student"];
+const ORDER: AppRole[] = ["super_admin", "accountant", "editor", "reviewer", "tutor", "coach", "event_manager", "community_owner", "student"];
 export const primaryRole = (roles: AppRole[]) => ORDER.find((r) => roles.includes(r)) ?? "student";

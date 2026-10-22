@@ -9,10 +9,9 @@ import type { Category } from "@/components/dash/CategoryManager";
 import type { AdminCourse, CourseMetric } from "@/lib/data/courses-admin";
 import { setCourseFeatured, setCourseStatus } from "./actions";
 import { Select } from "@/components/dash/Select";
+import { COURSE_STATUS_LABEL as LABEL, type CourseStatus } from "@/lib/course-status";
 
-type Status = "published" | "draft" | "archived";
-type Filter = "all" | Status;
-const LABEL: Record<Status, string> = { published: "Published", draft: "Draft", archived: "Archived" };
+type Filter = "all" | CourseStatus;
 
 export function CourseList({ courses, categories, metrics }: { courses: AdminCourse[]; categories: Category[]; metrics: Record<string, CourseMetric> }) {
   const [filter, setFilter] = useState<Filter>("all");
@@ -21,7 +20,7 @@ export function CourseList({ courses, categories, metrics }: { courses: AdminCou
   const [toast, show] = useToast();
   const [pending, start] = useTransition();
 
-  const counts = { all: courses.length, published: 0, draft: 0, archived: 0 };
+  const counts = { all: courses.length, published: 0, pending: 0, rejected: 0, draft: 0, archived: 0 };
   for (const c of courses) counts[c.status]++;
   const parents = categories.filter((c) => !c.parent_id);
   const inCat = (c: AdminCourse) => {
@@ -54,7 +53,7 @@ export function CourseList({ courses, categories, metrics }: { courses: AdminCou
       <section className="et-card">
         <div className="et-blog-bar">
           <nav className="et-blog-filter" aria-label="Filter by status">
-            {(["all", "published", "draft", "archived"] as Filter[]).map((f) => (
+            {(["all", "published", "pending", "rejected", "draft", "archived"] as Filter[]).filter((f) => f === "all" || f === "published" || f === "draft" || counts[f] > 0).map((f) => (
               <button key={f} type="button" className={filter === f ? "is-on" : ""} onClick={() => setFilter(f)} aria-pressed={filter === f}>
                 {f === "all" ? "All" : LABEL[f]}
                 <span>{counts[f]}</span>
@@ -113,7 +112,7 @@ export function CourseList({ courses, categories, metrics }: { courses: AdminCou
                         </Link>
                       </td>
                       <td>
-                        <span className={`et-blog-status is-static is-${c.status === "published" ? "published" : c.status === "draft" ? "draft" : "scheduled"}`}>
+                        <span className={`et-blog-status is-static is-${c.status === "published" ? "published" : c.status === "draft" || c.status === "rejected" ? "draft" : "scheduled"}`}>
                           <i />
                           {LABEL[c.status]}
                         </span>

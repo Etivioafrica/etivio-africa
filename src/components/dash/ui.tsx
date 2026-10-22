@@ -122,9 +122,10 @@ const statusColor: Record<string, string> = {
   verified: "green",
 };
 
-export function Status({ value }: { value: string }) {
-  const label = value.replace("_", " ");
-  return <span className={`et-status et-status-${statusColor[label] ?? "grey"}`}>{label}</span>;
+// `label` overrides the text (course statuses read "In review" / "Changes requested"); colour follows `value`.
+export function Status({ value, label }: { value: string; label?: string }) {
+  const key = value.replace("_", " ");
+  return <span className={`et-status et-status-${statusColor[key] ?? "grey"}`}>{label ?? key}</span>;
 }
 
 export function Empty({ title, children, action }: { title: string; children?: React.ReactNode; action?: { href: string; label: string } }) {

@@ -35,6 +35,13 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
         db.from("product_reviews").select("id", { count: "exact", head: true }).eq("approved", false),
       ])
     : [{ count: 0 }, { count: 0 }];
+  // Tutor courses and products waiting in the review queue.
+  const [{ count: queuedCourses }, { count: queuedProducts }] = canAccess(admin.roles, "review")
+    ? await Promise.all([
+        db.from("courses").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        db.from("products").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ])
+    : [{ count: 0 }, { count: 0 }];
   const { count: comments } = canAccess(admin.roles, "blog")
     ? await db.from("blog_comments").select("id", { count: "exact", head: true }).eq("approved", false)
     : { count: 0 };
@@ -42,7 +49,7 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <Shell
       mode="admin"
-      badges={{ chats: chats ?? 0, applications: applications ?? 0, comments: comments ?? 0, reviews: reviews ?? 0, products: products ?? 0, productReviews: productReviews ?? 0 }}
+      badges={{ chats: chats ?? 0, applications: applications ?? 0, comments: comments ?? 0, reviews: reviews ?? 0, products: products ?? 0, productReviews: productReviews ?? 0, queue: (queuedCourses ?? 0) + (queuedProducts ?? 0) }}
       user={{ id: admin.id, name: admin.name, email: admin.email, roles: admin.roles, avatarUrl: admin.avatarUrl }}
     >
       {children}

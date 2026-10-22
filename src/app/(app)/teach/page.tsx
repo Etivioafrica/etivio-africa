@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { COURSE_STATUS_LABEL } from "@/lib/course-status";
 import { BookOpen, Globe, Layers, Plus, Presentation, Users } from "lucide-react";
 import { Empty, PageHead, Progress, Stat, Status } from "@/components/dash/ui";
 import { getCurrentUser } from "@/lib/auth";
@@ -67,7 +68,7 @@ export default async function TeachDashboard() {
                       </td>
                       <td>{c.studentCount}</td>
                       <td>
-                        <Status value={c.status} />
+                        <Status value={c.status} label={COURSE_STATUS_LABEL[c.status]} />
                       </td>
                     </tr>
                   ))}

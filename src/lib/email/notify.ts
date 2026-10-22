@@ -5,7 +5,7 @@ import { formatPrice } from "@/lib/format";
 import { everyone, recipient } from "./recipients";
 import { sendBatch, sendEmail, sentRecently, siteUrl, type Mail } from "./send";
 import { compose, fillStored, storedTemplate } from "./stored";
-import { announcementEmail, applicationEmail, productApprovedEmail, productChangesEmail, productSubmittedEmail, receiptEmail, guestAccessEmail, checkoutReminderEmail, certificateEmail, enrolledEmail, reviewReplyEmail, supportReplyEmail, testEmail, welcomeEmail } from "./templates";
+import { announcementEmail, applicationEmail, courseApprovedEmail, courseChangesEmail, courseSubmittedEmail, productApprovedEmail, productChangesEmail, productSubmittedEmail, receiptEmail, guestAccessEmail, checkoutReminderEmail, certificateEmail, enrolledEmail, reviewReplyEmail, supportReplyEmail, testEmail, welcomeEmail } from "./templates";
 
 // Every email Etivio sends from the app. Callers run these inside after() so a slow mail API never delays a page.
 // Account emails (welcome, enrolment, certificates, application decisions) always send; the rest follow the
@@ -203,16 +203,55 @@ export async function emailProductDecision(productId: string, approved: boolean)
 // Tells every super admin a tutor's product is waiting for review.
 export async function emailProductSubmitted(productId: string) {
   const db = createAdminClient();
-  const [{ data: p }, { data: admins }] = await Promise.all([
+  const [{ data: p }, admins] = await Promise.all([
     db.from("products").select("title, kind, creator:profiles!products_creator_id_fkey(full_name)").eq("id", productId).maybeSingle(),
-    db.from("user_roles").select("user_id").eq("role", "super_admin"),
+    reviewerIds(),
   ]);
   if (!p) return;
-  const vars = { product: p.title, creator: p.creator?.full_name || "A tutor", kind: KIND_LABELS[p.kind] ?? "Product", review_url: `${siteUrl()}/admin/marketplace/${productId}` };
+  const vars = { product: p.title, creator: p.creator?.full_name || "A tutor", kind: KIND_LABELS[p.kind] ?? "Product", review_url: `${siteUrl()}/admin/review/products/${productId}` };
   const email = await compose("product_submitted", vars, () => productSubmittedEmail({ product: vars.product, creator: vars.creator, kind: vars.kind, url: vars.review_url }));
-  for (const a of admins ?? []) {
-    const r = await recipient(a.user_id);
+  for (const id of admins) {
+    const r = await recipient(id);
     if (r) await sendEmail({ to: r.email, userId: r.userId, kind: "product_submitted", ref: productId, ...email });
+  }
+}
+
+// Everyone who can work the review queue: reviewers and super admins.
+async function reviewerIds() {
+  const { data } = await createAdminClient().from("user_roles").select("user_id").in("role", ["reviewer", "super_admin"]);
+  return [...new Set((data ?? []).map((r) => r.user_id))];
+}
+
+// Tells the tutor their course was approved (now live) or needs changes (with the reviewer's note).
+export async function emailCourseDecision(courseId: string, approved: boolean) {
+  const { data: c } = await createAdminClient().from("courses").select("instructor_id, title, slug, review_note").eq("id", courseId).maybeSingle();
+  if (!c) return;
+  const r = await recipient(c.instructor_id);
+  if (!r) return;
+  const courseUrl = `${siteUrl()}/courses/${c.slug}`;
+  const editUrl = `${siteUrl()}/teach/courses/${courseId}`;
+  const email = approved
+    ? await compose("course_approved", { name: r.name, course: c.title, course_url: courseUrl }, () => courseApprovedEmail({ name: r.name, course: c.title, url: courseUrl }))
+    : await compose("course_rejected", { name: r.name, course: c.title, note: c.review_note ?? "", edit_url: editUrl }, () =>
+        courseChangesEmail({ name: r.name, course: c.title, note: c.review_note ?? "", url: editUrl }),
+      );
+  await sendEmail({ to: r.email, userId: r.userId, kind: approved ? "course_approved" : "course_rejected", ref: courseId, ...email });
+}
+
+// Tells the review team a tutor's course is waiting.
+export async function emailCourseSubmitted(courseId: string) {
+  const db = createAdminClient();
+  const [{ data: c }, ids] = await Promise.all([
+    db.from("courses").select("title, instructor_id, instructor:profiles!courses_instructor_id_fkey(full_name)").eq("id", courseId).maybeSingle(),
+    reviewerIds(),
+  ]);
+  if (!c) return;
+  const vars = { course: c.title, tutor: c.instructor?.full_name || "A tutor", review_url: `${siteUrl()}/admin/review/courses/${courseId}` };
+  const email = await compose("course_submitted", vars, () => courseSubmittedEmail({ course: vars.course, tutor: vars.tutor, url: vars.review_url }));
+  for (const id of ids) {
+    if (id === c.instructor_id) continue;
+    const r = await recipient(id);
+    if (r) await sendEmail({ to: r.email, userId: r.userId, kind: "course_submitted", ref: courseId, ...email });
   }
 }
 

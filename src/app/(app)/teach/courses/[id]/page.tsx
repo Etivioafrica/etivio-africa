@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { TOPICS } from "@/lib/learner-prefs";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Eye, FileText, Pencil, PlayCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, Clock, Eye, FileText, Pencil, PlayCircle, Trash2 } from "lucide-react";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Status } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { getCourseForEditing } from "@/lib/data/teach";
@@ -17,6 +18,13 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
   if (!data) notFound();
   const { course, modules, lessonCount, studentCount } = data;
   const isPublished = course.status === "published";
+  const inReview = course.status === "pending";
+  // First publish goes through review, unless Etivio marked this tutor as trusted. Read with the service role because
+  // trusted_tutor isn't exposed to clients.
+  const { data: me } = await createAdminClient().from("profiles").select("trusted_tutor").eq("id", course.instructor_id).maybeSingle();
+  const direct = !!course.published_at || !!me?.trusted_tutor;
+  const next = isPublished || inReview ? "draft" : direct ? "published" : "pending";
+  const label = isPublished ? "Unpublish" : inReview ? "Withdraw from review" : direct ? "Publish" : course.status === "rejected" ? "Resubmit for review" : "Submit for review";
 
   return (
     <div className="et-page">
@@ -40,18 +48,37 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
           </Link>
           <form action={setCourseStatus}>
             <input type="hidden" name="id" value={course.id} />
-            <input type="hidden" name="status" value={isPublished ? "draft" : "published"} />
+            <input type="hidden" name="status" value={next} />
             <button
               type="submit"
-              className={`et-btn ${isPublished ? "et-btn-ghost" : "et-btn-primary"}`}
-              disabled={!isPublished && lessonCount === 0}
-              data-tip={!isPublished && lessonCount === 0 ? "Add at least one lesson first" : undefined}
+              className={`et-btn ${isPublished || inReview ? "et-btn-ghost" : "et-btn-primary"}`}
+              disabled={next !== "draft" && lessonCount === 0}
+              data-tip={next !== "draft" && lessonCount === 0 ? "Add at least one lesson first" : undefined}
             >
-              {isPublished ? "Unpublish" : "Publish"}
+              {label}
             </button>
           </form>
         </div>
       </div>
+
+      {inReview && (
+        <p className="et-rv-done">
+          <Clock size={15} />
+          Your course is with the Etivio team for review. You&apos;ll get an email when it&apos;s approved or if anything needs changing. You can keep editing meanwhile.
+        </p>
+      )}
+      {course.status === "rejected" && (
+        <div className="et-rv-done" style={{ display: "grid", gap: 4 }}>
+          <b style={{ color: "var(--a-fg)" }}>The Etivio team asked for a few changes</b>
+          {course.review_note && <span>{course.review_note}</span>}
+          <span>Make the changes below, then press Resubmit for review.</span>
+        </div>
+      )}
+      {!direct && course.status === "draft" && lessonCount > 0 && (
+        <p className="et-muted" style={{ fontSize: 12.5 }}>
+          New courses are checked by the Etivio team before they go live. After approval you can edit and republish freely.
+        </p>
+      )}
 
       <div className="et-grid-main" style={{ gridTemplateColumns: "minmax(0,1fr) 400px" }}>
         <section className="et-card">

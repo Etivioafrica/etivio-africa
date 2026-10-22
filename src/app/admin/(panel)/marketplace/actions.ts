@@ -18,7 +18,8 @@ export async function adminSaveProduct(input: ProductInput): Promise<Result> {
 
 // Approve, request changes on, archive, or restore a product.
 export async function setProductStatus(id: string, action: "approve" | "reject" | "archive" | "restore", note = ""): Promise<Result> {
-  const { admin, db } = await requireAdmin("marketplace");
+  // Reviewers can approve or send back; archiving and restoring stay with marketplace admins.
+  const { admin, db } = await requireAdmin(action === "approve" || action === "reject" ? ["marketplace", "review"] : "marketplace");
   const { data: p } = await db.from("products").select("status, published_at, creator_id").eq("id", id).maybeSingle();
   if (!p) return { error: "That product no longer exists." };
   if (action === "reject" && !note.trim()) return { error: "Tell the creator what to change." };

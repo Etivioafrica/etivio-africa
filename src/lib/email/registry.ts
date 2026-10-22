@@ -303,6 +303,58 @@ export const TEMPLATES: TemplateDef[] = [
     },
   },
   {
+    key: "course_approved",
+    label: "Course approved",
+    group: "app",
+    when: "A reviewer approves a tutor's course",
+    subject: "Your course is live: {{course}}",
+    placeholders: [name, P("course", "Course title", "Brand Design Basics"), P("course_url", "Course page link", `${SITE()}/courses/brand-design-basics`)],
+    starter: {
+      banner: "application_approved",
+      parts: [
+        { type: "heading", text: "Your course is live!" },
+        { type: "text", html: "<p><strong>Hi {{name}},</strong></p><p>Good news: the Etivio team reviewed {{course}} and it's now live. Share the link with your audience to get your first students.</p>" },
+        { type: "button", label: "View your course", href: "{{course_url}}" },
+      ],
+      footer: "You're getting this because you submitted a course for review on Etivio.",
+    },
+  },
+  {
+    key: "course_rejected",
+    label: "Course needs changes",
+    group: "app",
+    when: "A reviewer requests changes on a tutor's course",
+    subject: "Changes requested: {{course}}",
+    placeholders: [name, P("course", "Course title", "Brand Design Basics"), P("note", "What to change", "Please add a cover image and a description."), P("edit_url", "Edit link", `${SITE()}/teach/courses`)],
+    starter: {
+      banner: "application_rejected",
+      parts: [
+        { type: "heading", text: "A few changes needed" },
+        { type: "text", html: "<p><strong>Hi {{name}},</strong></p><p>Thanks for submitting {{course}}. Before it goes live, the Etivio team asked for a few changes:</p>" },
+        { type: "box", html: "<p>{{note}}</p>" },
+        { type: "button", label: "Edit your course", href: "{{edit_url}}" },
+      ],
+      footer: "You're getting this because you submitted a course for review on Etivio.",
+    },
+  },
+  {
+    key: "course_submitted",
+    label: "Course to review (reviewers)",
+    group: "app",
+    when: "A tutor submits a course for review",
+    subject: "New course to review: {{course}}",
+    placeholders: [P("course", "Course title", "Brand Design Basics"), P("tutor", "Tutor's name", "Ada Okafor"), P("review_url", "Review link", `${SITE()}/admin/review`)],
+    starter: {
+      banner: "product_review",
+      parts: [
+        { type: "heading", text: "A course is waiting for review" },
+        { type: "text", html: "<p>{{tutor}} submitted a course for review: <strong>{{course}}</strong>. Approve it to make it live, or request changes with a note.</p>" },
+        { type: "button", label: "Review it", href: "{{review_url}}" },
+      ],
+      footer: "You're getting this because you review courses on Etivio.",
+    },
+  },
+  {
     key: "test",
     label: "Test email",
     group: "app",
