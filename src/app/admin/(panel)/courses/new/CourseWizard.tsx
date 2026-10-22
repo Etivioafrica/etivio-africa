@@ -22,6 +22,7 @@ export type WizardInitial = {
   level: Level;
   coverUrl: string;
   priceNaira: number;
+  listed: boolean;
   modules: { id: string; title: string; lessons: { id: string; title: string; videoUrl: string; hostedVideo: boolean; content: string; files: LessonFile[] }[] }[];
 };
 const STEPS = ["Basics", "Curriculum", "Pricing", "Review"] as const;
@@ -60,6 +61,7 @@ export function CourseWizard({
   const [level, setLevel] = useState<Level>(initial?.level ?? "beginner");
   const [coverUrl, setCoverUrl] = useState(initial?.coverUrl ?? "");
   const [paid, setPaid] = useState((initial?.priceNaira ?? 0) > 0);
+  const [listed, setListed] = useState(initial?.listed ?? true);
   const [price, setPrice] = useState(initial?.priceNaira ? String(initial.priceNaira) : "");
   const [modules, setModules] = useState<Mod[]>(() =>
     initial?.modules.length
@@ -124,7 +126,7 @@ export function CourseWizard({
       return copy;
     });
 
-  const fields = () => ({ title, summary, description, skills, instructorId, categoryId, level, coverUrl, priceNaira: paid ? String(priceNum) : "0", modules: lessonPayload() });
+  const fields = () => ({ title, summary, description, skills, instructorId, categoryId, level, coverUrl, priceNaira: paid ? String(priceNum) : "0", listed, modules: lessonPayload() });
   // What the course looks like, without row ids, so merging ids after a save doesn't count as a change.
   const snapshot = JSON.stringify({
     ...fields(),
@@ -217,6 +219,7 @@ export function CourseWizard({
         level,
         coverUrl,
         priceNaira: paid ? String(priceNum) : "0",
+        listed,
         modules: lessonPayload(),
         publish,
       });
@@ -436,6 +439,13 @@ export function CourseWizard({
                 <small>Minimum ₦500. The tutor&apos;s share is set in Settings › Platform.</small>
               </div>
             )}
+            <label className="et-wiz-listed">
+              <span>
+                <b>Show on the marketplace</b>
+                <small>List this course on Explore once it&apos;s published. When off, it&apos;s still reachable from its own page and Browse.</small>
+              </span>
+              <input type="checkbox" role="switch" className="et-toggle" checked={listed} onChange={(e) => setListed(e.target.checked)} />
+            </label>
           </div>
         )}
 

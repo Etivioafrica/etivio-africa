@@ -5,6 +5,7 @@ import { Check, EyeOff, MessageSquareReply, Star, Trash2 } from "lucide-react";
 import { useToast } from "@/components/dash/useToast";
 import { fmtShort } from "@/lib/blog";
 import { approveReview, deleteReview, replyToReview } from "../actions";
+import { approveProductReview, deleteProductReview, replyToProductReview } from "../../marketplace/actions";
 import { Avatar } from "@/components/dash/Avatar";
 
 export type Review = {
@@ -33,7 +34,14 @@ export function Stars({ value, size = 13 }: { value: number; size?: number }) {
   );
 }
 
-export function ReviewsClient({ reviews, initialFilter = "all", hideCourse }: { reviews: Review[]; initialFilter?: Filter; hideCourse?: boolean }) {
+const ACTIONS = {
+  course: { approve: approveReview, reply: replyToReview, remove: deleteReview, href: (id: string) => `/admin/courses/${id}?tab=reviews` },
+  product: { approve: approveProductReview, reply: replyToProductReview, remove: deleteProductReview, href: (id: string) => `/admin/marketplace/${id}` },
+};
+
+// Course reviews by default. With kind="product", `course_id` and `course` hold the product's id and title.
+export function ReviewsClient({ reviews, initialFilter = "all", hideCourse, kind = "course" }: { reviews: Review[]; initialFilter?: Filter; hideCourse?: boolean; kind?: "course" | "product" }) {
+  const act = ACTIONS[kind];
   const [toast, show] = useToast();
   const [pending, start] = useTransition();
   const [filter, setFilter] = useState<Filter>(initialFilter);
@@ -97,7 +105,7 @@ export function ReviewsClient({ reviews, initialFilter = "all", hideCourse }: { 
           {shown.map((r) => (
             <article key={r.id} className="et-card">
               <header>
-                                <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} className="et-avatar" />
+                <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} className="et-avatar" />
                 <div>
                   <p>
                     <Link href={`/admin/users/${r.user_id}`}>
@@ -114,18 +122,18 @@ export function ReviewsClient({ reviews, initialFilter = "all", hideCourse }: { 
                     {!hideCourse && (
                       <>
                         {" · "}
-                        <Link href={`/admin/courses/${r.course_id}?tab=reviews`}>{r.course}</Link>
+                        <Link href={act.href(r.course_id)}>{r.course}</Link>
                       </>
                     )}
                   </small>
                 </div>
                 <span className="et-inline">
                   {r.approved ? (
-                    <button type="button" className="et-btn et-btn-ghost et-btn-sm" disabled={pending} onClick={() => run(() => approveReview(r.id, false))}>
+                    <button type="button" className="et-btn et-btn-ghost et-btn-sm" disabled={pending} onClick={() => run(() => act.approve(r.id, false))}>
                       <EyeOff size={13} /> Hide
                     </button>
                   ) : (
-                    <button type="button" className="et-btn et-btn-success et-btn-sm" disabled={pending} onClick={() => run(() => approveReview(r.id, true))}>
+                    <button type="button" className="et-btn et-btn-success et-btn-sm" disabled={pending} onClick={() => run(() => act.approve(r.id, true))}>
                       <Check size={13} /> Approve
                     </button>
                   )}
@@ -139,7 +147,7 @@ export function ReviewsClient({ reviews, initialFilter = "all", hideCourse }: { 
                   >
                     <MessageSquareReply size={13} /> {r.admin_reply ? "Edit reply" : "Reply"}
                   </button>
-                  <button type="button" className="et-icon-btn is-danger" disabled={pending} aria-label="Delete review" onClick={() => window.confirm("Delete this review for good?") && run(() => deleteReview(r.id))}>
+                  <button type="button" className="et-icon-btn is-danger" disabled={pending} aria-label="Delete review" onClick={() => window.confirm("Delete this review for good?") && run(() => act.remove(r.id))}>
                     <Trash2 size={14} />
                   </button>
                 </span>
@@ -155,11 +163,11 @@ export function ReviewsClient({ reviews, initialFilter = "all", hideCourse }: { 
                 <div className="et-comment-form">
                   <textarea className="et-input" rows={3} value={reply} autoFocus maxLength={2000} placeholder="Reply publicly. It shows under the review, signed by Etivio." onChange={(e) => setReply(e.target.value)} />
                   <div className="et-inline">
-                    <button type="button" className="et-btn et-btn-primary et-btn-sm" disabled={pending || !reply.trim()} onClick={() => run(() => replyToReview(r.id, reply), () => setReplying(null))}>
+                    <button type="button" className="et-btn et-btn-primary et-btn-sm" disabled={pending || !reply.trim()} onClick={() => run(() => act.reply(r.id, reply), () => setReplying(null))}>
                       {pending ? "Saving…" : "Post reply"}
                     </button>
                     {r.admin_reply && (
-                      <button type="button" className="et-btn et-btn-ghost et-btn-sm" disabled={pending} onClick={() => run(() => replyToReview(r.id, ""), () => setReplying(null))}>
+                      <button type="button" className="et-btn et-btn-ghost et-btn-sm" disabled={pending} onClick={() => run(() => act.reply(r.id, ""), () => setReplying(null))}>
                         Remove reply
                       </button>
                     )}

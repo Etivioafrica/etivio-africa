@@ -63,14 +63,15 @@ export function supportReplyEmail({ name, subject, body }: { name: string; subje
   });
 }
 
-export function reviewReplyEmail({ name, course, courseId, reply }: { name: string; course: string; courseId: string; reply: string }) {
+// Course reviews by default; product reviews pass their own `url` and `cta`.
+export function reviewReplyEmail({ name, course, courseId, reply, url, cta }: { name: string; course: string; courseId: string; reply: string; url?: string; cta?: string }) {
   return build(`Reply to your review of ${course}`, {
     preheader: `Etivio replied to your review of ${course}.`,
     banner: "review_reply",
     heading: "We replied to your review",
     greeting: name,
-    blocks: [{ p: `Thank you for reviewing ${course}. Feedback like yours helps us make every course better. Here's our reply:` }, { quote: reply }],
-    cta: { label: "Back to the course", url: `${siteUrl()}/learn/course/${courseId}` },
+    blocks: [{ p: `Thank you for reviewing ${course}. Feedback like yours helps us make Etivio better. Here's our reply:` }, { quote: reply }],
+    cta: { label: cta ?? "Back to the course", url: url ?? `${siteUrl()}/learn/course/${courseId}` },
     reason: "You're getting this because you have course updates turned on.",
     manageLink: true,
   });

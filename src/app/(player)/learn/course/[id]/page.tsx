@@ -11,13 +11,14 @@ import { toHtml } from "@/lib/blog";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { createClient } from "@/lib/supabase/server";
 import { setLessonDone } from "@/app/(app)/learn/actions";
+import { reportLessonDuration } from "@/app/(app)/learn/course-actions";
 import { LessonNotes } from "./LessonNotes";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { Status } from "@/components/dash/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { askFromLesson } from "@/app/(app)/support/actions";
 import { formatAnnouncementDate, liveDate, stripHtml } from "@/lib/announcements";
-import { ReviewCard } from "./ReviewCard";
+import { ReviewCard } from "@/components/learn/ReviewCard";
 
 export const metadata = { title: "Course" };
 
@@ -287,7 +288,9 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
       next={next}
       canRate={!data.isOwner && review.canReview && !review.mine}
       stage={
-        video ? <LessonVideo source={video} title={current.title} next={next} /> : undefined
+        video ? (
+          <LessonVideo source={video} title={current.title} next={next} onDuration={current.durationSeconds ? undefined : reportLessonDuration.bind(null, id, current.id)} />
+        ) : undefined
       }
       bar={
         <div className="et-pl-bar">

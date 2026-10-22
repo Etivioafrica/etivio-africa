@@ -53,6 +53,7 @@ async function Content({ params }: Props) {
         level: course.level,
         coverUrl: course.cover_url ?? "",
         priceNaira: course.price_minor / 100,
+        listed: course.marketplace_listed,
         modules: (modules ?? []).map((m) => ({
           id: m.id,
           title: m.title,

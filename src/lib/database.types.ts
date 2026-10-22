@@ -745,6 +745,7 @@ export type Database = {
           id: string
           instructor_id: string
           level: Database["public"]["Enums"]["course_level"]
+          marketplace_listed: boolean
           price_minor: number
           published_at: string | null
           skills: string[]
@@ -765,6 +766,7 @@ export type Database = {
           id?: string
           instructor_id: string
           level?: Database["public"]["Enums"]["course_level"]
+          marketplace_listed?: boolean
           price_minor?: number
           published_at?: string | null
           skills?: string[]
@@ -785,6 +787,7 @@ export type Database = {
           id?: string
           instructor_id?: string
           level?: Database["public"]["Enums"]["course_level"]
+          marketplace_listed?: boolean
           price_minor?: number
           published_at?: string | null
           skills?: string[]
@@ -2324,11 +2327,11 @@ export type Database = {
     }
     Functions: {
       admin_active_users: {
-        Args: { p_days?: number }
+        Args: { p_days?: number; p_end?: string }
         Returns: number
       }
       admin_daily_activity: {
-        Args: { p_days?: number }
+        Args: { p_days?: number; p_end?: string }
         Returns: {
           day: string
           signups: number
@@ -2378,7 +2381,7 @@ export type Database = {
         }[]
       }
       admin_top_courses: {
-        Args: { p_days?: number; p_limit?: number }
+        Args: { p_days?: number; p_limit?: number; p_end?: string }
         Returns: {
           course_id: string
           title: string
@@ -2388,7 +2391,7 @@ export type Database = {
         }[]
       }
       admin_top_pages: {
-        Args: { p_days?: number; p_limit?: number }
+        Args: { p_days?: number; p_limit?: number; p_end?: string }
         Returns: {
           path: string
           views: number
@@ -2396,7 +2399,7 @@ export type Database = {
         }[]
       }
       admin_traffic_report: {
-        Args: { p_days?: number }
+        Args: { p_days?: number; p_end?: string }
         Returns: Json
       }
       blog_post_metrics: {

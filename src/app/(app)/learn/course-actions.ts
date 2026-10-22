@@ -66,3 +66,13 @@ export async function submitReview(courseId: string, rating: number, body: strin
   refresh();
   return { ok: "Thanks! Your review shows on the course once the team has checked it." };
 }
+
+// YouTube lessons usually have no length typed in. The player reports it the first time someone watches, so
+// "time left" and course totals can use real hours. Only fills a missing length, never overwrites one.
+export async function reportLessonDuration(courseId: string, lessonId: string, seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 5 || seconds > 12 * 3600) return;
+  const player = await getCoursePlayer(courseId);
+  const lesson = player?.modules.flatMap((m) => m.lessons).find((l) => l.id === lessonId);
+  if (!lesson || lesson.durationSeconds || !/youtu\.?be/i.test(lesson.videoUrl ?? "")) return;
+  await createAdminClient().from("lessons").update({ duration_seconds: Math.round(seconds) }).eq("id", lessonId).is("duration_seconds", null);
+}

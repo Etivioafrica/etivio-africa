@@ -65,8 +65,9 @@ const clock = (s: number) => {
   return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 };
 
-export function LessonVideo({ source, title, next }: { source: VideoSource; title: string; next?: { href: string; label: string } | null }) {
-  if (source.provider === "youtube") return <YouTubeVideo key={source.id} id={source.id} title={title} next={next} />;
+// `onDuration` is called once with the video's length, for lessons that don't have one saved yet.
+export function LessonVideo({ source, title, next, onDuration }: { source: VideoSource; title: string; next?: { href: string; label: string } | null; onDuration?: (seconds: number) => void }) {
+  if (source.provider === "youtube") return <YouTubeVideo key={source.id} id={source.id} title={title} next={next} onDuration={onDuration} />;
   return (
     <div className="et-pl-video">
       {source.provider === "vimeo" ? (
@@ -83,7 +84,7 @@ export function LessonVideo({ source, title, next }: { source: VideoSource; titl
   );
 }
 
-function YouTubeVideo({ id, title, next }: { id: string; title: string; next?: { href: string; label: string } | null }) {
+function YouTubeVideo({ id, title, next, onDuration }: { id: string; title: string; next?: { href: string; label: string } | null; onDuration?: (seconds: number) => void }) {
   const wrap = useRef<HTMLDivElement>(null);
   const mount = useRef<HTMLDivElement>(null);
   const player = useRef<YTPlayer | null>(null);
@@ -98,6 +99,13 @@ function YouTubeVideo({ id, title, next }: { id: string; title: string; next?: {
   const [full, setFull] = useState(false);
   const [chrome, setChrome] = useState(true);
   const [speedOpen, setSpeedOpen] = useState(false);
+  const reported = useRef(false);
+
+  useEffect(() => {
+    if (!onDuration || reported.current || duration <= 0) return;
+    reported.current = true;
+    onDuration(duration);
+  }, [duration, onDuration]);
 
   useEffect(() => {
     let cancelled = false;

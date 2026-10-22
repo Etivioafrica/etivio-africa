@@ -66,6 +66,19 @@ export async function emailReviewReply(reviewId: string) {
   await sendEmail({ to: r.email, userId: r.userId, kind: "review_reply", ref: reviewId, ...email });
 }
 
+export async function emailProductReviewReply(reviewId: string) {
+  const { data: rv } = await createAdminClient().from("product_reviews").select("user_id, product_id, admin_reply, product:products(title, slug)").eq("id", reviewId).maybeSingle();
+  if (!rv?.admin_reply) return;
+  const r = await recipient(rv.user_id, "course_updates");
+  if (!r) return;
+  const product = rv.product?.title ?? "your purchase";
+  const url = `${siteUrl()}/products/${rv.product?.slug ?? ""}`;
+  const email = await compose("review_reply", { name: r.name, course: product, reply: rv.admin_reply, course_url: url }, () =>
+    reviewReplyEmail({ name: r.name, course: product, courseId: rv.product_id, reply: rv.admin_reply!, url, cta: "View the product" }),
+  );
+  await sendEmail({ to: r.email, userId: r.userId, kind: "review_reply", ref: reviewId, ...email });
+}
+
 export async function emailApplicationDecision(userId: string, role: string, approved: boolean, note: string | null) {
   const r = await recipient(userId);
   if (!r) return;

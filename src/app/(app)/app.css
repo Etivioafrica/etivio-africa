@@ -1700,6 +1700,10 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 .et-ud-badge.is-green{background:#c8f0d6;color:#14532d}
 .et-ud-by{margin:0;font-size:14px;color:#e2e8f0}
 .et-ud-by a{color:#a5c0ff}
+.et-ud-rating{margin:0;display:flex;align-items:center;gap:6px;font-size:14px;color:#e2e8f0}
+.et-ud-rating b{color:#fbbf24}
+.et-ud-rating .et-ud-stars{color:#fbbf24}
+.et-ud-rating a{color:#a5c0ff}
 .et-ud-meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0;font-size:13.5px;color:#cbd5e1}
 .et-ud-meta>span{display:inline-flex;align-items:center;gap:7px}
 .et-ud-side-slot{position:relative}
@@ -2340,3 +2344,36 @@ button.et-pl-box:hover{border-color:var(--accent)}
 /* Installed app (full screen under the iPhone status bar): keep top bars clear of the notch. Zero in browsers. */
 .et-header,.et-sidebar-top,.et-pl-top{height:calc(60px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}
 .et-public-top{padding-top:env(safe-area-inset-top)}
+.et-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.et-kpi-mid{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.et-kpi-delta{display:inline-flex;align-items:center;gap:2px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;color:#fff;background:#52525b}
+.et-kpi-delta.is-up{background:#16a34a}
+.et-kpi-delta.is-down{background:#dc2626}
+@media(max-width:520px){.et-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+.et-range{position:relative}
+.et-range summary{list-style:none;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--a-border);background:var(--a-panel);color:var(--a-fg);font-size:13px;font-weight:600;cursor:pointer;user-select:none;transition:border-color .15s}
+.et-range summary::-webkit-details-marker{display:none}
+.et-range summary:hover{border-color:var(--a-faint)}
+.et-range summary svg:first-child{color:var(--a-muted)}
+.et-range-chev{color:var(--a-muted);transition:transform .15s}
+.et-range[open] .et-range-chev{transform:rotate(180deg)}
+.et-range-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:180px;padding:5px;border-radius:12px;border:1px solid var(--a-border);background:var(--a-panel);box-shadow:0 12px 32px rgba(0,0,0,.12)}
+.et-range-menu a{display:flex;align-items:center;justify-content:space-between;height:34px;padding:0 10px;border-radius:8px;font-size:13px;color:var(--a-muted)}
+.et-range-menu a:hover{background:var(--a-hover);color:var(--a-fg)}
+.et-range-menu a.is-on{color:var(--a-fg);font-weight:600}
+.et-range-menu a svg{color:var(--accent)}
+.et-range-custom{margin-top:5px;padding:10px 10px 6px;border-top:1px solid var(--a-border);display:grid;gap:8px}
+.et-range-custom p{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--a-muted)}
+.et-range-custom p.is-on{color:var(--a-fg);font-weight:600}
+.et-range-custom p svg{color:var(--accent)}
+.et-range-custom label{display:grid;gap:4px;font-size:11.5px;font-weight:600;color:var(--a-faint)}
+.et-range-custom input{height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--a-border);background:var(--a-input);color:var(--a-fg);font:inherit;font-size:13px;font-weight:500;color-scheme:light dark}
+.et-range-custom .et-btn{margin-top:2px;height:34px;width:100%}
+.et-range-menu{min-width:230px}
+.et-statcard{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;padding:16px 20px}
+.et-statcard p{font-size:12px;font-weight:500;color:var(--a-muted)}
+.et-statcard strong{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.25;font-variant-numeric:tabular-nums}
+.et-wiz-listed{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:640px;margin-top:18px;padding:14px 16px;border:1px solid var(--a-border);border-radius:12px;cursor:pointer}
+.et-wiz-listed span{display:grid;gap:3px}
+.et-wiz-listed b{font-size:13.5px;font-weight:600;color:var(--a-fg)}
+.et-wiz-listed small{font-size:12px;color:var(--a-muted)}

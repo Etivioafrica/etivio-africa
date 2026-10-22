@@ -2,16 +2,17 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookOpen, CalendarDays, ChevronRight, Download, FileText, Heart, Infinity as Lifetime, Layers, LayoutTemplate, Package, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronRight, Download, FileText, Heart, Infinity as Lifetime, Layers, LayoutTemplate, Package, RefreshCw, ShieldCheck, Star, Users } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { ShareButton } from "@/components/dash/ShareButton";
 import { getPublicProduct, itemMeta, type PublicProduct } from "@/lib/data/marketplace";
 import { ITEM_TYPES, itemHref, type ItemType } from "@/lib/marketplace";
-import { formatBytes, formatPrice } from "@/lib/format";
+import { formatBytes, formatDate, formatPrice } from "@/lib/format";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { claimFreeProduct, toggleSavedProduct } from "../actions";
 import { PaymentNotice } from "@/components/market/PaymentNotice";
 import { AddToCart } from "@/components/market/AddToCart";
+import { ReviewCard } from "@/components/learn/ReviewCard";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -39,6 +40,17 @@ export default function ProductPage({ params }: Props) {
 
 const ICONS: Record<ItemType, typeof BookOpen> = { course: BookOpen, template: LayoutTemplate, ebook: FileText, resource_pack: Package, bundle: Layers };
 const monthYear = (d: string) => new Date(d).toLocaleDateString("en-GB", { month: "numeric", year: "numeric" });
+const plural = (n: number, word: string) => `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
+
+function Stars({ value, size = 13 }: { value: number; size?: number }) {
+  return (
+    <span className="et-ud-stars" aria-label={`${value} out of 5`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star key={n} size={size} fill={n <= Math.round(value) ? "currentColor" : "none"} />
+      ))}
+    </span>
+  );
+}
 const ext = (name: string) => (name.includes(".") ? name.split(".").pop()!.toUpperCase().slice(0, 5) : "FILE");
 
 async function Product({ params }: Props) {
@@ -48,7 +60,7 @@ async function Product({ params }: Props) {
 }
 
 function ProductView({ data }: { data: PublicProduct }) {
-  const { product: p, creator, files, bundle, owners, owned, saved, signedIn } = data;
+  const { product: p, creator, files, bundle, owners, owned, saved, signedIn, rating, reviews, reviewCount, review } = data;
   const Icon = ICONS[p.kind];
   const free = p.priceMinor === 0;
   const path = `/products/${p.slug}`;
@@ -103,6 +115,13 @@ function ProductView({ data }: { data: PublicProduct }) {
               {p.featured && <span className="et-ud-badge is-amber">Featured</span>}
               {discount > 0 && <span className="et-ud-badge is-green">Save {discount}%</span>}
             </div>
+            {rating !== null && (
+              <p className="et-ud-rating">
+                <b>{rating.toFixed(1)}</b>
+                <Stars value={rating} />
+                <a href="#reviews">({plural(reviewCount, "rating")})</a>
+              </p>
+            )}
             <p className="et-ud-by">
               Created by <a href="#creator">{creator.name}</a>
             </p>
@@ -249,6 +268,38 @@ function ProductView({ data }: { data: PublicProduct }) {
                   </Link>
                 ))}
               </p>
+            </section>
+          )}
+
+          {review.canReview && <ReviewCard courseId={p.id} canReview mine={review.mine} kind="product" />}
+
+          {reviews.length > 0 && (
+            <section className="et-ud-section" id="reviews">
+              <h2 className="et-ud-rating-head">
+                <Star size={20} fill="currentColor" /> {rating?.toFixed(1)} product rating · {plural(reviewCount, "rating")}
+              </h2>
+              <div className="et-cd-reviews">
+                {reviews.map((r) => (
+                  <article key={r.id}>
+                    <div className="et-cd-review-head">
+                      <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} className="et-cd-avatar is-sm" />
+                      <div>
+                        <b>{r.author}</b>
+                        <span className="et-cd-stars">
+                          <Stars value={r.rating} size={12} />
+                          <small>{formatDate(r.at)}</small>
+                        </span>
+                      </div>
+                    </div>
+                    {r.body && <p>{r.body}</p>}
+                    {r.reply && (
+                      <p className="et-cd-reply">
+                        <b>Reply from Etivio:</b> {r.reply}
+                      </p>
+                    )}
+                  </article>
+                ))}
+              </div>
             </section>
           )}
 

@@ -1,13 +1,11 @@
-import Link from "next/link";
 import { Eye, LogIn, MousePointerClick, UserPlus, Users } from "lucide-react";
-import { PageHead, Stat } from "@/components/dash/ui";
+import { Kpi, change } from "@/components/dash/ui";
 import { BarChart } from "@/components/dash/BarChart";
 import { requireAdmin } from "@/lib/admin";
 import { dayLabel } from "@/lib/data/admin";
+import { TrackingNav, parseRange } from "../TrackingNav";
 
 export const metadata = { title: "Traffic" };
-
-const RANGES = [7, 30, 90] as const;
 
 type Row = { key: string; visits: number; visitors: number; bounces: number; signups: number };
 type Report = {
@@ -84,33 +82,34 @@ function Breakdown({ title, rows, label, empty, mono, signups = true, format = (
   );
 }
 
-export default async function Traffic({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
+export default async function Traffic({ searchParams }: { searchParams: Promise<{ days?: string; from?: string; to?: string }> }) {
   const { db } = await requireAdmin("tracking");
-  const daysParam = Number((await searchParams).days);
-  const days = (RANGES as readonly number[]).includes(daysParam) ? daysParam : 30;
+  const range = parseRange(await searchParams);
+  const { days, end } = range;
 
-  const { data } = await db.rpc("admin_traffic_report", { p_days: days });
+  // The doubled range gives the previous period's totals by subtraction (unique visitors don't add up, so they
+  // get no comparison).
+  const [{ data }, { data: doubled }] = await Promise.all([
+    db.rpc("admin_traffic_report", { p_days: days, p_end: end }),
+    db.rpc("admin_traffic_report", { p_days: days * 2, p_end: end }),
+  ]);
   const r = data as unknown as Report;
   const t = r.totals;
+  const d2 = (doubled as unknown as Report).totals;
+  const prev = { visits: d2.visits - t.visits, pages: d2.pages - t.pages, bounces: d2.bounces - t.bounces, signups: d2.signups - t.signups };
+  const rate = (n: number, d: number) => (d ? (n / d) * 100 : 0);
+  const compare = `vs previous ${days} days`;
 
   return (
     <div className="et-page">
-      <PageHead title="Traffic" sub={`Where visitors land and where they come from, last ${days} days. Sign-ups are credited to the person's first visit.`}>
-        <div className="et-tabs">
-          {RANGES.map((n) => (
-            <Link key={n} href={`/admin/tracking/traffic?days=${n}`} className={n === days ? "is-on" : ""}>
-              {n} days
-            </Link>
-          ))}
-        </div>
-      </PageHead>
+      <TrackingNav tab="traffic" range={range} sub={`Where visitors land and where they come from, ${range.phrase}. Sign-ups are credited to the first visit.`} />
 
-      <div className="et-stats" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))" }}>
-        <Stat label="Visitors" value={t.visitors.toLocaleString("en-NG")} icon={Users} />
-        <Stat label="Visits" value={t.visits.toLocaleString("en-NG")} icon={LogIn} />
-        <Stat label="Pages per visit" value={t.visits ? (t.pages / t.visits).toFixed(1) : "0"} icon={Eye} />
-        <Stat label="Bounce rate" value={pct(t.bounces, t.visits)} icon={MousePointerClick} />
-        <Stat label="Sign-ups from visits" value={`${t.signups} (${pct(t.signups, t.visitors)})`} icon={UserPlus} />
+      <div className="et-kpis">
+        <Kpi label="Visitors" value={t.visitors.toLocaleString("en-NG")} icon={Users} compare="unique browsers" />
+        <Kpi label="Visits" value={t.visits.toLocaleString("en-NG")} icon={LogIn} delta={change(t.visits, prev.visits)} compare={compare} />
+        <Kpi label="Pages per visit" value={t.visits ? (t.pages / t.visits).toFixed(1) : "0"} icon={Eye} delta={prev.visits ? change(t.pages / Math.max(1, t.visits), prev.pages / prev.visits) : null} compare={compare} />
+        <Kpi label="Bounce rate" value={pct(t.bounces, t.visits)} icon={MousePointerClick} delta={prev.visits && t.visits ? rate(t.bounces, t.visits) - rate(prev.bounces, prev.visits) : null} unit="pts" invert compare={compare} />
+        <Kpi label="Sign-ups from visits" value={t.signups} icon={UserPlus} delta={change(t.signups, prev.signups)} compare={`${pct(t.signups, t.visitors)} of visitors`} />
       </div>
 
       <section className="et-card">

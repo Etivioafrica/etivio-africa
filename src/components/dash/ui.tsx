@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, type LucideIcon } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, BookOpen, type LucideIcon } from "lucide-react";
 
 export function PageHead({ title, sub, children }: { title: string; sub?: string; children?: React.ReactNode }) {
   return (
@@ -13,26 +13,64 @@ export function PageHead({ title, sub, children }: { title: string; sub?: string
   );
 }
 
-export function Stat({ label, value, icon: Icon, href }: { label: string; value: number | string; icon: LucideIcon; href?: string }) {
+// One stat card: outlined icon, label, number and an optional hint line (the admin dashboard style, used everywhere).
+export function Stat({ label, value, icon: Icon, href, hint }: { label: string; value: React.ReactNode; icon: LucideIcon; href?: string; hint?: React.ReactNode }) {
   const body = (
     <>
-      <span className="et-stat-icon">
-        <Icon size={19} strokeWidth={1.8} />
+      <span className="et-statstrip-icon">
+        <Icon size={15} strokeWidth={1.9} />
       </span>
-      <div>
-        <p>{label}</p>
-        <strong>{value}</strong>
-      </div>
+      <p>{label}</p>
+      <strong>{value}</strong>
+      {hint && <small className="et-statstrip-hint">{hint}</small>}
     </>
   );
   return href ? (
-    <Link href={href} className="et-card et-stat">
+    <Link href={href} className="et-card et-statcard et-statstrip-link">
       {body}
     </Link>
   ) : (
-    <div className="et-card et-stat">{body}</div>
+    <div className="et-card et-statcard">{body}</div>
   );
 }
+
+// A Stat with its change against the previous period next to the number. `delta` is a percent change (or points,
+// with unit "pts"); `invert` is for numbers where going down is good, like bounce rate.
+export function Kpi({ label, value, icon, delta, unit = "%", invert, compare }: {
+  label: string;
+  value: number | string;
+  icon: LucideIcon;
+  delta?: number | null;
+  unit?: "%" | "pts";
+  invert?: boolean;
+  compare?: string;
+}) {
+  const shown = delta == null || !Number.isFinite(delta) ? null : Math.round(delta);
+  const tone = shown == null || shown === 0 ? "flat" : (shown > 0) !== Boolean(invert) ? "up" : "down";
+  return (
+    <Stat
+      label={label}
+      icon={icon}
+      value={
+        <span className="et-kpi-mid">
+          {value}
+          {shown != null && (
+            <span className={`et-kpi-delta is-${tone}`}>
+              {shown > 0 ? <ArrowUpRight size={12} strokeWidth={2.4} /> : shown < 0 ? <ArrowDownRight size={12} strokeWidth={2.4} /> : null}
+              {Math.abs(shown)}
+              {unit === "%" ? "%" : " pts"}
+            </span>
+          )}
+        </span>
+      }
+      // "vs previous period" only makes sense next to a badge; plain descriptions (no delta prop) always show.
+      hint={compare && (delta === undefined || shown != null) ? compare : undefined}
+    />
+  );
+}
+
+// Percent change from `prev` to `cur`; null when there's nothing to compare against.
+export const change = (cur: number, prev: number) => (prev > 0 ? ((cur - prev) / prev) * 100 : null);
 
 export function Cover({ url, level, small }: { url: string | null; level?: string; small?: boolean }) {
   return (

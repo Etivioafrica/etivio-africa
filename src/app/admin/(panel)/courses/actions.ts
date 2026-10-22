@@ -214,6 +214,8 @@ export type NewCourseInput = {
   level: Level;
   coverUrl: string;
   priceNaira: string;
+  // Shown on the marketplace (/explore). Defaults to on.
+  listed?: boolean;
   modules: ModuleDraft[];
   publish: boolean;
 };
@@ -365,6 +367,7 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
         cover_url: safeUrl(input.coverUrl),
         level: LEVELS.includes(input.level) ? input.level : "beginner",
         price_minor: nairaToMinor(input.priceNaira),
+        marketplace_listed: input.listed ?? true,
         ...(await categoryColumns(db, input.categoryId)),
         ...(input.publish ? { status: "published" as const, published_at: new Date().toISOString() } : {}),
       })
@@ -596,6 +599,7 @@ export async function updateCourseFull(courseId: string, input: EditCourseInput)
       cover_url: cover,
       level: LEVELS.includes(input.level) ? input.level : "beginner",
       price_minor: nairaToMinor(input.priceNaira),
+      ...(input.listed === undefined ? {} : { marketplace_listed: input.listed }),
       ...(await categoryColumns(db, input.categoryId)),
       ...(nextStatus !== before.status ? { status: nextStatus, ...(nextStatus === "published" ? { published_at: new Date().toISOString() } : { featured: false }) } : {}),
     })

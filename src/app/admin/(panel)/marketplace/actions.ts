@@ -1,7 +1,7 @@
 "use server";
 import { refresh } from "next/cache";
 import { after } from "next/server";
-import { emailProductDecision } from "@/lib/email/notify";
+import { emailProductDecision, emailProductReviewReply } from "@/lib/email/notify";
 import { audit, requireAdmin } from "@/lib/admin";
 import { saveProduct, type ProductInput } from "@/lib/data/products-admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
@@ -38,6 +38,16 @@ export async function setProductStatus(id: string, action: "approve" | "reject" 
   return { ok: { approve: "Approved and live.", reject: "Sent back to the creator.", archive: "Archived. Owners keep their downloads.", restore: "Moved back to drafts." }[action] };
 }
 
+// Show or hide a course on the marketplace (/explore). It stays published and reachable everywhere else.
+export async function setCourseListed(id: string, listed: boolean): Promise<Result> {
+  const { admin, db } = await requireAdmin("marketplace");
+  const { error } = await db.from("courses").update({ marketplace_listed: listed }).eq("id", id);
+  if (error) return { error: "Couldn't update that course. Try again." };
+  await audit(admin.id, listed ? "course.list" : "course.unlist", { type: "course", id });
+  refresh();
+  return { ok: listed ? "Showing on the marketplace." : "Hidden from the marketplace." };
+}
+
 // Only products nobody owns can be deleted; owned ones are archived so buyers keep access.
 export async function deleteProduct(id: string): Promise<Result> {
   const { admin, db } = await requireAdmin("marketplace");
@@ -66,4 +76,37 @@ export async function recheckPayment(reference: string): Promise<Result> {
   await audit(admin.id, "payment.recheck", { type: "payment", id: reference }, { result: res.ok ? "paid" : (res.reason ?? "not paid") });
   refresh();
   return res.ok ? { ok: "Paid. Access has been granted." } : { error: `Not paid: ${res.reason === "abandoned" ? "the buyer didn't finish checkout" : (res.reason ?? "unknown")}.` };
+}
+
+// Product reviews -------------------------------------------------------------------------
+
+export async function approveProductReview(id: string, approved: boolean): Promise<Result> {
+  const { admin, db } = await requireAdmin("marketplace");
+  const { error } = await db.from("product_reviews").update({ approved }).eq("id", id);
+  if (error) return { error: "Could not update the review." };
+  await audit(admin.id, approved ? "review.approve" : "review.hide", { type: "product_review", id });
+  refresh();
+  return { ok: approved ? "Approved. It now shows on the product." : "Hidden." };
+}
+
+export async function replyToProductReview(id: string, reply: string): Promise<Result> {
+  const { admin, db } = await requireAdmin("marketplace");
+  const text = reply.trim().slice(0, 2000);
+  const { error } = await db
+    .from("product_reviews")
+    .update(text ? { admin_reply: text, replied_at: new Date().toISOString(), approved: true } : { admin_reply: null, replied_at: null })
+    .eq("id", id);
+  if (error) return { error: "Could not save the reply." };
+  await audit(admin.id, "review.reply", { type: "product_review", id });
+  if (text) after(() => emailProductReviewReply(id));
+  refresh();
+  return { ok: text ? "Reply posted." : "Reply removed." };
+}
+
+export async function deleteProductReview(id: string): Promise<Result> {
+  const { admin, db } = await requireAdmin("marketplace");
+  await db.from("product_reviews").delete().eq("id", id);
+  await audit(admin.id, "review.delete", { type: "product_review", id });
+  refresh();
+  return { ok: "Deleted." };
 }

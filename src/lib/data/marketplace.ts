@@ -23,7 +23,8 @@ export async function getExploreItems(): Promise<ExploreItem[]> {
     db
       .from("courses")
       .select("id, slug, title, summary, cover_url, price_minor, currency, category_id, level, skills, featured, published_at, instructor:profiles!courses_instructor_id_fkey(full_name)")
-      .eq("status", "published"),
+      .eq("status", "published")
+      .eq("marketplace_listed", true),
     db
       .from("products")
       .select("id, kind, slug, title, summary, cover_url, price_minor, compare_at_minor, currency, category_id, tags, formats, featured, published_at, creator:profiles!products_creator_id_fkey(full_name)")
@@ -35,7 +36,12 @@ export async function getExploreItems(): Promise<ExploreItem[]> {
     db.from("bundle_items").select("bundle_id"),
   ]);
   const courseIds = (courses ?? []).map((c) => c.id);
-  const { data: lessons } = courseIds.length ? await db.from("lessons").select("course_id").in("course_id", courseIds) : { data: [] };
+  const productIds = (products ?? []).map((p) => p.id);
+  const [{ data: lessons }, { data: ratings }] = await Promise.all([
+    courseIds.length ? db.from("lessons").select("course_id").in("course_id", courseIds) : Promise.resolve({ data: [] }),
+    productIds.length ? db.rpc("product_ratings", { p_product_ids: productIds }) : Promise.resolve({ data: [] }),
+  ]);
+  const productRating = new Map((ratings ?? []).map((r) => [r.product_id, r]));
 
   const catName = new Map((cats ?? []).map((c) => [c.id, c.name]));
   const tally = (rows: { [k: string]: string }[] | null, key: string) => {
@@ -91,8 +97,8 @@ export async function getExploreItems(): Promise<ExploreItem[]> {
         category: p.category_id ? (catName.get(p.category_id) ?? null) : null,
         categoryId: p.category_id,
         level: null,
-        rating: null,
-        reviews: 0,
+        rating: productRating.has(p.id) ? Number(productRating.get(p.id)!.rating) : null,
+        reviews: productRating.get(p.id)?.reviews ?? 0,
         popularity: owners.get(p.id) ?? 0,
         count: p.kind === "bundle" ? (bundleCount.get(p.id) ?? 0) : (fileCount.get(p.id) ?? 0),
         formats: p.formats,
@@ -119,14 +125,24 @@ export async function getPublicProduct(slug: string) {
   if (!p || p.status !== "published") return null;
 
   const user = await viewer();
-  const [{ data: files }, { data: items }, { count: owners }, cat, access, saved] = await Promise.all([
+  const [{ data: files }, { data: items }, { count: owners }, cat, access, saved, { data: reviews }, mine] = await Promise.all([
     db.from("product_files").select("id, file_name, file_size, mime_type").eq("product_id", p.id).order("position"),
     db.from("bundle_items").select("position, course:courses(slug, title, cover_url, price_minor, currency, status), product:products!bundle_items_product_id_fkey(kind, slug, title, cover_url, price_minor, currency, status)").eq("bundle_id", p.id).order("position"),
     db.from("product_access").select("user_id", { count: "exact", head: true }).eq("product_id", p.id),
     p.category_id ? db.from("course_categories").select("name").eq("id", p.category_id).maybeSingle() : Promise.resolve({ data: null }),
     user ? db.from("product_access").select("granted_at").eq("product_id", p.id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? db.from("saved_products").select("product_id").eq("product_id", p.id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    db
+      .from("product_reviews")
+      .select("id, rating, body, admin_reply, created_at, author:profiles!product_reviews_user_id_fkey(full_name, avatar_url)")
+      .eq("product_id", p.id)
+      .eq("approved", true)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    user ? db.from("product_reviews").select("rating, body, approved, admin_reply").eq("product_id", p.id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
+  const rated = reviews ?? [];
+  const isCreator = !!user && user.id === p.creator_id;
 
   const bundle: BundleEntry[] = (items ?? []).flatMap((i): BundleEntry[] => {
     if (i.course && i.course.status === "published") return [{ type: "course" as const, slug: i.course.slug, title: i.course.title, coverUrl: i.course.cover_url, priceMinor: i.course.price_minor, currency: i.course.currency }];
@@ -164,7 +180,12 @@ export async function getPublicProduct(slug: string) {
     files: (files ?? []).map((f) => ({ id: f.id, name: f.file_name, size: f.file_size, type: f.mime_type })),
     bundle,
     owners: owners ?? 0,
-    owned: !!access.data || (!!user && user.id === p.creator_id),
+    owned: !!access.data || isCreator,
+    rating: rated.length ? Math.round((rated.reduce((n, r) => n + r.rating, 0) / rated.length) * 10) / 10 : null,
+    reviews: rated.slice(0, 6).map((r) => ({ id: r.id, rating: r.rating, body: r.body, reply: r.admin_reply, at: r.created_at, author: r.author?.full_name || "Customer", avatar: r.author?.avatar_url ?? null })),
+    reviewCount: rated.length,
+    // Owners can review; the creator can't review their own product.
+    review: { canReview: !!access.data && !isCreator, mine: mine.data ?? null },
     saved: !!saved.data,
     signedIn: !!user,
   };

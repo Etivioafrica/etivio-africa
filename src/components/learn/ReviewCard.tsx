@@ -2,11 +2,14 @@
 import { useState, useTransition } from "react";
 import { Star } from "lucide-react";
 import { submitReview } from "@/app/(app)/learn/course-actions";
+import { submitProductReview } from "@/app/(public)/products/actions";
 
 type Mine = { rating: number; body: string | null; approved: boolean; admin_reply: string | null } | null;
 
-// Rate the course once you're 30% through. Editing an approved review sends it back for a quick check.
-export function ReviewCard({ courseId, canReview, mine, progress }: { courseId: string; canReview: boolean; mine: Mine; progress: number }) {
+// Rate the course once you're 30% through (or a marketplace product you own, with kind="product"). Editing an
+// approved review sends it back for a quick check.
+export function ReviewCard({ courseId, canReview, mine, progress = 0, kind = "course" }: { courseId: string; canReview: boolean; mine: Mine; progress?: number; kind?: "course" | "product" }) {
+  const noun = kind === "course" ? "course" : "product";
   const [rating, setRating] = useState(mine?.rating ?? 0);
   const [hover, setHover] = useState(0);
   const [body, setBody] = useState(mine?.body ?? "");
@@ -27,7 +30,7 @@ export function ReviewCard({ courseId, canReview, mine, progress }: { courseId: 
 
   return (
     <section className="et-card et-card-pad et-review-card">
-      <b>{mine && !editing ? "Your review" : "Rate this course"}</b>
+      <b>{mine && !editing ? "Your review" : `Rate this ${noun}`}</b>
       <div className="et-review-stars" role="radiogroup" aria-label="Rating" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -54,7 +57,7 @@ export function ReviewCard({ courseId, canReview, mine, progress }: { courseId: 
             disabled={!rating || pending}
             onClick={() =>
               start(async () => {
-                const res = await submitReview(courseId, rating, body);
+                const res = await (kind === "course" ? submitReview : submitProductReview)(courseId, rating, body);
                 setMsg(res);
                 if (!res.error) setEditing(false);
               })
@@ -66,7 +69,7 @@ export function ReviewCard({ courseId, canReview, mine, progress }: { courseId: 
       ) : (
         <>
           {body && <p className="et-review-mine">{body}</p>}
-          <small className="et-muted">{msg?.ok ?? (mine?.approved ? "Published on the course." : "Waiting for a quick check before it shows.")}</small>
+          <small className="et-muted">{msg?.ok ?? (mine?.approved ? `Published on the ${noun}.` : "Waiting for a quick check before it shows.")}</small>
           {mine?.admin_reply && (
             <div className="et-comment-reply" style={{ margin: 0 }}>
               <small>Etivio replied</small>

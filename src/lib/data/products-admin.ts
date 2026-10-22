@@ -186,3 +186,13 @@ export async function bundleOptions(actor: Actor, excludeId?: string) {
     ...(products ?? []).filter((p) => p.id !== excludeId).map((p) => ({ type: "product" as const, id: p.id, title: p.title, priceMinor: p.price_minor, kind: p.kind as string })),
   ];
 }
+
+// Product reviews for the admin, newest first. Callers check admin access.
+export async function loadProductReviews() {
+  const { data } = await createAdminClient()
+    .from("product_reviews")
+    .select("id, rating, body, approved, admin_reply, replied_at, created_at, user_id, product_id, author:profiles!product_reviews_user_id_fkey(full_name, avatar_url), product:products(title)")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  return (data ?? []).map(({ product_id, product, ...r }) => ({ ...r, course_id: product_id, author: r.author?.full_name || "Customer", avatar: r.author?.avatar_url ?? null, course: product?.title ?? "Deleted product" }));
+}
