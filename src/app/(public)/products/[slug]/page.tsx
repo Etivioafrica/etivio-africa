@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { JsonLd, breadcrumbs, product as seoProduct } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${meta.title} | Etivio`,
     description,
     alternates: { canonical: `/products/${slug}` },
-    openGraph: { type: "website", title: meta.title, description, images: meta.cover ? [meta.cover] : undefined },
+    openGraph: { type: "website", siteName: "Etivio", title: meta.title, description, images: meta.cover ? [meta.cover] : undefined },
     twitter: { card: meta.cover ? "summary_large_image" : "summary", title: meta.title, description },
   };
 }
@@ -56,7 +57,22 @@ const ext = (name: string) => (name.includes(".") ? name.split(".").pop()!.toUpp
 async function Product({ params }: Props) {
   const data = await getPublicProduct((await params).slug);
   if (!data) notFound();
-  return <ProductView data={data} />;
+  const { product: p, creator, rating, reviewCount } = data;
+  return (
+    <>
+      <JsonLd
+        data={[
+          seoProduct({ ...p, creator: creator.name, rating, reviews: reviewCount }),
+          breadcrumbs([
+            { name: "Explore", path: "/explore" },
+            { name: ITEM_TYPES[p.kind].plural, path: `/explore?type=${p.kind}` },
+            { name: p.title, path: `/products/${p.slug}` },
+          ]),
+        ]}
+      />
+      <ProductView data={data} />
+    </>
+  );
 }
 
 function ProductView({ data }: { data: PublicProduct }) {

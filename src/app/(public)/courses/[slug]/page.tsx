@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { JsonLd, breadcrumbs, course as seoCourse } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${meta.title} | Etivio`,
     description,
     alternates: { canonical: `/courses/${slug}` },
-    openGraph: { type: "website", title: meta.title, description, images: meta.cover ? [meta.cover] : undefined },
+    openGraph: { type: "website", siteName: "Etivio", title: meta.title, description, images: meta.cover ? [meta.cover] : undefined },
     twitter: { card: meta.cover ? "summary_large_image" : "summary", title: meta.title, description },
   };
 }
@@ -35,5 +36,20 @@ async function Course({ params }: Props) {
   const data = await getCourseDetails((await params).slug);
   if (!data) notFound();
   await connection();
-  return <CourseView data={data} />;
+  const { course: c, instructor, stats } = data;
+  return (
+    <>
+      <JsonLd
+        data={[
+          seoCourse({ ...c, instructor: instructor.name, seconds: stats.seconds, rating: stats.rating, reviews: stats.reviews }),
+          breadcrumbs([
+            { name: "Explore", path: "/explore" },
+            { name: "Courses", path: "/explore?type=course" },
+            { name: c.title, path: `/courses/${c.slug}` },
+          ]),
+        ]}
+      />
+      <CourseView data={data} />
+    </>
+  );
 }

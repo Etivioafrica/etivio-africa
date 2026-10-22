@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { siteUrl } from "@/lib/email/site";
 import { Suspense } from "react";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
 import { RegisterServiceWorker } from "@/components/pwa/RegisterServiceWorker";
@@ -16,9 +17,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Every relative URL in metadata (canonical links, share images) resolves against the live domain, never a
+  // Vercel preview address.
+  metadataBase: new URL(siteUrl()),
   title: "Etivio Africa",
-  description: "Learn practical skills from African instructors.",
+  description: "Practical courses, templates and e-books from instructors across Africa. Learn at your own pace and earn certificates you can share.",
   applicationName: "Etivio",
+  openGraph: { siteName: "Etivio", locale: "en_NG", type: "website" },
+  twitter: { card: "summary_large_image" },
   manifest: "/manifest.webmanifest",
   // Added to the iPhone home screen, Etivio opens full screen like an app.
   appleWebApp: { capable: true, title: "Etivio", statusBarStyle: "black-translucent" },

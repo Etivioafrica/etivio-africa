@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { JsonLd, organization, website } from "@/lib/seo";
 import "../(app)/app.css";
 import { getPlatformSettings, whatsappLink } from "@/lib/platform";
 import { PublicFrame } from "./PublicFrame";
@@ -12,6 +13,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </Suspense>
       }
     >
+      <JsonLd data={[organization(), website()]} />
       {children}
     </PublicFrame>
   );

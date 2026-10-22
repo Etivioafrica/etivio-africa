@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { KIND_FAMILIES, acceptFor } from "@/lib/upload-safety";
 import { Camera, FileUp, ImageIcon, Video, X } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 
@@ -9,15 +10,8 @@ const RESPONSE_TIMEOUT_MS = 60_000;
 export type Uploaded = { url: string; key: string; name: string; size: number; type: string };
 type Kind = "cover" | "avatar" | "banner" | "blog" | "video" | "document" | "product";
 
-const ACCEPT: Record<Kind, string> = {
-  cover: "image/*",
-  avatar: "image/*",
-  banner: "image/*",
-  blog: "image/*",
-  video: "video/*",
-  document: "*/*",
-  product: "*/*",
-};
+// Only the file types the server accepts for each kind (lib/upload-safety.ts), so people don't pick one that fails.
+const ACCEPT = Object.fromEntries((Object.keys(KIND_FAMILIES) as Kind[]).map((k) => [k, acceptFor(k)])) as Record<Kind, string>;
 
 // Uploads to R2 via /api/upload and writes the public URL into a hidden input named `name`.
 // For documents it also fills `${name}_key`, `${name}_name`, `${name}_size`, `${name}_type`.

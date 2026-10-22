@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { JsonLd, blogPosting, breadcrumbs } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${title} | Etivio blog`,
     description,
     alternates: { canonical: `/blog/${post.slug}` },
-    openGraph: { type: "article", title, description, publishedTime: post.published_at ?? undefined, images: post.cover_url ? [post.cover_url] : undefined },
+    openGraph: { type: "article", siteName: "Etivio", title, description, publishedTime: post.published_at ?? undefined, images: post.cover_url ? [post.cover_url] : undefined },
     twitter: { card: post.cover_url ? "summary_large_image" : "summary", title, description },
   };
 }
@@ -41,6 +42,23 @@ async function Post({ params }: Props) {
 
   return (
     <div className="et-pp">
+      <JsonLd
+        data={[
+          blogPosting({
+            slug: post.slug,
+            title: post.meta_title || post.title,
+            description: post.meta_description || post.excerpt || plainText(post.content).slice(0, 160),
+            coverUrl: post.cover_url,
+            publishedAt: post.published_at,
+            updatedAt: post.updated_at,
+            author: post.author?.full_name ?? null,
+          }),
+          breadcrumbs([
+            { name: "Blog", path: "/blog" },
+            { name: post.title, path: `/blog/${post.slug}` },
+          ]),
+        ]}
+      />
       <article className="et-pp-main">
         <ViewTracker postId={post.id} />
         <Link href="/blog" className="et-pp-back">

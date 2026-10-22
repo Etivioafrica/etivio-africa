@@ -17,15 +17,16 @@ const s3 = new S3Client({
 const BUCKET = process.env.R2_BUCKET!;
 const PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!.replace(/\/$/, "");
 
+// Folder and size limit per upload kind. Which file types each kind accepts lives in lib/upload-safety.ts.
 export const UPLOAD_KINDS = {
-  cover: { folder: "covers", maxMb: 10, types: /^image\// },
-  avatar: { folder: "avatars", maxMb: 5, types: /^image\// },
-  banner: { folder: "banners", maxMb: 5, types: /^image\// },
-  blog: { folder: "blog", maxMb: 10, types: /^image\// },
-  video: { folder: "videos", maxMb: 2048, types: /^video\// },
-  document: { folder: "documents", maxMb: 200, types: /.*/ },
+  cover: { folder: "covers", maxMb: 10 },
+  avatar: { folder: "avatars", maxMb: 5 },
+  banner: { folder: "banners", maxMb: 5 },
+  blog: { folder: "blog", maxMb: 10 },
+  video: { folder: "videos", maxMb: 2048 },
+  document: { folder: "documents", maxMb: 200 },
   // Marketplace files. Never linked publicly: buyers get a short-lived signed link from /api/download.
-  product: { folder: "products", maxMb: 500, types: /.*/ },
+  product: { folder: "products", maxMb: 500 },
 } as const;
 
 export type UploadKind = keyof typeof UPLOAD_KINDS;
@@ -45,11 +46,18 @@ export function keyFromUrl(url: string | null) {
   return url && url.startsWith(`${PUBLIC_URL}/`) ? url.slice(PUBLIC_URL.length + 1) : null;
 }
 
-// Streams the body to R2 with multipart upload, so large videos never sit in memory.
-export async function putObject(key: string, body: ReadableStream<Uint8Array>, contentType: string) {
+// Streams the body to R2 with multipart upload, so large videos never sit in memory. `download` stores the file so
+// browsers save it instead of opening it (anything that isn't an image, video, audio or PDF).
+export async function putObject(key: string, body: ReadableStream<Uint8Array> | Uint8Array, contentType: string, download?: string) {
   await new Upload({
     client: s3,
-    params: { Bucket: BUCKET, Key: key, Body: body, ContentType: contentType },
+    params: {
+      Bucket: BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      ...(download ? { ContentDisposition: `attachment; filename="${download.replace(/["\\\r\n]/g, "")}"` } : {}),
+    },
     queueSize: 4,
     partSize: 10 * 1024 * 1024,
   }).done();
