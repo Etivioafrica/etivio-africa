@@ -5,7 +5,7 @@ import { NG_BANKS } from "@/lib/banks";
 import { Status } from "@/components/dash/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { canTeach } from "@/lib/roles";
+import { canEarn } from "@/lib/roles";
 import { formatDate, formatMoney } from "@/lib/format";
 import { removeCard, saveBillingDetails, savePayoutAccount, setDefaultCard } from "../actions";
 import { SetRow } from "../SetRow";
@@ -17,7 +17,7 @@ export default async function BillingSettings() {
   const user = await getCurrentUser();
   const supabase = await createClient();
 
-  const tutor = canTeach(user.roles);
+  const tutor = canEarn(user.roles);
   const [{ data: cards }, { data: payments }, { data: billing }, { data: payout }, { data: walletAll }] = await Promise.all([
     supabase
       .from("payment_methods")

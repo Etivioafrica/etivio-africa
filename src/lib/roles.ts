@@ -32,13 +32,16 @@ export const STAFF_ROLES: AppRole[] = ["super_admin", "editor", "accountant", "r
 // Applied for by users and approved by a super admin.
 export const CREATOR_ROLES: AppRole[] = ["tutor", "coach", "event_manager", "community_owner"];
 // Creator roles whose features exist today. The rest can be assigned but show as coming soon.
-export const LIVE_CREATOR_ROLES: AppRole[] = ["tutor"];
+export const LIVE_CREATOR_ROLES: AppRole[] = ["tutor", "coach"];
 
 export const isStaff = (roles: AppRole[]) => roles.some((r) => STAFF_ROLES.includes(r));
 export const canTeach = (roles: AppRole[]) => roles.includes("tutor") || roles.includes("super_admin");
+export const isCoach = (roles: AppRole[]) => roles.includes("coach");
+// Tutors and coaches both earn, see Earnings and withdraw.
+export const canEarn = (roles: AppRole[]) => canTeach(roles) || isCoach(roles);
 
 // The Teach area stays hidden from learners until they've applied to teach (or can already teach).
-export const showsTeach = (roles: AppRole[], application: string | null) => canTeach(roles) || application === "pending" || application === "rejected";
+export const showsTeach = (roles: AppRole[], application: string | null) => canTeach(roles) || isCoach(roles) || application === "pending" || application === "rejected";
 
 // Admin dashboard areas and who can open them. Super admins open everything.
 export const ADMIN_AREAS = {
@@ -54,6 +57,7 @@ export const ADMIN_AREAS = {
   chats: ["super_admin"],
   tracking: ["super_admin"],
   financials: ["super_admin", "accountant"],
+  coaching: ["super_admin"],
   team: ["super_admin"],
   emails: ["super_admin"],
   settings: ["super_admin", "editor", "accountant"],

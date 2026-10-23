@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { getCurrentUser } from "@/lib/auth";
-import { canTeach } from "@/lib/roles";
+import { canEarn } from "@/lib/roles";
 import { bankName } from "@/lib/banks";
 import type { FormState } from "../teach/actions";
 import { normalizeUsername, usernameCandidates, usernameProblem } from "@/lib/username";
@@ -278,7 +278,7 @@ async function resolveAccount(accountNumber: string, bankCode: string): Promise<
 // Tutor payout account. Written with the service role so `verified_at` can't be set from the browser.
 export async function savePayoutAccount(_prev: FormState, fd: FormData): Promise<FormState> {
   const user = await getCurrentUser();
-  if (!canTeach(user.roles)) return { error: "Only tutors can add a payout account." };
+  if (!canEarn(user.roles)) return { error: "Only tutors and coaches can add a payout account." };
 
   const bankCode = text(fd, "bank_code", 10);
   const bank = bankName(bankCode);

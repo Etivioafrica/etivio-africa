@@ -4,7 +4,7 @@ import { BookOpen, Globe, Layers, Plus, Presentation, Users } from "lucide-react
 import { Empty, PageHead, Progress, Stat, Status } from "@/components/dash/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { canTeach, showsTeach } from "@/lib/roles";
+import { canTeach, isCoach, showsTeach } from "@/lib/roles";
 import { getMyStudents, getMyTeachingCourses } from "@/lib/data/teach";
 import { formatDate, formatPrice } from "@/lib/format";
 import { RoleApplication } from "../roles/RoleApplication";
@@ -14,6 +14,7 @@ export const metadata = { title: "Teach" };
 export default async function TeachDashboard() {
   const user = await getCurrentUser();
   if (!canTeach(user.roles)) {
+    if (isCoach(user.roles)) redirect("/teach/coaching");
     if (!showsTeach(user.roles, user.tutorApplication)) redirect("/teach-on-etivio");
     return <ApplicationStatus userId={user.id} />;
   }

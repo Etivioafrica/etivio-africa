@@ -1,7 +1,7 @@
 "use server";
 import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
-import { canTeach } from "@/lib/roles";
+import { canEarn } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatMoney, nairaToMinor } from "@/lib/format";
 import { MIN_WITHDRAWAL_MINOR } from "@/lib/payouts";
@@ -13,7 +13,7 @@ export type WithdrawState = { ok?: string; error?: string } | null;
 // what's available (payout_available), so two requests at once can't overdraw.
 export async function requestWithdrawal(_prev: WithdrawState, fd: FormData): Promise<WithdrawState> {
   const user = await getCurrentUser();
-  if (!canTeach(user.roles)) return { error: "Only tutors can withdraw earnings." };
+  if (!canEarn(user.roles)) return { error: "Only tutors and coaches can withdraw earnings." };
   if (!(await featureOn("withdrawals"))) return { error: "Withdrawals aren't available right now." };
   const amount = nairaToMinor(String(fd.get("amount") ?? ""));
   if (amount < MIN_WITHDRAWAL_MINOR) return { error: `The smallest withdrawal is ${formatMoney(MIN_WITHDRAWAL_MINOR)}.` };

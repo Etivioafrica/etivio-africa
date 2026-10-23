@@ -628,6 +628,212 @@ export type Database = {
           },
         ]
       }
+      coach_bookings: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          coach_id: string
+          created_at: string
+          currency: string
+          ends_at: string
+          hold_expires_at: string | null
+          id: string
+          learner_id: string
+          meeting_url: string | null
+          note: string | null
+          order_id: string | null
+          price_minor: number
+          reminded_at: string | null
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          coach_id: string
+          created_at?: string
+          currency?: string
+          ends_at: string
+          hold_expires_at?: string | null
+          id?: string
+          learner_id: string
+          meeting_url?: string | null
+          note?: string | null
+          order_id?: string | null
+          price_minor: number
+          reminded_at?: string | null
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          coach_id?: string
+          created_at?: string
+          currency?: string
+          ends_at?: string
+          hold_expires_at?: string | null
+          id?: string
+          learner_id?: string
+          meeting_url?: string | null
+          note?: string | null
+          order_id?: string | null
+          price_minor?: number
+          reminded_at?: string | null
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_bookings_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_bookings_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coach_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "coach_bookings_learner_id_fkey"
+            columns: ["learner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_bookings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_days_off: {
+        Row: {
+          coach_id: string
+          day: string
+        }
+        Insert: {
+          coach_id: string
+          day: string
+        }
+        Update: {
+          coach_id?: string
+          day?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_days_off_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coach_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      coach_hours: {
+        Row: {
+          coach_id: string
+          end_min: number
+          id: number
+          start_min: number
+          weekday: number
+        }
+        Insert: {
+          coach_id: string
+          end_min: number
+          id?: never
+          start_min: number
+          weekday: number
+        }
+        Update: {
+          coach_id?: string
+          end_min?: number
+          id?: never
+          start_min?: number
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_hours_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coach_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      coach_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          currency: string
+          headline: string | null
+          meeting_url: string | null
+          notice_hours: number
+          price_minor: number
+          session_minutes: number
+          slug: string
+          status: string
+          timezone: string
+          topics: string[]
+          updated_at: string
+          user_id: string
+          window_days: number
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          currency?: string
+          headline?: string | null
+          meeting_url?: string | null
+          notice_hours?: number
+          price_minor?: number
+          session_minutes?: number
+          slug: string
+          status?: string
+          timezone?: string
+          topics?: string[]
+          updated_at?: string
+          user_id: string
+          window_days?: number
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          currency?: string
+          headline?: string | null
+          meeting_url?: string | null
+          notice_hours?: number
+          price_minor?: number
+          session_minutes?: number
+          slug?: string
+          status?: string
+          timezone?: string
+          topics?: string[]
+          updated_at?: string
+          user_id?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communities: {
         Row: {
           course_id: string | null
@@ -696,6 +902,7 @@ export type Database = {
           author_id: string | null
           body: string
           created_at: string
+          hidden: boolean
           id: string
           post_id: string
         }
@@ -703,6 +910,7 @@ export type Database = {
           author_id?: string | null
           body: string
           created_at?: string
+          hidden?: boolean
           id?: string
           post_id: string
         }
@@ -710,6 +918,7 @@ export type Database = {
           author_id?: string | null
           body?: string
           created_at?: string
+          hidden?: boolean
           id?: string
           post_id?: string
         }
@@ -812,6 +1021,7 @@ export type Database = {
           comment_count: number
           community_id: string
           created_at: string
+          hidden: boolean
           id: string
           like_count: number
           pinned: boolean
@@ -822,6 +1032,7 @@ export type Database = {
           comment_count?: number
           community_id: string
           created_at?: string
+          hidden?: boolean
           id?: string
           like_count?: number
           pinned?: boolean
@@ -832,6 +1043,7 @@ export type Database = {
           comment_count?: number
           community_id?: string
           created_at?: string
+          hidden?: boolean
           id?: string
           like_count?: number
           pinned?: boolean
@@ -858,6 +1070,7 @@ export type Database = {
           body: string
           conversation_id: string
           created_at: string
+          hidden: boolean
           id: string
           sender_id: string | null
         }
@@ -865,6 +1078,7 @@ export type Database = {
           body: string
           conversation_id: string
           created_at?: string
+          hidden?: boolean
           id?: string
           sender_id?: string | null
         }
@@ -872,6 +1086,7 @@ export type Database = {
           body?: string
           conversation_id?: string
           created_at?: string
+          hidden?: boolean
           id?: string
           sender_id?: string | null
         }
@@ -1806,6 +2021,79 @@ export type Database = {
           },
         ]
       }
+      moderation_flags: {
+        Row: {
+          author_id: string | null
+          created_at: string
+          details: string | null
+          excerpt: string | null
+          id: string
+          link: string | null
+          reason: string
+          reporter_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string
+          status: string
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          author_id?: string | null
+          created_at?: string
+          details?: string | null
+          excerpt?: string | null
+          id?: string
+          link?: string | null
+          reason: string
+          reporter_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source: string
+          status?: string
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          author_id?: string | null
+          created_at?: string
+          details?: string | null
+          excerpt?: string | null
+          id?: string
+          link?: string | null
+          reason?: string
+          reporter_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          status?: string
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_flags_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_flags_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_flags_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           country: string | null
@@ -1956,6 +2244,7 @@ export type Database = {
       payments: {
         Row: {
           amount_minor: number
+          coach_booking_id: string | null
           course_id: string | null
           created_at: string
           currency: string
@@ -1975,6 +2264,7 @@ export type Database = {
         }
         Insert: {
           amount_minor: number
+          coach_booking_id?: string | null
           course_id?: string | null
           created_at?: string
           currency?: string
@@ -1994,6 +2284,7 @@ export type Database = {
         }
         Update: {
           amount_minor?: number
+          coach_booking_id?: string | null
           course_id?: string | null
           created_at?: string
           currency?: string
@@ -2012,6 +2303,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_coach_booking_id_fkey"
+            columns: ["coach_booking_id"]
+            isOneToOne: false
+            referencedRelation: "coach_bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_course_id_fkey"
             columns: ["course_id"]
@@ -2154,6 +2452,7 @@ export type Database = {
           announcement_text: string | null
           certificate_signer_name: string | null
           certificate_signer_title: string | null
+          coach_commission_percent: number
           commission_percent: number
           hero_bg_url: string | null
           id: boolean
@@ -2174,6 +2473,7 @@ export type Database = {
           announcement_text?: string | null
           certificate_signer_name?: string | null
           certificate_signer_title?: string | null
+          coach_commission_percent?: number
           commission_percent?: number
           hero_bg_url?: string | null
           id?: boolean
@@ -2194,6 +2494,7 @@ export type Database = {
           announcement_text?: string | null
           certificate_signer_name?: string | null
           certificate_signer_title?: string | null
+          coach_commission_percent?: number
           commission_percent?: number
           hero_bg_url?: string | null
           id?: boolean
@@ -2505,12 +2806,14 @@ export type Database = {
           learning_goal: string | null
           linkedin_url: string | null
           location: string | null
+          muted_until: string | null
           notification_prefs: Json
           onboarded_at: string | null
           profile_public: boolean
           show_current_learning: boolean
           skill_level: string | null
           status: Database["public"]["Enums"]["account_status"]
+          strikes: number
           trusted_tutor: boolean
           updated_at: string
           username: string | null
@@ -2534,12 +2837,14 @@ export type Database = {
           learning_goal?: string | null
           linkedin_url?: string | null
           location?: string | null
+          muted_until?: string | null
           notification_prefs?: Json
           onboarded_at?: string | null
           profile_public?: boolean
           show_current_learning?: boolean
           skill_level?: string | null
           status?: Database["public"]["Enums"]["account_status"]
+          strikes?: number
           trusted_tutor?: boolean
           updated_at?: string
           username?: string | null
@@ -2563,12 +2868,14 @@ export type Database = {
           learning_goal?: string | null
           linkedin_url?: string | null
           location?: string | null
+          muted_until?: string | null
           notification_prefs?: Json
           onboarded_at?: string | null
           profile_public?: boolean
           show_current_learning?: boolean
           skill_level?: string | null
           status?: Database["public"]["Enums"]["account_status"]
+          strikes?: number
           trusted_tutor?: boolean
           updated_at?: string
           username?: string | null
@@ -2945,6 +3252,55 @@ export type Database = {
           },
         ]
       }
+      user_strikes: {
+        Row: {
+          created_at: string
+          flag_id: string | null
+          given_by: string | null
+          id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          flag_id?: string | null
+          given_by?: string | null
+          id?: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          flag_id?: string | null
+          given_by?: string | null
+          id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_strikes_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_flags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_strikes_given_by_fkey"
+            columns: ["given_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_strikes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visits: {
         Row: {
           browser: string | null
@@ -3031,6 +3387,7 @@ export type Database = {
       wallet_transactions: {
         Row: {
           amount_minor: number
+          coach_booking_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -3043,6 +3400,7 @@ export type Database = {
         }
         Insert: {
           amount_minor: number
+          coach_booking_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -3055,6 +3413,7 @@ export type Database = {
         }
         Update: {
           amount_minor?: number
+          coach_booking_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -3066,6 +3425,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_coach_booking_id_fkey"
+            columns: ["coach_booking_id"]
+            isOneToOne: false
+            referencedRelation: "coach_bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wallet_transactions_created_by_fkey"
             columns: ["created_by"]
@@ -3194,6 +3560,10 @@ export type Database = {
           views: number
         }[]
       }
+      cancel_coach_booking: {
+        Args: { p_booking: string; p_by: string; p_reason: string }
+        Returns: boolean
+      }
       course_is_published: { Args: { p_course_id: string }; Returns: boolean }
       course_lesson_counts: {
         Args: { p_course_ids: string[] }
@@ -3270,6 +3640,7 @@ export type Database = {
           quizzes: number
         }[]
       }
+      release_coach_holds: { Args: never; Returns: number }
       request_payout: {
         Args: { p_amount: number; p_bank: string; p_user: string }
         Returns: string

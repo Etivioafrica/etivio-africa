@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ITEM_TYPES } from "@/lib/marketplace";
 import { getCurrentUser } from "@/lib/auth";
-import { canTeach } from "@/lib/roles";
+import { canEarn } from "@/lib/roles";
 import Link from "next/link";
 import { compactMoney, formatDate, formatMoney } from "@/lib/format";
 import { MIN_WITHDRAWAL_MINOR } from "@/lib/payouts";
@@ -16,7 +16,7 @@ export const metadata = { title: "Earnings" };
 
 export default async function Earnings() {
   const user = await getCurrentUser();
-  if (!canTeach(user.roles)) redirect("/teach");
+  if (!canEarn(user.roles)) redirect("/teach");
   const supabase = await createClient();
   // Sales of their own courses and products. Product tables aren't readable by tutors directly, so this goes through
   // the server, filtered to this tutor.
@@ -24,7 +24,7 @@ export default async function Earnings() {
   const [{ data: sales }, { data: payouts }, { data: settings }, { data: available }, { data: account }] = await Promise.all([
     createAdminClient()
       .from("payments")
-      .select("id, amount_minor, instructor_share_minor, currency, status, paid_at, created_at, course:courses(title), product:products(title, kind)")
+      .select("id, amount_minor, instructor_share_minor, currency, status, paid_at, created_at, coach_booking_id, course:courses(title), product:products(title, kind)")
       .eq("instructor_id", user.id)
       .order("created_at", { ascending: false })
       .limit(100),
@@ -46,7 +46,7 @@ export default async function Earnings() {
     <div className="et-page">
       <PageHead title="Earnings" sub={`You keep ${share}% of every sale. Etivio pays out what you're owed.`} />
       <div className="et-stats">
-        <Stat label="Available to withdraw" value={compactMoney(availableMinor)} icon={HandCoins} hint="Group buys still filling aren't counted yet" />
+        <Stat label="Available to withdraw" value={compactMoney(availableMinor)} icon={HandCoins} hint="Group buys still filling and sessions not yet held aren't counted yet" />
         <Stat label="Total earned" value={compactMoney(earned)} icon={Wallet} />
         <Stat label="Waiting to be paid" value={compactMoney(scheduled)} icon={Clock} />
         <Stat label="Paid to you" value={compactMoney(paid)} icon={Banknote} />
@@ -78,9 +78,9 @@ export default async function Earnings() {
                 {sales.map((s) => (
                   <tr key={s.id}>
                     <td>
-                      <b>{s.course?.title ?? s.product?.title ?? "Sale"}</b>
+                      <b>{s.course?.title ?? s.product?.title ?? (s.coach_booking_id ? "Coaching session" : "Sale")}</b>
                       <small>
-                        {s.product ? `${ITEM_TYPES[s.product.kind].label} · ` : "Course · "}
+                        {s.product ? `${ITEM_TYPES[s.product.kind].label} · ` : s.coach_booking_id ? "1-on-1 · " : "Course · "}
                         {formatDate(s.paid_at ?? s.created_at)} · sold for {formatMoney(s.amount_minor, s.currency)}
                       </small>
                     </td>

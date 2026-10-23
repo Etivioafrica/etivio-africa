@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isStaff } from "@/lib/roles";
 import { grantProduct } from "./grants";
 import { groupPaymentCleared } from "./group-buy";
+import { sessionPaid } from "./coaching";
 import { emailGuestAccess, emailOrderReceipt } from "@/lib/email/notify";
 import { accountForGuest, maskEmail } from "./guest";
 import { initializeTransaction, type VerifiedTransaction } from "@/lib/paystack";
@@ -150,7 +151,7 @@ export async function fulfillOrder(tx: VerifiedTransaction): Promise<{ ok: boole
   if (!order) return { ok: false, reason: "unknown reference" };
   // Guests aren't signed in when they come back from Paystack, so the page tells them which inbox to check.
   const destination =
-    order.purpose === "wallet_topup" ? "/learn/wallet?topup=done" : `/checkout/complete?order=${order.reference}${order.user_id ? "" : `&email=${encodeURIComponent(maskEmail(order.email))}`}`;
+    order.purpose === "wallet_topup" ? "/learn/wallet?topup=done" : order.purpose === "coach_booking" ? "/learn/sessions?booked=1" : `/checkout/complete?order=${order.reference}${order.user_id ? "" : `&email=${encodeURIComponent(maskEmail(order.email))}`}`;
   if (order.status === "success") return { ok: true, destination };
   if (tx.status !== "success") {
     // Only a definite failure closes it. "abandoned" or "ongoing" may still turn into a payment.
@@ -202,6 +203,12 @@ async function completeOrder(order: OrderRow, paidAt: string, destination: strin
   // Wallet top-up: credit the wallet and stop (no items, no receipt for a course).
   if (order.purpose === "wallet_topup") {
     if (order.user_id) await db.from("wallet_transactions").insert({ user_id: order.user_id, amount_minor: order.total_minor, currency: order.currency, kind: "topup", order_id: order.id, note: "Added with Paystack" });
+    return { ok: true, destination };
+  }
+
+  // Coaching session: confirm it (or credit the wallet if the time was lost) and stop.
+  if (order.purpose === "coach_booking") {
+    await sessionPaid(order.id, paidAt);
     return { ok: true, destination };
   }
 

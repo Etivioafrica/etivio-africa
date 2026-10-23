@@ -36,6 +36,7 @@ import {
   FolderDown,
   Store,
   House,
+  CalendarClock,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -46,7 +47,7 @@ import { AiWidget } from "./AiWidget";
 import type { FeatureKey, FeatureMap } from "@/lib/features";
 import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
-import { ROLE_LABELS, canAccess, canTeach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
+import { ROLE_LABELS, canAccess, canTeach, isCoach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
 import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
 import { CartButton } from "@/components/market/CartButton";
 
@@ -111,6 +112,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
             ],
           },
           { label: "Group buys", href: "/admin/group-buys", icon: Users, area: "marketplace" },
+          { label: "Coaching", href: "/admin/coaching", icon: CalendarClock, area: "coaching" },
           { label: "Announcements", href: "/admin/announcements", icon: Megaphone, area: "announcements" },
           {
             label: "Blog",
@@ -181,12 +183,13 @@ const learnNav: Group[] = [
       { label: "Wallet", href: "/learn/wallet", icon: Wallet, feature: "wallet" },
       { label: "Messages", href: "/learn/messages", icon: MessagesSquare, feature: "messages" },
       { label: "Communities", href: "/communities", icon: Users, feature: "communities" },
+      { label: "Coaching", href: "/learn/sessions", icon: CalendarClock, feature: "coaching" },
     ],
   },
   account,
 ];
 
-const teachNav = (canTeach: boolean): Group[] => [
+const teachNav = (canTeach: boolean, coach: boolean): Group[] => [
   { label: "Overview", items: [{ label: "Dashboard", href: "/teach", icon: LayoutDashboard, exact: true }] },
   ...(canTeach
     ? [
@@ -214,11 +217,31 @@ const teachNav = (canTeach: boolean): Group[] => [
             },
             { label: "Students", href: "/teach/students", icon: Users },
             { label: "Messages", href: "/teach/messages", icon: MessagesSquare, feature: "messages" as const },
-            { label: "Earnings", href: "/teach/earnings", icon: Wallet },
           ],
         },
       ]
     : []),
+  ...(coach
+    ? [
+        {
+          label: "Coaching",
+          items: [
+            {
+              label: "Coaching",
+              href: "/teach/coaching",
+              icon: CalendarClock,
+              feature: "coaching" as const,
+              children: [
+                { label: "Sessions", href: "/teach/coaching" },
+                { label: "Hours", href: "/teach/coaching/hours" },
+                { label: "Coach profile", href: "/teach/coaching/profile" },
+              ],
+            },
+          ],
+        },
+      ]
+    : []),
+  ...(canTeach || coach ? [{ label: "Money", items: [{ label: "Earnings", href: "/teach/earnings", icon: Wallet }] }] : []),
   account,
 ];
 
@@ -308,7 +331,7 @@ export default function Shell({
     if (routeSide) document.cookie = `et-side=${routeSide}; path=/; max-age=31536000; samesite=lax`;
   }, [routeSide]);
   const teachMode = routeSide === "teach" || (!routeSide && side === "teach" && !!user.showTeach);
-  const groups = (admin ? adminNav(user.roles, badges) : teachMode ? teachNav(canTeach(user.roles)) : learnNav)
+  const groups = (admin ? adminNav(user.roles, badges) : teachMode ? teachNav(canTeach(user.roles), isCoach(user.roles)) : learnNav)
     .map((g) => ({ ...g, items: g.items.filter((i) => !i.feature || features[i.feature] !== false) }))
     .filter((g) => g.items.length);
   const matches = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
