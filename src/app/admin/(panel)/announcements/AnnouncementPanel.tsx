@@ -6,6 +6,7 @@ import { Select } from "@/components/dash/Select";
 import { CropUpload, type CropUploadHandle } from "@/components/dash/CropUpload";
 import { stripHtml, type Announcement } from "@/lib/announcements";
 import { createAnnouncement, deleteAnnouncement, updateAnnouncement, type AnnouncementInput } from "./actions";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 type PanelStatus = "draft" | "scheduled" | "published" | "archived";
 
@@ -70,8 +71,8 @@ function PanelBody({ onClose, editing, onSaved, onDeleted, courses }: Props) {
     });
   }
 
-  function remove() {
-    if (!editing || !window.confirm(`Delete "${editing.title}"? This can't be undone.`)) return;
+  async function remove() {
+    if (!editing || !(await confirmDialog({ title: `Delete "${editing.title}"?`, body: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
     startDeleting(async () => {
       const res = await deleteAnnouncement(editing.id);
       if (res.error) return setError(res.error);

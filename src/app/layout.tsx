@@ -3,6 +3,7 @@ import { siteUrl } from "@/lib/email/site";
 import { Suspense } from "react";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
 import { RegisterServiceWorker } from "@/components/pwa/RegisterServiceWorker";
+import { DialogHost } from "@/components/dash/dialogs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <RegisterServiceWorker />
+        <DialogHost />
         <Suspense fallback={null}>
           <VisitTracker />
         </Suspense>

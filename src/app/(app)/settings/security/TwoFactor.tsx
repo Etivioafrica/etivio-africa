@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 type Enrolling = { factorId: string; qr: string; secret: string };
 
@@ -46,7 +47,9 @@ export function TwoFactor({ factorId }: { factorId: string | null }) {
   }
 
   async function disable() {
-    if (!factorId || !window.confirm("Turn off two-step verification? Your account will only be protected by your password.")) return;
+    if (!factorId) return;
+    const ok = await confirmDialog({ title: "Turn off two-step verification?", body: "Your account will only be protected by your password.", confirmLabel: "Turn off", danger: true });
+    if (!ok) return;
     setBusy(true);
     const { error } = await createClient().auth.mfa.unenroll({ factorId });
     setBusy(false);

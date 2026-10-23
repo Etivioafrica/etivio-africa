@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FileText, ImagePlus, ListTree, Sparkles } from "lucide-react";
 import { useToast } from "@/components/dash/useToast";
 import { aiFillCourse } from "../../ai-actions";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 // AI helpers for a tutor's own course. Each one writes straight to the course; the tutor reviews and edits after.
 export function AiAssistant({ courseId, hasModules, coverUrl }: { courseId: string; hasModules: boolean; coverUrl: string | null }) {
@@ -13,9 +14,9 @@ export function AiAssistant({ courseId, hasModules, coverUrl }: { courseId: stri
   const [running, setRunning] = useState<string | null>(null);
   const [useWeb, setUseWeb] = useState(true);
 
-  const run = (what: "outline" | "copy" | "cover") => {
-    if (what === "copy" && !window.confirm("This replaces the summary, description and skills with AI-written versions. Continue?")) return;
-    if (what === "cover" && coverUrl && !window.confirm("Replace the current cover with a new AI image?")) return;
+  const run = async (what: "outline" | "copy" | "cover") => {
+    if (what === "copy" && !(await confirmDialog({ title: "Rewrite with AI?", body: "This replaces the summary, description and skills with AI-written versions.", confirmLabel: "Rewrite" }))) return;
+    if (what === "cover" && coverUrl && !(await confirmDialog({ title: "Generate a new cover?", body: "This replaces the current cover with a new AI image.", confirmLabel: "Generate" }))) return;
     setRunning(what);
     start(async () => {
       const res = await aiFillCourse(courseId, what, { useWeb });

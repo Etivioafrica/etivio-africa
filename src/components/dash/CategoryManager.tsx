@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { ChevronRight, Plus, Search, Trash2, X } from "lucide-react";
 import { useToast } from "@/components/dash/useToast";
+import { confirmDialog } from "@/components/dash/dialogs";
 export type Category = { id: string; name: string; slug: string; parent_id: string | null };
 type Result = { ok?: string; error?: string };
 
@@ -46,10 +47,11 @@ export function CategoryManager({
     });
   }
 
-  function remove(c: Category) {
+  async function remove(c: Category) {
     const n = counts[c.id] ?? 0;
     const extra = c.parent_id ? "" : subs(c.id).length ? " Its subcategories go too." : "";
-    if (!window.confirm(`Delete "${c.name}"?${n ? ` It's on ${n} ${noun}${n === 1 ? "" : "s"}; they keep everything else.` : ""}${extra}`)) return;
+    const body = `${n ? `It's on ${n} ${noun}${n === 1 ? "" : "s"}; they keep everything else.` : ""}${extra}`.trim();
+    if (!(await confirmDialog({ title: `Delete "${c.name}"?`, body: body || undefined, confirmLabel: "Delete", danger: true }))) return;
     start(async () => show(await deleteCategory(c.id)));
   }
 

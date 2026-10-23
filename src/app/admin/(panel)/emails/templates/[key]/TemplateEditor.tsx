@@ -9,6 +9,7 @@ import type { Json } from "@/lib/database.types";
 import type { Placeholder } from "@/lib/email/registry";
 import { resetTemplate, saveTemplate, sendTemplateTest } from "../actions";
 import { uploadFile } from "@/lib/upload-client";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 // Unlayer only runs in the browser.
 const EmailEditor = dynamic(() => import("react-email-editor"), { ssr: false, loading: () => <div className="et-skel" style={{ height: "100%" }} /> });
@@ -90,8 +91,8 @@ export function TemplateEditor({
               type="button"
               className="et-btn et-btn-ghost"
               disabled={busy}
-              onClick={() => {
-                if (!window.confirm("Go back to the built-in design? Your custom design will be deleted.")) return;
+              onClick={async () => {
+                if (!(await confirmDialog({ title: "Go back to the built-in design?", body: "Your custom design will be deleted.", confirmLabel: "Reset design", danger: true }))) return;
                 start(async () => {
                   show(await resetTemplate(templateKey));
                   window.location.reload();

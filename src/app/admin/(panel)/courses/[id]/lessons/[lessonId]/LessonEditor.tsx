@@ -10,6 +10,7 @@ import { useToast } from "@/components/dash/useToast";
 import { formatBytes } from "@/lib/format";
 import { addLessonResource, deleteLessonFromEditor, removeLessonResource, saveLessonFull, type LessonInput } from "../../../actions";
 import { Select } from "@/components/dash/Select";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 type Resource = { id: string; title: string; file_url: string; file_name: string | null; file_size: number | null; mime_type: string | null };
 type Nav = { id: string; title: string } | null;
@@ -203,8 +204,8 @@ export function LessonEditor({
                       type="button"
                       className="et-icon-btn is-danger"
                       aria-label="Remove"
-                      onClick={() =>
-                        window.confirm(`Remove "${r.title}"?`) &&
+                      onClick={async () =>
+                        (await confirmDialog({ title: `Remove "${r.title}"?`, confirmLabel: "Remove", danger: true })) &&
                         start(async () => {
                           show(await removeLessonResource(r.id));
                           setResources((x) => x.filter((y) => y.id !== r.id));
@@ -262,8 +263,8 @@ export function LessonEditor({
               type="button"
               className="et-btn et-btn-sm et-btn-danger-text"
               disabled={saving}
-              onClick={() =>
-                window.confirm("Delete this lesson?") &&
+              onClick={async () =>
+                (await confirmDialog({ title: "Delete this lesson?", body: "Learners lose their progress and notes on it.", confirmLabel: "Delete", danger: true })) &&
                 start(async () => {
                   await deleteLessonFromEditor(lesson.id);
                   router.push(`${base}?tab=curriculum`);

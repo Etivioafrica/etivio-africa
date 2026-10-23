@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, BookOpen, Check, Copy, Plus, Trash2, X } from "lucide-react";
 import { useToast } from "@/components/dash/useToast";
 import { deleteQuiz, saveQuiz, type QuizQuestionInput } from "../../../actions";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 type Q = QuizQuestionInput & { key: number };
 let uid = 0;
@@ -76,8 +77,8 @@ export function QuizEditor({
             type="button"
             className="et-btn et-btn-danger-text"
             disabled={saving}
-            onClick={() =>
-              window.confirm("Delete this quiz and everyone's results for it? The next module unlocks for everyone.") &&
+            onClick={async () =>
+              (await confirmDialog({ title: "Delete this quiz?", body: "Everyone's results for it are deleted and the next module unlocks for everyone.", confirmLabel: "Delete quiz", danger: true })) &&
               start(async () => {
                 await deleteQuiz(quizId);
                 router.push(`/admin/courses/${courseId}?tab=curriculum`);

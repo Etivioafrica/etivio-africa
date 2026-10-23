@@ -29,6 +29,7 @@ import {
   Video,
 } from "lucide-react";
 import { uploadFile } from "@/lib/upload-client";
+import { alertDialog, promptDialog } from "@/components/dash/dialogs";
 
 // Rich text editor (Tiptap), ported from the nnamdi-obi admin. Images upload straight to R2 (lib/upload-client.ts).
 function ToolBtn({ onClick, active = false, title, children }: { onClick: () => void; active?: boolean; title: string; children: React.ReactNode }) {
@@ -94,18 +95,19 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
     setUploading(true);
     uploadFile("blog", file, file.name)
       .then(({ url }) => editor?.chain().focus().setImage({ src: url }).run())
-      .catch((err: Error) => window.alert(err.message))
+      .catch((err: Error) => alertDialog({ title: "Couldn't upload the image", body: err.message }))
       .finally(() => setUploading(false));
   }
 
-  function addLink() {
-    const url = window.prompt("Link URL");
+  async function addLink() {
+    const url = await promptDialog({ title: "Add a link", label: "Link URL", placeholder: "https://", type: "url", defaultValue: editor?.getAttributes("link").href ?? "", confirmLabel: "Add link" });
+    if (url === null) return;
     if (url) editor?.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
     else editor?.chain().focus().unsetLink().run();
   }
 
-  function addYoutube() {
-    const url = window.prompt("YouTube URL");
+  async function addYoutube() {
+    const url = await promptDialog({ title: "Embed a YouTube video", label: "YouTube URL", placeholder: "https://www.youtube.com/watch?v=...", type: "url", confirmLabel: "Embed" });
     if (url) editor?.chain().focus().setYoutubeVideo({ src: url }).run();
   }
 

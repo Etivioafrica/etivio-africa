@@ -1,6 +1,7 @@
 "use client";
 import { useTransition } from "react";
 import { setCourseListed } from "./actions";
+import { alertDialog } from "@/components/dash/dialogs";
 
 // Flips a course on or off the marketplace as soon as it's clicked.
 export function ListedToggle({ id, listed, title }: { id: string; listed: boolean; title: string }) {
@@ -17,7 +18,7 @@ export function ListedToggle({ id, listed, title }: { id: string; listed: boolea
         const next = e.currentTarget.checked;
         start(async () => {
           const res = await setCourseListed(id, next);
-          if (res.error) alert(res.error);
+          if (res.error) alertDialog({ title: "Couldn't update the listing", body: res.error });
         });
       }}
     />

@@ -6,6 +6,7 @@ import { Check, EyeOff, MessageSquareReply, Trash2 } from "lucide-react";
 import { useToast } from "@/components/dash/useToast";
 import { fmtShort } from "@/lib/blog";
 import { approveComment, deleteComment, replyToComment } from "../actions";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 type Comment = {
   id: string;
@@ -117,7 +118,7 @@ export function CommentsClient({ comments, initialFilter }: { comments: Comment[
                     className="et-icon-btn is-danger"
                     disabled={pending}
                     aria-label="Delete comment"
-                    onClick={() => window.confirm("Delete this comment for good?") && run(() => deleteComment(c.id))}
+                    onClick={async () => (await confirmDialog({ title: "Delete this comment?", body: "It's removed for good.", confirmLabel: "Delete", danger: true })) && run(() => deleteComment(c.id))}
                   >
                     <Trash2 size={14} />
                   </button>

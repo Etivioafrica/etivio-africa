@@ -7,6 +7,7 @@ import { Uploader } from "@/components/dash/Uploader";
 import { formatBytes } from "@/lib/format";
 import { videoEmbed } from "@/lib/video";
 import { discardUpload, type LessonFile } from "../actions";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 export type WizLesson = { key: number; id?: string; title: string; videoUrl: string; hostedVideo?: boolean; content: string; files: LessonFile[] };
 export type LessonPatch = Partial<WizLesson> | ((l: WizLesson) => Partial<WizLesson>);
@@ -39,7 +40,7 @@ export function LessonCard({
   const [draftError, setDraftError] = useState("");
   async function draft() {
     if (!ai) return;
-    if (hasText(lesson.content) && !window.confirm("Rewrite these notes with AI? It keeps your points and extends them.")) return;
+    if (hasText(lesson.content) && !(await confirmDialog({ title: "Rewrite these notes with AI?", body: "It keeps your points and extends them.", confirmLabel: "Rewrite" }))) return;
     setDrafting(true);
     setDraftError("");
     const res = await aiLesson({ ...ai, lessonTitle: lesson.title, existing: lesson.content });

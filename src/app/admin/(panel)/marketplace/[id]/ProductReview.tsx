@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/dash/useToast";
 import { deleteProduct, setProductStatus } from "../actions";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 // Status bar above the editor: who made it, how it's doing, and the review / archive controls.
 export function ProductReview({ id, status, creator, owners, downloads, isOwn }: { id: string; status: string; creator: string; owners: number; downloads: number; isOwn: boolean }) {
@@ -45,7 +46,7 @@ export function ProductReview({ id, status, creator, owners, downloads, isOwn }:
             </>
           )}
           {status === "published" && (
-            <button type="button" className="et-btn et-btn-ghost" disabled={busy} onClick={() => window.confirm("Take it off the marketplace? Owners keep their downloads.") && act(() => setProductStatus(id, "archive"))}>
+            <button type="button" className="et-btn et-btn-ghost" disabled={busy} onClick={async () => (await confirmDialog({ title: "Take it off the marketplace?", body: "Owners keep their downloads.", confirmLabel: "Archive" })) && act(() => setProductStatus(id, "archive"))}>
               Archive
             </button>
           )}
@@ -59,7 +60,7 @@ export function ProductReview({ id, status, creator, owners, downloads, isOwn }:
               type="button"
               className="et-btn et-btn-ghost et-btn-danger"
               disabled={busy}
-              onClick={() => window.confirm("Delete this product and its files for good?") && act(() => deleteProduct(id), () => router.push("/admin/marketplace"))}
+              onClick={async () => (await confirmDialog({ title: "Delete this product?", body: "This deletes the product and its files for good.", confirmLabel: "Delete", danger: true })) && act(() => deleteProduct(id), () => router.push("/admin/marketplace"))}
             >
               Delete
             </button>

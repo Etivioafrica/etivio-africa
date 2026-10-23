@@ -10,6 +10,7 @@ import type { AdminCourse, CourseMetric } from "@/lib/data/courses-admin";
 import { setCourseFeatured, setCourseStatus } from "./actions";
 import { Select } from "@/components/dash/Select";
 import { COURSE_STATUS_LABEL as LABEL, type CourseStatus } from "@/lib/course-status";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 type Filter = "all" | CourseStatus;
 
@@ -147,7 +148,7 @@ export function CourseList({ courses, categories, metrics }: { courses: AdminCou
                               <Send size={14} />
                             </button>
                           ) : (
-                            <button type="button" disabled={pending} onClick={() => window.confirm(`Archive "${c.title}"? Enrolled learners keep access; it leaves the catalog.`) && run(() => setCourseStatus(c.id, "archived"))} data-tip="Archive" aria-label="Archive">
+                            <button type="button" disabled={pending} onClick={async () => (await confirmDialog({ title: `Archive "${c.title}"?`, body: "Enrolled learners keep access; it leaves the catalog.", confirmLabel: "Archive" })) && run(() => setCourseStatus(c.id, "archived"))} data-tip="Archive" aria-label="Archive">
                               <Archive size={14} />
                             </button>
                           )}

@@ -11,6 +11,7 @@ import type { Category } from "@/components/dash/CategoryManager";
 import { createCourseFull, updateCourseFull, type Created, type LessonFile } from "../actions";
 import { LessonCard, hasText, type LessonPatch, type WizLesson } from "./LessonCard";
 import { Select } from "@/components/dash/Select";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 type Level = "beginner" | "intermediate" | "advanced";
 type Mod = { key: number; id?: string; title: string; lessons: WizLesson[] };
@@ -130,7 +131,7 @@ export function CourseWizard({
   async function aiPlan() {
     const hasContent = modules.some((m) => m.title.trim() || m.lessons.some((l) => l.title.trim()));
     const warning = edit?.students ? ` ${edit.students} enrolled learners would lose progress on removed lessons.` : "";
-    if (hasContent && !window.confirm(`Replace the current curriculum with an AI outline?${warning}`)) return;
+    if (hasContent && !(await confirmDialog({ title: "Replace the curriculum with an AI outline?", body: `Your current modules and lessons are replaced.${warning}`, confirmLabel: "Replace", danger: Boolean(warning) }))) return;
     setAiBusy("outline");
     const res = await aiOutline({ title, summary, level, useWeb: aiWeb });
     setAiBusy(null);
@@ -232,10 +233,10 @@ export function CourseWizard({
     return () => window.removeEventListener("beforeunload", warn);
   }, [edit, dirty]);
 
-  function saveEdit(status: "keep" | "draft" | "published") {
+  async function saveEdit(status: "keep" | "draft" | "published") {
     if (!edit) return;
     const removed = initial!.modules.flatMap((m) => m.lessons).filter((l) => !modules.some((m) => m.lessons.some((x) => x.id === l.id))).length;
-    if (removed && edit.students && !window.confirm(`You removed ${removed} ${removed === 1 ? "lesson" : "lessons"}. Learners lose their progress, notes and resources for ${removed === 1 ? "it" : "them"}. Save anyway?`)) return;
+    if (removed && edit.students && !(await confirmDialog({ title: `You removed ${removed} ${removed === 1 ? "lesson" : "lessons"}`, body: `Learners lose their progress, notes and resources for ${removed === 1 ? "it" : "them"}. Save anyway?`, confirmLabel: "Save anyway", danger: true }))) return;
     setError("");
     start(async () => {
       const res = await updateCourseFull(edit.courseId, { ...fields(), status });
@@ -463,9 +464,9 @@ export function CourseWizard({
                         onChange={(patch) => setLesson(m.key, l.key, patch)}
                         onEnter={() => addLesson(mi, li + 1)}
                         ai={{ courseTitle: title, moduleTitle: m.title, level }}
-                        onRemove={() => {
+                        onRemove={async () => {
                           const learners = edit?.students && l.id ? ` ${edit.students} enrolled learners lose their progress and notes on it.` : "";
-                          if ((learners || l.videoUrl || hasText(l.content) || l.files.length) && !window.confirm(`Remove "${l.title || "this lesson"}" and its content?${learners}`)) return;
+                          if ((learners || l.videoUrl || hasText(l.content) || l.files.length) && !(await confirmDialog({ title: `Remove "${l.title || "this lesson"}"?`, body: `Its video, notes and files are removed too.${learners}`, confirmLabel: "Remove", danger: true }))) return;
                           setMod(mi, { lessons: m.lessons.filter((_, i) => i !== li) });
                         }}
                       />

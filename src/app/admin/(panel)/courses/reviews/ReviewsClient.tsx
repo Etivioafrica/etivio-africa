@@ -7,6 +7,7 @@ import { fmtShort } from "@/lib/blog";
 import { approveReview, deleteReview, replyToReview } from "../actions";
 import { approveProductReview, deleteProductReview, replyToProductReview } from "../../marketplace/actions";
 import { Avatar } from "@/components/dash/Avatar";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 export type Review = {
   id: string;
@@ -147,7 +148,7 @@ export function ReviewsClient({ reviews, initialFilter = "all", hideCourse, kind
                   >
                     <MessageSquareReply size={13} /> {r.admin_reply ? "Edit reply" : "Reply"}
                   </button>
-                  <button type="button" className="et-icon-btn is-danger" disabled={pending} aria-label="Delete review" onClick={() => window.confirm("Delete this review for good?") && run(() => act.remove(r.id))}>
+                  <button type="button" className="et-icon-btn is-danger" disabled={pending} aria-label="Delete review" onClick={async () => (await confirmDialog({ title: "Delete this review?", body: "It's removed for good.", confirmLabel: "Delete", danger: true })) && run(() => act.remove(r.id))}>
                     <Trash2 size={14} />
                   </button>
                 </span>

@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff, Globe, Link2, Trash2 } from "lucide-react";
 import { useToast } from "@/components/dash/useToast";
 import { fmtShort } from "@/lib/blog";
 import { deleteCurated, fetchCuratedMeta, saveCurated, toggleCurated } from "../actions";
+import { confirmDialog } from "@/components/dash/dialogs";
 
 type Link = { id: string; url: string; source_name: string; title: string; excerpt: string | null; cover_url: string | null; published: boolean; created_at: string };
 type Draft = { title: string; excerpt: string; sourceName: string; coverUrl: string; partial: boolean };
@@ -165,7 +166,7 @@ export function CuratedClient({ links }: { links: Link[] }) {
                     className="et-icon-btn is-danger"
                     disabled={pending}
                     aria-label="Delete link"
-                    onClick={() => window.confirm("Delete this link?") && start(async () => show(await deleteCurated(l.id)))}
+                    onClick={async () => (await confirmDialog({ title: "Delete this link?", confirmLabel: "Delete", danger: true })) && start(async () => show(await deleteCurated(l.id)))}
                   >
                     <Trash2 size={14} />
                   </button>
