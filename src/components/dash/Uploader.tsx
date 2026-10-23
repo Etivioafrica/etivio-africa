@@ -3,17 +3,15 @@ import { useRef, useState } from "react";
 import { KIND_FAMILIES, acceptFor } from "@/lib/upload-safety";
 import { Camera, FileUp, ImageIcon, Video, X } from "lucide-react";
 import { formatBytes } from "@/lib/format";
+import { uploadFile, type UploadKind, type Uploaded } from "@/lib/upload-client";
 
-// Once the bytes are sent, give the server this long to answer before giving up.
-const RESPONSE_TIMEOUT_MS = 60_000;
-
-export type Uploaded = { url: string; key: string; name: string; size: number; type: string };
-type Kind = "cover" | "avatar" | "banner" | "blog" | "video" | "document" | "product";
+export type { Uploaded };
+type Kind = UploadKind;
 
 // Only the file types the server accepts for each kind (lib/upload-safety.ts), so people don't pick one that fails.
 const ACCEPT = Object.fromEntries((Object.keys(KIND_FAMILIES) as Kind[]).map((k) => [k, acceptFor(k)])) as Record<Kind, string>;
 
-// Uploads to R2 via /api/upload and writes the public URL into a hidden input named `name`.
+// Uploads straight to R2 (lib/upload-client.ts) and writes the public URL into a hidden input named `name`.
 // For documents it also fills `${name}_key`, `${name}_name`, `${name}_size`, `${name}_type`.
 export function Uploader({
   name,
@@ -37,42 +35,18 @@ export function Uploader({
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  function upload(f: File) {
+  async function upload(f: File) {
     setError(null);
     setProgress(0);
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `/api/upload?kind=${kind}`);
-    xhr.setRequestHeader("content-type", f.type || "application/octet-stream");
-    xhr.setRequestHeader("x-file-name", encodeURIComponent(f.name));
-    let waiting: ReturnType<typeof setTimeout> | undefined;
-    xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
-    xhr.upload.onload = () => {
-      setProgress(100);
-      waiting = setTimeout(() => {
-        xhr.abort();
-        setProgress(null);
-        setError("The server is taking too long to respond. Try again in a moment.");
-      }, RESPONSE_TIMEOUT_MS);
-    };
-    xhr.onload = () => {
-      clearTimeout(waiting);
+    try {
+      const done = await uploadFile(kind, f, f.name, { onProgress: setProgress, onChecking: () => setProgress(100) });
+      setFile(done);
+      onUploaded?.(done);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
       setProgress(null);
-      let body: { error?: string } & Partial<Uploaded> = {};
-      try {
-        body = JSON.parse(xhr.responseText);
-      } catch {}
-      if (xhr.status >= 200 && xhr.status < 300 && body.url) {
-        const done = body as Uploaded;
-        setFile(done);
-        onUploaded?.(done);
-      } else setError(body.error ?? "Upload failed.");
-    };
-    xhr.onerror = () => {
-      clearTimeout(waiting);
-      setProgress(null);
-      setError("Network error during upload.");
-    };
-    xhr.send(f);
+    }
   }
 
   const isImage = kind === "cover" || kind === "avatar" || kind === "banner" || kind === "blog";

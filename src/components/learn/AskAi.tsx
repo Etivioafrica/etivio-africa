@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { Send } from "lucide-react";
+import { AiAvatar } from "./AiAvatar";
 import { Formatted } from "./Formatted";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -60,9 +61,7 @@ export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: sta
   return (
     <div className="et-ai">
       <div className="et-ai-head">
-        <span className="et-ai-badge">
-          <Sparkles size={15} />
-        </span>
+        <AiAvatar size={36} busy={busy} />
         <div className="et-ai-title">
           <b>Study assistant</b>
           <small>Ask anything about this lesson. Answers can be wrong, so check anything important.</small>
@@ -75,9 +74,7 @@ export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: sta
           messages.map((m, i) => (
             <div key={i} className={`et-ai-row is-${m.role}`}>
               {m.role === "assistant" && (
-                <span className="et-ai-avatar" aria-hidden>
-                  <Sparkles size={13} />
-                </span>
+                <AiAvatar size={28} busy={busy && i === messages.length - 1} className="et-ai-avatar" />
               )}
               <div className={`et-ai-msg is-${m.role}`}>
                 {m.role === "assistant" ? m.content ? <Formatted text={m.content} /> : <span className="et-ai-dots" aria-label="Thinking"><i /><i /><i /></span> : <p>{m.content}</p>}
@@ -86,9 +83,7 @@ export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: sta
           ))
         ) : (
           <div className="et-ai-empty">
-            <span className="et-ai-badge">
-              <Sparkles size={18} />
-            </span>
+            <AiAvatar size={56} />
             <b>Stuck on &ldquo;{lessonTitle}&rdquo;?</b>
             <p>Type a question below: ask for a summary, an explanation in simpler words, an example, or a quick quiz.</p>
           </div>

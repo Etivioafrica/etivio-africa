@@ -3,11 +3,10 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import { Move, UploadCloud, X, ZoomIn, ZoomOut } from "lucide-react";
 import { CROP_START, clampCrop, cropScale, edgeColor, exportCrop, type CropState } from "@/lib/image-crop";
 import { formatBytes } from "@/lib/format";
+import { uploadFile } from "@/lib/upload-client";
 
 const MAX_SOURCE_MB = 20;
 const MAX_ZOOM = 3;
-// Once the bytes are sent, give the server this long to answer before giving up.
-const RESPONSE_TIMEOUT_MS = 60_000;
 
 type Size = { width: number; height: number };
 type Picked = { file: File; preview: string; img: HTMLImageElement; fill: string };
@@ -89,44 +88,22 @@ export const CropUpload = forwardRef<
 
     const size = `${formatBytes(file.blob.size)} ${file.ext === "webp" ? "WebP" : "JPEG"}`;
     setStage({ label: `Uploading ${size}`, progress: 0 });
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `/api/upload?kind=${kind}`);
-    xhr.setRequestHeader("content-type", file.type);
-    xhr.setRequestHeader("x-file-name", encodeURIComponent(`${kind}.${file.ext}`));
-    let waiting: ReturnType<typeof setTimeout> | undefined;
-    xhr.upload.onprogress = (e) => e.lengthComputable && setStage({ label: `Uploading ${size}`, progress: Math.round((e.loaded / e.total) * 100) });
-    xhr.upload.onload = () => {
-      setStage({ label: "Finishing upload…" });
-      waiting = setTimeout(() => {
-        xhr.abort();
-        setStage(null);
-        setError("The server is taking too long to respond. Try again in a moment.");
-      }, RESPONSE_TIMEOUT_MS);
-    };
-    xhr.onload = async () => {
-      clearTimeout(waiting);
-      let body: { url?: string; error?: string } = {};
-      try {
-        body = JSON.parse(xhr.responseText);
-      } catch {}
-      if (xhr.status >= 200 && xhr.status < 300 && body.url) {
-        setStage({ label: "Saving…" });
-        const res = await onUploaded(body.url);
-        setStage(null);
-        if (res?.error) return setError(res.error);
-        dialog.current?.close();
-        setPicked(null);
-      } else {
-        setStage(null);
-        setError(body.error ?? "Upload failed. Try again.");
-      }
-    };
-    xhr.onerror = () => {
-      clearTimeout(waiting);
+    let url: string;
+    try {
+      ({ url } = await uploadFile(kind, file.blob, `${kind}.${file.ext}`, {
+        onProgress: (progress) => setStage({ label: `Uploading ${size}`, progress }),
+        onChecking: () => setStage({ label: "Finishing upload…" }),
+      }));
+    } catch (e) {
       setStage(null);
-      setError("Network error during upload. Check your connection and try again.");
-    };
-    xhr.send(file.blob);
+      return setError((e as Error).message);
+    }
+    setStage({ label: "Saving…" });
+    const res = await onUploaded(url);
+    setStage(null);
+    if (res?.error) return setError(res.error);
+    dialog.current?.close();
+    setPicked(null);
   }
 
   const busy = stage !== null;

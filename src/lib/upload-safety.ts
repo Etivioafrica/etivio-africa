@@ -1,4 +1,4 @@
-// Upload safety, shared by /api/upload and the file pickers. A file is identified by its first bytes ("magic
+// Upload safety, shared by /api/upload/sign, /api/upload/finish and the file pickers. A file is identified by its first bytes ("magic
 // numbers"), never by its name or the type the browser claims, so a script renamed to .pdf is still caught.
 
 export type Family = "image" | "video" | "audio" | "pdf" | "office" | "zip" | "epub" | "text" | "font" | "psd";
@@ -113,6 +113,15 @@ const DESCRIBE: Record<Family, string> = {
   font: "a font",
   psd: "a Photoshop file",
 };
+
+// Quick check on the name alone, before any bytes are sent (the content is still checked once the file arrives).
+export function checkName(kind: keyof typeof KIND_FAMILIES, fileName: string): string | null {
+  const ext = extOf(fileName);
+  if (BLOCKED.has(ext)) return `.${ext} files can't be uploaded to Etivio.`;
+  const allowed = (KIND_FAMILIES[kind] as Family[]).flatMap((f) => EXTENSIONS[f]);
+  if (ext && !allowed.includes(ext)) return `That type of file isn't accepted here. Allowed: ${allowed.join(", ")}.`;
+  return null;
+}
 
 export type Verdict ={ ok: true; family: Family; type: string; ext: string } | { ok: false; error: string };
 

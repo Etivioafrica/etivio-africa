@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, History, MessageCircle, Send, SquarePen, Sparkles } from "lucide-react";
+import { ChevronDown, History, MessageCircle, Send, SquarePen } from "lucide-react";
+import { AiAvatar } from "@/components/learn/AiAvatar";
 import { Formatted } from "@/components/learn/Formatted";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -121,9 +122,7 @@ export function AiWidget({ name }: { name: string }) {
       {open && (
         <section className="et-aw-panel" role="dialog" aria-label="Etivio AI">
           <header className="et-aw-head">
-            <span className="et-aw-badge">
-              <Sparkles size={14} />
-            </span>
+            <AiAvatar size={34} busy={busy} />
             <div>
               <b>Etivio AI</b>
               <small>{remaining === null ? "Your learning assistant" : out ? "Today's questions used" : `${remaining} questions left today`}</small>
@@ -166,6 +165,7 @@ export function AiWidget({ name }: { name: string }) {
                   ))
                 ) : (
                   <div className="et-aw-hello">
+                    <AiAvatar size={56} />
                     <span className="et-aw-date">
                       {dateLabel(new Date().toISOString())} <em>• AI</em>
                     </span>
@@ -266,7 +266,7 @@ export function AiWidget({ name }: { name: string }) {
           if (!open && !loaded) load();
           setOpen(!open);
         }} aria-label={open ? "Close Etivio AI" : "Open Etivio AI"} aria-expanded={open}>
-        {open ? <ChevronDown size={20} /> : <Sparkles size={20} />}
+        {open ? <ChevronDown size={20} /> : <AiAvatar size={56} />}
       </button>
     </div>
   );

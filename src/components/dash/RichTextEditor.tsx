@@ -28,8 +28,9 @@ import {
   Undo2,
   Video,
 } from "lucide-react";
+import { uploadFile } from "@/lib/upload-client";
 
-// Rich text editor (Tiptap), ported from the nnamdi-obi admin. Images upload to R2 through /api/upload.
+// Rich text editor (Tiptap), ported from the nnamdi-obi admin. Images upload straight to R2 (lib/upload-client.ts).
 function ToolBtn({ onClick, active = false, title, children }: { onClick: () => void; active?: boolean; title: string; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} title={title} aria-label={title} aria-pressed={active} className={`et-rte-btn${active ? " is-on" : ""}`}>
@@ -91,13 +92,9 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
     e.target.value = "";
     if (!file) return;
     setUploading(true);
-    fetch("/api/upload?kind=blog", {
-      method: "POST",
-      headers: { "content-type": file.type || "application/octet-stream", "x-file-name": encodeURIComponent(file.name) },
-      body: file,
-    })
-      .then((r) => r.json())
-      .then((body: { url?: string }) => body.url && editor?.chain().focus().setImage({ src: body.url }).run())
+    uploadFile("blog", file, file.name)
+      .then(({ url }) => editor?.chain().focus().setImage({ src: url }).run())
+      .catch((err: Error) => window.alert(err.message))
       .finally(() => setUploading(false));
   }
 

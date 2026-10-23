@@ -8,6 +8,7 @@ import { useToast } from "@/components/dash/useToast";
 import type { Json } from "@/lib/database.types";
 import type { Placeholder } from "@/lib/email/registry";
 import { resetTemplate, saveTemplate, sendTemplateTest } from "../actions";
+import { uploadFile } from "@/lib/upload-client";
 
 // Unlayer only runs in the browser.
 const EmailEditor = dynamic(() => import("react-email-editor"), { ssr: false, loading: () => <div className="et-skel" style={{ height: "100%" }} /> });
@@ -61,10 +62,9 @@ export function TemplateEditor({
     ed.registerCallback("image", (file: { attachments: File[] }, done: (r: { progress: number; url?: string }) => void) => {
       const f = file.attachments[0];
       done({ progress: 10 });
-      fetch("/api/upload?kind=blog", { method: "POST", headers: { "content-type": f.type, "x-file-name": encodeURIComponent(f.name) }, body: f })
-        .then((r) => r.json())
-        .then((b: { url?: string; error?: string }) => (b.url ? done({ progress: 100, url: b.url }) : show({ error: b.error ?? "Upload failed." })))
-        .catch(() => show({ error: "Upload failed." }));
+      uploadFile("blog", f, f.name, { onProgress: (p) => done({ progress: Math.max(10, p) }) })
+        .then(({ url }) => done({ progress: 100, url }))
+        .catch((err: Error) => show({ error: err.message }));
     });
     setReady(true);
   };

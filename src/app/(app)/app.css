@@ -1770,9 +1770,19 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 @media (max-width:640px){.et-public-main .et-ud-hero{margin-top:0}}
 
 /* Marketplace (/explore) */
+/* Etivio AI character: floats, blinks, spins while answering */
+.et-aia{flex-shrink:0;border-radius:50%;overflow:visible}
+.et-aia-body{transform-box:view-box;transform-origin:160px 160px;animation:et-aia-float 3.2s ease-in-out infinite}
+.et-aia-eyes{transform-box:fill-box;transform-origin:center;animation:et-aia-blink 4.6s infinite}
+.et-aia.is-busy .et-aia-body{animation:et-aia-spin 1.6s cubic-bezier(.5,0,.3,1) infinite}
+@keyframes et-aia-float{0%,100%{transform:translateY(4px) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+@keyframes et-aia-blink{0%,90%,100%{transform:scaleY(1)}93%{transform:scaleY(.1)}}
+@keyframes et-aia-spin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.86)}100%{transform:rotate(360deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){.et-aia-body,.et-aia-eyes,.et-aia.is-busy .et-aia-body{animation:none}}
 .et-aw{position:fixed;z-index:70;right:24px;bottom:24px;display:flex;flex-direction:column;align-items:flex-end;gap:14px}
-.et-aw-launch{display:grid;place-items:center;width:52px;height:52px;border:0;border-radius:50%;background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 28px rgba(15,23,42,.28);cursor:pointer;transition:transform .15s}
+.et-aw-launch{display:grid;place-items:center;width:56px;height:56px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 28px rgba(15,23,42,.28);cursor:pointer;transition:transform .15s}
 .et-aw-launch:hover{transform:translateY(-2px)}
+.et-aw-launch .et-aia{display:block}
 .et-aw-launch.is-open{background:var(--a-fg);color:var(--a-bg)}
 .et-aw-panel{display:flex;flex-direction:column;width:min(380px,calc(100vw - 32px));height:min(600px,calc(100dvh - 120px));border:1px solid var(--a-border);border-radius:20px;background:var(--a-panel);box-shadow:0 24px 60px rgba(15,23,42,.28);overflow:hidden;animation:et-aw-in .18s ease-out}
 @keyframes et-aw-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
@@ -2424,6 +2434,7 @@ button.et-pl-box:hover{border-color:var(--accent)}
 /* Installed app (full screen under the iPhone status bar): keep top bars clear of the notch. Zero in browsers. */
 .et-header,.et-sidebar-top,.et-pl-top{height:calc(60px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}
 .et-public-top{padding-top:env(safe-area-inset-top)}
+
 .et-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
 .et-kpi-mid{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
 .et-kpi-delta{display:inline-flex;align-items:center;gap:2px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;color:#fff;background:#52525b}
@@ -2503,7 +2514,7 @@ button.et-pl-box:hover{border-color:var(--accent)}
 .et-ai-log{display:flex;flex-direction:column;gap:14px;min-height:300px;max-height:min(60vh,620px);overflow-y:auto;padding:20px 18px}
 .et-ai-row{display:flex;gap:10px;align-items:flex-start}
 .et-ai-row.is-user{justify-content:flex-end}
-.et-ai-avatar{width:28px;height:28px;flex-shrink:0;margin-top:2px;border-radius:999px;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg)}
+.et-ai-avatar{margin-top:2px}
 .et-ai-msg{max-width:min(680px,85%);padding:11px 14px;border-radius:14px;font-size:13.5px;line-height:1.65}
 .et-ai-msg.is-user{background:var(--accent);color:var(--accent-fg);border-bottom-right-radius:4px}
 .et-ai-msg.is-assistant{background:var(--a-panel-2);border:1px solid var(--a-border);color:var(--a-fg);border-top-left-radius:4px}

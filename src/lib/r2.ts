@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { DeleteObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
 import { slugify } from "@/lib/format";
@@ -73,4 +73,39 @@ export async function deleteObject(key: string | null) {
 export function signedDownloadUrl(key: string, fileName: string, seconds = 300) {
   const safe = fileName.replace(/["\\\r\n]/g, "");
   return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key, ResponseContentDisposition: `attachment; filename="${safe}"` }), { expiresIn: seconds });
+}
+
+// --- Direct uploads: the browser PUTs to a signed link under incoming/, then /api/upload/finish checks the file and
+// moves it to its real folder. Vercel functions can't take request bodies over ~4.5 MB, so files never pass through.
+
+export const INCOMING = "incoming";
+
+export function signedUploadUrl(key: string, seconds = 900) {
+  return getSignedUrl(s3, new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: "application/octet-stream" }), { expiresIn: seconds });
+}
+
+export async function objectSize(key: string) {
+  const head = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key })).catch(() => null);
+  return head?.ContentLength ?? null;
+}
+
+// The first `bytes` of an object (or all of it when `bytes` is left out).
+export async function readObject(key: string, bytes?: number) {
+  const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key, ...(bytes ? { Range: `bytes=0-${bytes - 1}` } : {}) }));
+  return Buffer.from(await res.Body!.transformToByteArray());
+}
+
+// Copies within the bucket (up to 5 GB) with the real content type, and `download` set as for putObject.
+export async function copyObject(from: string, to: string, contentType: string, download?: string) {
+  await s3.send(
+    new CopyObjectCommand({
+      Bucket: BUCKET,
+      CopySource: `${BUCKET}/${from.split("/").map(encodeURIComponent).join("/")}`,
+      Key: to,
+      MetadataDirective: "REPLACE",
+      ContentType: contentType,
+      ...(download ? { ContentDisposition: `attachment; filename="${download.replace(/["\\\r\n]/g, "")}"` } : {}),
+    }),
+  );
+  return publicUrl(to);
 }
