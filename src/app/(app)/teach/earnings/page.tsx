@@ -6,7 +6,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ITEM_TYPES } from "@/lib/marketplace";
 import { getCurrentUser } from "@/lib/auth";
 import { canTeach } from "@/lib/roles";
+import Link from "next/link";
 import { compactMoney, formatDate, formatMoney } from "@/lib/format";
+import { MIN_WITHDRAWAL_MINOR } from "@/lib/payouts";
+import { WithdrawForm } from "./WithdrawForm";
 
 export const metadata = { title: "Earnings" };
 
@@ -16,7 +19,8 @@ export default async function Earnings() {
   const supabase = await createClient();
   // Sales of their own courses and products. Product tables aren't readable by tutors directly, so this goes through
   // the server, filtered to this tutor.
-  const [{ data: sales }, { data: payouts }, { data: settings }] = await Promise.all([
+  const db = createAdminClient();
+  const [{ data: sales }, { data: payouts }, { data: settings }, { data: available }, { data: account }] = await Promise.all([
     createAdminClient()
       .from("payments")
       .select("id, amount_minor, instructor_share_minor, currency, status, paid_at, created_at, course:courses(title), product:products(title, kind)")
@@ -25,7 +29,10 @@ export default async function Earnings() {
       .limit(100),
     supabase.from("payouts").select("id, amount_minor, status, reference, paid_at, created_at").eq("instructor_id", user.id).order("created_at", { ascending: false }),
     supabase.from("platform_settings").select("commission_percent").single(),
+    db.rpc("payout_available", { p_user: user.id }),
+    db.from("payout_accounts").select("bank_name, account_number, verified_at").eq("user_id", user.id).maybeSingle(),
   ]);
+  const availableMinor = Math.max(0, Number(available ?? 0));
 
   const ok = (sales ?? []).filter((s) => s.status === "success");
   const earned = ok.reduce((n, s) => n + s.instructor_share_minor, 0);
@@ -37,11 +44,24 @@ export default async function Earnings() {
     <div className="et-page">
       <PageHead title="Earnings" sub={`You keep ${share}% of every sale. Etivio pays out what you're owed.`} />
       <div className="et-stats">
+        <Stat label="Available to withdraw" value={compactMoney(availableMinor)} icon={HandCoins} hint="Group buys still filling aren't counted yet" />
         <Stat label="Total earned" value={compactMoney(earned)} icon={Wallet} />
+        <Stat label="Waiting to be paid" value={compactMoney(scheduled)} icon={Clock} />
         <Stat label="Paid to you" value={compactMoney(paid)} icon={Banknote} />
-        <Stat label="Scheduled" value={compactMoney(scheduled)} icon={Clock} />
-        <Stat label="Still owed" value={compactMoney(Math.max(0, earned - paid))} icon={HandCoins} />
       </div>
+      <section className="et-card et-card-pad et-wd-card">
+        {account?.verified_at ? (
+          <WithdrawForm availableMinor={availableMinor} minMinor={MIN_WITHDRAWAL_MINOR} bank={`${account.bank_name} (••••${account.account_number.slice(-4)})`} />
+        ) : (
+          <div className="et-wd-setup">
+            <b>Add your bank account to withdraw</b>
+            <p>We check the account with your bank, then you can withdraw what you&apos;ve earned.</p>
+            <Link href="/settings/billing" className="et-btn et-btn-primary et-btn-sm">
+              Add bank account
+            </Link>
+          </div>
+        )}
+      </section>
       <div className="et-grid-2">
         <section className="et-card">
           <div className="et-card-head">
@@ -83,7 +103,10 @@ export default async function Earnings() {
                   <tr key={p.id}>
                     <td>
                       <b>{formatMoney(p.amount_minor)}</b>
-                      <small>{p.reference || formatDate(p.created_at)}</small>
+                      <small>
+                        {p.status === "pending" ? "Requested" : p.status === "paid" ? "Paid" : "Cancelled"} · {formatDate(p.paid_at ?? p.created_at)}
+                        {p.reference ? ` · ${p.reference}` : ""}
+                      </small>
                     </td>
                     <td>
                       <Status value={p.status} />

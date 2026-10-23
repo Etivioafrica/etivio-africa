@@ -26,8 +26,11 @@ export type WizardInitial = {
   coverUrl: string;
   priceNaira: number;
   listed: boolean;
+  group?: GroupBuy;
   modules: { id: string; title: string; lessons: { id: string; title: string; videoUrl: string; hostedVideo: boolean; content: string; files: LessonFile[] }[] }[];
 };
+export type GroupBuy = { enabled: boolean; size: number; discount: number; days: number };
+const GROUP_DEFAULT: GroupBuy = { enabled: false, size: 5, discount: 20, days: 7 };
 const STEPS = ["Basics", "Curriculum", "Pricing", "Review"] as const;
 // Wait this long after the last change before autosaving an existing course.
 const AUTOSAVE_MS = 1200;
@@ -43,13 +46,18 @@ export function CourseWizard({
   defaultInstructor,
   initial,
   edit,
+  tutor,
 }: {
   instructors: { id: string; label: string }[];
   categories: Category[];
   defaultInstructor: string;
   initial?: WizardInitial;
   edit?: { courseId: string; status: CourseStatus; students: number };
+  // Set for tutors (/teach): they're always the instructor, and publishing means submitting for review unless
+  // `canPublish` (trusted tutor, or the course was approved before).
+  tutor?: { canPublish: boolean };
 }) {
+  const base = tutor ? "/teach/courses" : "/admin/courses";
   const router = useRouter();
   const [toast, show] = useToast();
   const [saving, start] = useTransition();
@@ -65,6 +73,8 @@ export function CourseWizard({
   const [coverUrl, setCoverUrl] = useState(initial?.coverUrl ?? "");
   const [paid, setPaid] = useState((initial?.priceNaira ?? 0) > 0);
   const [listed, setListed] = useState(initial?.listed ?? true);
+  const [group, setGroup] = useState<GroupBuy>(initial?.group ?? GROUP_DEFAULT);
+  const setG = (patch: Partial<GroupBuy>) => setGroup((g) => ({ ...g, ...patch }));
   // AI helpers: which one is running, and whether the outline should research the web first.
   const [aiBusy, setAiBusy] = useState<"copy" | "cover" | "outline" | null>(null);
   const [aiWeb, setAiWeb] = useState(true);
@@ -92,6 +102,11 @@ export function CourseWizard({
     if (s === 0 && title.trim().length < 3) return "Give the course a title of at least 3 characters.";
     if (s === 0 && !instructorId) return "Pick an instructor.";
     if (s === 2 && paid && !(priceNum >= 500)) return "Paid courses need a price of at least ₦500.";
+    if (s === 2 && paid && group.enabled) {
+      if (!(group.size >= 2 && group.size <= 50)) return "Group size must be between 2 and 50 people.";
+      if (!(group.discount >= 10 && group.discount <= 40)) return "The group discount must be between 10% and 40%.";
+      if (!(group.days >= 1 && group.days <= 30)) return "Days to fill must be between 1 and 30.";
+    }
     return "";
   }
 
@@ -170,7 +185,7 @@ export function CourseWizard({
       return copy;
     });
 
-  const fields = () => ({ title, summary, description, skills, instructorId, categoryId, level, coverUrl, priceNaira: paid ? String(priceNum) : "0", listed, modules: lessonPayload() });
+  const fields = () => ({ title, summary, description, skills, instructorId, categoryId, level, coverUrl, priceNaira: paid ? String(priceNum) : "0", listed, group: { ...group, enabled: paid && group.enabled }, modules: lessonPayload() });
   // What the course looks like, without row ids, so merging ids after a save doesn't count as a change.
   const snapshot = JSON.stringify({
     ...fields(),
@@ -233,7 +248,7 @@ export function CourseWizard({
     return () => window.removeEventListener("beforeunload", warn);
   }, [edit, dirty]);
 
-  async function saveEdit(status: "keep" | "draft" | "published") {
+  async function saveEdit(status: "keep" | "draft" | "pending" | "published") {
     if (!edit) return;
     const removed = initial!.modules.flatMap((m) => m.lessons).filter((l) => !modules.some((m) => m.lessons.some((x) => x.id === l.id))).length;
     if (removed && edit.students && !(await confirmDialog({ title: `You removed ${removed} ${removed === 1 ? "lesson" : "lessons"}`, body: `Learners lose their progress, notes and resources for ${removed === 1 ? "it" : "them"}. Save anyway?`, confirmLabel: "Save anyway", danger: true }))) return;
@@ -245,8 +260,8 @@ export function CourseWizard({
         return show(res);
       }
       setSavedSnap(snapshot);
-      show(status === "published" ? "Published." : status === "draft" ? "Moved back to draft." : "Changes saved.");
-      router.push(`/admin/courses/${edit.courseId}`);
+      show(status === "published" ? "Published." : status === "draft" ? "Moved back to draft." : res.ok ?? "Changes saved.");
+      router.push(`${base}/${edit.courseId}`);
     });
   }
 
@@ -264,6 +279,7 @@ export function CourseWizard({
         coverUrl,
         priceNaira: paid ? String(priceNum) : "0",
         listed,
+        group: { ...group, enabled: paid && group.enabled },
         modules: lessonPayload(),
         publish,
       });
@@ -271,8 +287,8 @@ export function CourseWizard({
         setError(res.error);
         return show(res);
       }
-      show(publish ? "Course published." : "Course created as a draft.");
-      router.push(`/admin/courses/${res.id}?tab=curriculum`);
+      show(res.ok ?? (publish ? "Course published." : "Course created as a draft."));
+      router.push(tutor ? `${base}/${res.id}` : `${base}/${res.id}?tab=curriculum`);
     });
   }
 
@@ -280,16 +296,16 @@ export function CourseWizard({
     <>
       {toast}
       <p className="et-set-crumb">
-        <Link href="/admin/courses">Courses</Link> <span>/</span>{" "}
-        {edit ? <Link href={`/admin/courses/${edit.courseId}`}>{initial?.title}</Link> : "New course"} <span>/</span> {edit ? "Edit" : STEPS[step]}
+        <Link href={base}>Courses</Link> <span>/</span>{" "}
+        {edit ? <Link href={`${base}/${edit.courseId}`}>{initial?.title}</Link> : "New course"} <span>/</span> {edit ? "Edit" : STEPS[step]}
       </p>
       <div className="et-page-head">
         <div>
           <h1>{edit ? "Edit course" : "New course"}</h1>
           <p>
             {edit
-              ? "Changes save automatically as you work. Use the Review step to publish or unpublish."
-              : "Set it up in four steps: details, lessons (with videos, text and files), price, then review."}
+              ? `Changes save automatically as you work. Use the Review step to ${tutor && !tutor.canPublish ? "submit it for review" : "publish or unpublish"}.`
+              : `Set it up in four steps: details, lessons (with videos, text and files), price, then review.${tutor && !tutor.canPublish ? " The Etivio team reviews every course before it goes live." : ""}`}
           </p>
         </div>
         {edit && (
@@ -330,6 +346,7 @@ export function CourseWizard({
                 <small>{summary.length}/300</small>
               </div>
               <div className="et-form-grid">
+                {!tutor && (
                 <div className="et-field">
                   <label htmlFor="w-instructor">Instructor</label>
                   <Select id="w-instructor" value={instructorId} onChange={(e) => setInstructorId(e.target.value)}>
@@ -340,6 +357,7 @@ export function CourseWizard({
                     ))}
                   </Select>
                 </div>
+                )}
                 <div className="et-field">
                   <label htmlFor="w-cat">Category</label>
                   <Select id="w-cat" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
@@ -500,7 +518,41 @@ export function CourseWizard({
               <div className="et-field" style={{ maxWidth: 320 }}>
                 <label htmlFor="w-price">Price (₦)</label>
                 <input id="w-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. 15000" autoFocus />
-                <small>Minimum ₦500. The tutor&apos;s share is set in Settings › Platform.</small>
+                <small>{tutor ? "Minimum ₦500. Your earnings are the price minus Etivio's commission." : "Minimum ₦500. The tutor's share is set in Settings › Platform."}</small>
+              </div>
+            )}
+            {paid && (
+              <div className="et-wiz-group">
+                <label className="et-wiz-listed">
+                  <span>
+                    <b>Group buy</b>
+                    <small>Let learners buy together at a discount. When the group fills in time everyone gets the course; if not, their money goes to their Etivio wallet.</small>
+                  </span>
+                  <input type="checkbox" role="switch" className="et-toggle" checked={group.enabled} onChange={(e) => setG({ enabled: e.target.checked })} />
+                </label>
+                {group.enabled && (
+                  <>
+                    <div className="et-form-grid et-gb-admin-grid">
+                      <div className="et-field">
+                        <label htmlFor="w-gsize">People per group</label>
+                        <input id="w-gsize" type="number" min={2} max={50} value={group.size} onChange={(e) => setG({ size: Number(e.target.value) })} />
+                      </div>
+                      <div className="et-field">
+                        <label htmlFor="w-gdisc">Discount (%)</label>
+                        <input id="w-gdisc" type="number" min={10} max={40} value={group.discount} onChange={(e) => setG({ discount: Number(e.target.value) })} />
+                      </div>
+                      <div className="et-field">
+                        <label htmlFor="w-gdays">Days to fill</label>
+                        <input id="w-gdays" type="number" min={1} max={30} value={group.days} onChange={(e) => setG({ days: Number(e.target.value) })} />
+                      </div>
+                    </div>
+                    {priceNum >= 500 && group.discount >= 10 && group.discount <= 40 && (
+                      <small className="et-muted">
+                        Each member pays ₦{Math.round((priceNum * (100 - group.discount)) / 100).toLocaleString()} instead of ₦{priceNum.toLocaleString()}.
+                      </small>
+                    )}
+                  </>
+                )}
               </div>
             )}
             <label className="et-wiz-listed">
@@ -528,14 +580,17 @@ export function CourseWizard({
                 <dt>Level</dt>
                 <dd style={{ textTransform: "capitalize" }}>{level}</dd>
                 <dt>Price</dt>
-                <dd>{paid ? `₦${priceNum.toLocaleString()}` : "Free"}</dd>
+                <dd>
+                  {paid ? `₦${priceNum.toLocaleString()}` : "Free"}
+                  {paid && group.enabled ? ` · group buy ${group.discount}% off for ${group.size} people` : ""}
+                </dd>
                 <dt>Curriculum</dt>
                 <dd>
                   {modules.filter((m) => m.title.trim()).length} modules · {lessonTotal} lessons
                 </dd>
               </dl>
             </div>
-            {!lessonTotal && <p className="et-flash et-flash-warn">There are no lessons yet, so this can only be saved as a draft. Add lesson titles in step 2 to publish.</p>}
+            {!lessonTotal && <p className="et-flash et-flash-warn">There are no lessons yet, so this can only be saved as a draft. Add lesson titles in step 2 to {tutor && !tutor.canPublish ? "submit it" : "publish"}.</p>}
             {edit && (
               <p className="et-muted" style={{ fontSize: 12.5 }}>
                 Status now: <b>{COURSE_STATUS_LABEL[edit.status]}</b>
@@ -552,7 +607,7 @@ export function CourseWizard({
             <ArrowLeft size={14} /> Back
           </button>
         ) : (
-          <Link href={edit ? `/admin/courses/${edit.courseId}` : "/admin/courses"} className="et-btn et-btn-ghost">
+          <Link href={edit ? `${base}/${edit.courseId}` : base} className="et-btn et-btn-ghost">
             {edit ? "Back to course" : "Cancel"}
           </Link>
         )}
@@ -566,6 +621,12 @@ export function CourseWizard({
               {edit.status === "published" ? (
                 <button type="button" className="et-btn et-btn-ghost" onClick={() => saveEdit("draft")} disabled={saving}>
                   Unpublish
+                </button>
+              ) : tutor && edit.status === "pending" ? (
+                <span className="et-muted" style={{ fontSize: 13 }}>Waiting for review</span>
+              ) : tutor && !tutor.canPublish ? (
+                <button type="button" className="et-btn et-btn-success" onClick={() => saveEdit("pending")} disabled={saving || !lessonTotal}>
+                  {saving ? "Submitting…" : "Submit for review"}
                 </button>
               ) : (
                 <button type="button" className="et-btn et-btn-success" onClick={() => saveEdit("published")} disabled={saving || !lessonTotal}>
@@ -582,7 +643,7 @@ export function CourseWizard({
               {saving ? "Creating…" : "Save as draft"}
             </button>
             <button type="button" className="et-btn et-btn-success" onClick={() => create(true)} disabled={saving || !lessonTotal}>
-              {saving ? "Creating…" : "Create and publish"}
+              {saving ? "Creating…" : tutor && !tutor.canPublish ? "Submit for review" : "Create and publish"}
             </button>
           </div>
           )

@@ -14,8 +14,11 @@ export type Prefill = { firstName: string; lastName: string; email: string; coun
 
 const COUNTRIES = ["Nigeria", "Ghana", "Kenya", "South Africa", "Rwanda", "Uganda", "Tanzania", "Egypt", "Cameroon", "Côte d'Ivoire", "Senegal", "Ethiopia", "Zambia", "United Kingdom", "United States", "Canada", "Other"];
 
-export function CheckoutForm({ prefill }: { prefill: Prefill | null }) {
+export function CheckoutForm({ prefill, walletMinor = 0 }: { prefill: Prefill | null; walletMinor?: number }) {
   const { cart, items, total, currency, blocked } = useCartPrices();
+  // The wallet pays first (group buys that didn't fill); Paystack charges the rest.
+  const fromWallet = Math.min(walletMinor, total);
+  const toPay = total - fromWallet;
   const [state, action] = useActionState<PlaceOrderState, FormData>(placeOrder, null);
 
   // Items the server refused (already owned, no longer for sale) leave the cart.
@@ -116,9 +119,15 @@ export function CheckoutForm({ prefill }: { prefill: Prefill | null }) {
           {items === null && <li className="et-skel" style={{ height: 48 }} />}
         </ul>
         <dl>
+          {fromWallet > 0 && items && (
+            <div>
+              <dt>From your wallet</dt>
+              <dd>−{formatPrice(fromWallet, currency)}</dd>
+            </div>
+          )}
           <div className="is-total">
-            <dt>Total</dt>
-            <dd>{items ? formatPrice(total, currency) : "…"}</dd>
+            <dt>{fromWallet > 0 ? "To pay" : "Total"}</dt>
+            <dd>{items ? formatPrice(toPay, currency) : "…"}</dd>
           </div>
         </dl>
         {blocked.length > 0 && (
@@ -126,7 +135,7 @@ export function CheckoutForm({ prefill }: { prefill: Prefill | null }) {
             Remove the flagged {blocked.length === 1 ? "item" : "items"} from your <Link href="/cart">cart</Link> to continue.
           </p>
         )}
-        <PayButton ready={ready} label={items ? `Pay ${formatPrice(total, currency)}` : "Pay"} />
+        <PayButton ready={ready} label={!items ? "Pay" : toPay === 0 ? "Pay with wallet" : `Pay ${formatPrice(toPay, currency)}`} />
         <p className="et-guest-alt">
           <Lock size={12} /> Secure payment by Paystack · card, bank transfer or USSD
         </p>

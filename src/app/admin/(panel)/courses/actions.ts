@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 import { parseSkills } from "@/lib/skills";
 import { refresh } from "next/cache";
 import { after } from "next/server";
-import { emailReviewReply } from "@/lib/email/notify";
+import { emailCourseSubmitted, emailReviewReply } from "@/lib/email/notify";
 import { audit, requireAdmin } from "@/lib/admin";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccess, canTeach } from "@/lib/roles";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { nairaToMinor, slugify } from "@/lib/format";
 import { sanitizeRichText } from "@/lib/sanitize";
@@ -216,9 +219,22 @@ export type NewCourseInput = {
   priceNaira: string;
   // Shown on the marketplace (/explore). Defaults to on.
   listed?: boolean;
+  // Group buy settings (only kept for paid courses; values are clamped to the allowed ranges).
+  group?: { enabled: boolean; size: number; discount: number; days: number };
   modules: ModuleDraft[];
   publish: boolean;
 };
+
+const clamp = (n: number, lo: number, hi: number, fallback: number) => (Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : fallback);
+function groupColumns(group: NewCourseInput["group"], priceNaira: string) {
+  if (!group) return {};
+  return {
+    group_buy_enabled: group.enabled && nairaToMinor(priceNaira) > 0,
+    group_size: clamp(group.size, 2, 50, 5),
+    group_discount_percent: clamp(group.discount, 10, 40, 20),
+    group_days: clamp(group.days, 1, 30, 7),
+  };
+}
 
 export type LessonFile = { id?: string; url: string; key: string; name: string; size: number; type: string };
 export type LessonDraft = { id?: string; key?: string; title: string; videoUrl: string; content: string; files: LessonFile[] };
@@ -333,7 +349,7 @@ async function syncCurriculum(db: DB, adminId: string, courseId: string, modules
 
 // A file uploaded in the wizard but removed before saving. Only deletes it if nothing points at it yet.
 export async function discardUpload(url: string): Promise<Result> {
-  const { db } = await requireAdmin("courses");
+  const { db } = await courseEditor();
   const key = keyFromUrl(url);
   if (!key?.startsWith("documents/")) return {};
   const { count } = await db.from("documents").select("id", { count: "exact", head: true }).eq("file_url", url);
@@ -341,8 +357,29 @@ export async function discardUpload(url: string): Promise<Result> {
   return {};
 }
 
+// Who is using the course wizard. Staff with course access edit any course; tutors only their own, as the
+// instructor, and their courses go through review unless they're trusted or the course was approved before.
+async function courseEditor(courseId?: string) {
+  const user = await getCurrentUser();
+  const db = createAdminClient();
+  if (canAccess(user.roles, "courses")) return { actorId: user.id, db, staff: true, trusted: true };
+  if (!canTeach(user.roles)) redirect("/teach");
+  if (courseId) {
+    const { data } = await db.from("courses").select("instructor_id").eq("id", courseId).maybeSingle();
+    if (!data || data.instructor_id !== user.id) redirect("/teach/courses");
+  }
+  const { data: profile } = await db.from("profiles").select("trusted_tutor").eq("id", user.id).maybeSingle();
+  return { actorId: user.id, db, staff: false, trusted: !!profile?.trusted_tutor };
+}
+
 export async function createCourseFull(input: NewCourseInput): Promise<Result> {
-  const { admin, db } = await requireAdmin("courses");
+  const editor = await courseEditor();
+  const { db } = editor;
+  const admin = { id: editor.actorId };
+  if (!editor.staff) input = { ...input, instructorId: editor.actorId };
+  // Tutors asking to publish are submitting for review (trusted tutors publish straight away).
+  const goLive = input.publish && editor.trusted;
+  const submit = input.publish && !editor.trusted;
   const title = input.title.trim().slice(0, 140);
   if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
   if (!input.instructorId) return { error: "Pick an instructor." };
@@ -368,8 +405,9 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
         level: LEVELS.includes(input.level) ? input.level : "beginner",
         price_minor: nairaToMinor(input.priceNaira),
         marketplace_listed: input.listed ?? true,
+        ...groupColumns(input.group, input.priceNaira),
         ...(await categoryColumns(db, input.categoryId)),
-        ...(input.publish ? { status: "published" as const, published_at: new Date().toISOString() } : {}),
+        ...(goLive ? { status: "published" as const, published_at: new Date().toISOString() } : submit ? { status: "pending" as const, submitted_at: new Date().toISOString() } : {}),
       })
       .select("id")
       .single();
@@ -380,9 +418,13 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
 
   const synced = await syncCurriculum(db, admin.id, id, modules.length ? modules : [{ title: "Getting started", lessons: [] }]);
   if ("error" in synced) return { error: synced.error, id };
-  await audit(admin.id, "course.create", { type: "course", id }, { title });
+  if (editor.staff) await audit(admin.id, "course.create", { type: "course", id }, { title });
+  if (submit) {
+    const courseId = id;
+    after(() => emailCourseSubmitted(courseId));
+  }
   refresh();
-  return { ok: "Course created.", id };
+  return { ok: goLive ? "Course published." : submit ? "Submitted for review. We'll email you when it's approved." : "Course created as a draft.", id };
 }
 
 // List actions ------------------------------------------------------------------------
@@ -568,17 +610,25 @@ export async function deleteQuiz(quizId: string): Promise<Result> {
 // Edit course (same four steps as creating one) ---------------------------------------------
 
 // `quiet` is for autosave: skip refreshing the page so the editor isn't re-rendered mid-typing.
-export type EditCourseInput = Omit<NewCourseInput, "publish"> & { status: "keep" | "draft" | "published"; quiet?: boolean };
+export type EditCourseInput = Omit<NewCourseInput, "publish"> & { status: "keep" | "draft" | "pending" | "published"; quiet?: boolean };
 
 // Saves details, pricing and the curriculum outline in one go. Modules and lessons keep their ids, so
 // progress, notes and quiz results survive renames and moves; anything removed from the outline is deleted.
 export async function updateCourseFull(courseId: string, input: EditCourseInput): Promise<Result & { created?: Created }> {
-  const { admin, db } = await requireAdmin("courses");
+  const editor = await courseEditor(courseId);
+  const { db } = editor;
+  const admin = { id: editor.actorId };
+  if (!editor.staff) input = { ...input, instructorId: editor.actorId };
   const title = input.title.trim().slice(0, 140);
   if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
   if (!input.instructorId) return { error: "Pick an instructor." };
-  const { data: before } = await db.from("courses").select("cover_url, status").eq("id", courseId).maybeSingle();
+  const { data: before } = await db.from("courses").select("cover_url, status, published_at").eq("id", courseId).maybeSingle();
   if (!before) return { error: "That course no longer exists." };
+  // Tutors: publishing a course that was never approved means submitting it for review instead.
+  if (!editor.staff) {
+    if (input.status === "published" && !before.published_at && !editor.trusted) input = { ...input, status: "pending" };
+    if (input.status === "pending" && !["draft", "rejected"].includes(before.status)) input = { ...input, status: "keep" };
+  }
 
   const { modules, error: curriculumError } = cleanCurriculum(input.modules);
   if (curriculumError) return { error: curriculumError };
@@ -600,21 +650,28 @@ export async function updateCourseFull(courseId: string, input: EditCourseInput)
       level: LEVELS.includes(input.level) ? input.level : "beginner",
       price_minor: nairaToMinor(input.priceNaira),
       ...(input.listed === undefined ? {} : { marketplace_listed: input.listed }),
+      ...groupColumns(input.group, input.priceNaira),
       ...(await categoryColumns(db, input.categoryId)),
-      ...(nextStatus !== before.status ? { status: nextStatus, ...(nextStatus === "published" ? { published_at: new Date().toISOString() } : { featured: false }) } : {}),
+      ...(nextStatus !== before.status
+        ? {
+            status: nextStatus,
+            ...(nextStatus === "published" ? { published_at: before.published_at ?? new Date().toISOString() } : nextStatus === "pending" ? { submitted_at: new Date().toISOString() } : { featured: false }),
+          }
+        : {}),
     })
     .eq("id", courseId);
   if (error) return { error: "Could not save the course." };
+  if (nextStatus === "pending" && before.status !== "pending") after(() => emailCourseSubmitted(courseId));
 
   const synced = await syncCurriculum(db, admin.id, courseId, modules);
   if ("error" in synced) return { error: synced.error };
   if (before.cover_url && before.cover_url !== cover) await deleteObject(keyFromUrl(before.cover_url));
 
   if (!input.quiet) {
-    await audit(admin.id, "course.update", { type: "course", id: courseId }, { lessons: lessonCount });
+    if (editor.staff) await audit(admin.id, "course.update", { type: "course", id: courseId }, { lessons: lessonCount });
     refresh();
   }
-  return { ok: "Course saved.", id: courseId, created: synced.created };
+  return { ok: nextStatus === "pending" && before.status !== "pending" ? "Submitted for review. We'll email you when it's approved." : "Course saved.", id: courseId, created: synced.created };
 }
 
 // Lesson editor -----------------------------------------------------------------------------
@@ -710,4 +767,25 @@ export async function deleteLessonFromEditor(lessonId: string): Promise<Result> 
   await audit(admin.id, "lesson.delete", { type: "lesson", id: lessonId });
   refresh();
   return { ok: "Lesson deleted." };
+}
+
+// Group buy for one course: on or off, how many people, how much off (10-40%), and how many days a group has to fill.
+// Groups already started keep the settings they started with.
+export async function adminSaveGroupBuy(_prev: FormState, fd: FormData): Promise<FormState> {
+  const { admin, db } = await requireAdmin("courses");
+  const id = str(fd, "id");
+  const enabled = fd.get("enabled") === "on";
+  const size = Math.round(Number(str(fd, "size")));
+  const discount = Math.round(Number(str(fd, "discount")));
+  const days = Math.round(Number(str(fd, "days")));
+  if (!(size >= 2 && size <= 50)) return { error: "Group size must be between 2 and 50 people." };
+  if (!(discount >= 10 && discount <= 40)) return { error: "The discount must be between 10% and 40%." };
+  if (!(days >= 1 && days <= 30)) return { error: "Days to fill must be between 1 and 30." };
+  const { data: course } = await db.from("courses").select("price_minor").eq("id", id).maybeSingle();
+  if (!course) return { error: "That course wasn't found." };
+  if (enabled && course.price_minor <= 0) return { error: "Group buy is for paid courses. Set a price first." };
+  await db.from("courses").update({ group_buy_enabled: enabled, group_size: size, group_discount_percent: discount, group_days: days }).eq("id", id);
+  await audit(admin.id, "course.group_buy", { type: "course", id });
+  refresh();
+  return { ok: enabled ? "Group buy is on for this course." : "Group buy settings saved." };
 }

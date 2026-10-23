@@ -43,6 +43,10 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Link href={`/teach/courses/${course.id}/edit`} className="et-btn et-btn-ghost">
+            <Pencil size={15} />
+            Edit in course builder
+          </Link>
           <Link href={`/learn/course/${course.id}`} className="et-btn et-btn-ghost">
             <Eye size={15} />
             Preview

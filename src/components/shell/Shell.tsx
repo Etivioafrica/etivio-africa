@@ -23,7 +23,6 @@ import {
   Megaphone,
   Menu,
   Moon,
-  Plus,
   Presentation,
   Search,
   Settings,
@@ -110,6 +109,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
               { label: "Orders", href: "/admin/marketplace/orders" },
             ],
           },
+          { label: "Group buys", href: "/admin/group-buys", icon: Users, area: "marketplace" },
           { label: "Announcements", href: "/admin/announcements", icon: Megaphone, area: "announcements" },
           {
             label: "Blog",
@@ -136,6 +136,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         items: [
           { label: "Tracking", href: "/admin/tracking", icon: BarChart3, area: "tracking" },
           { label: "Financials", href: "/admin/financials", icon: Wallet, area: "financials" },
+          { label: "Wallets", href: "/admin/wallets", icon: Wallet, area: "financials" },
         ],
       },
       {
@@ -176,6 +177,7 @@ const learnNav: Group[] = [
       { label: "Library", href: "/learn/library", icon: FolderDown },
       { label: "Saved", href: "/profile/saved", icon: Heart },
       { label: "Marketplace", href: "/explore", icon: Store },
+      { label: "Wallet", href: "/learn/wallet", icon: Wallet },
     ],
   },
   account,
@@ -188,9 +190,25 @@ const teachNav = (canTeach: boolean): Group[] => [
         {
           label: "Teaching",
           items: [
-            { label: "Courses", href: "/teach/courses", icon: BookOpen, exact: true },
-            { label: "New course", href: "/teach/courses/new", icon: Plus },
-            { label: "Products", href: "/teach/products", icon: Store },
+            {
+              label: "Courses",
+              href: "/teach/courses",
+              icon: BookOpen,
+              children: [
+                { label: "All courses", href: "/teach/courses" },
+                { label: "New course", href: "/teach/courses/new" },
+              ],
+            },
+            {
+              label: "Marketplace",
+              href: "/teach/products",
+              icon: Store,
+              children: [
+                { label: "My products", href: "/teach/products" },
+                { label: "New product", href: "/teach/products/new" },
+                { label: "View marketplace", href: "/explore" },
+              ],
+            },
             { label: "Students", href: "/teach/students", icon: Users },
             { label: "Earnings", href: "/teach/earnings", icon: Wallet },
           ],

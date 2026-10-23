@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sessionUser } from "@/lib/supabase/session";
+import { walletBalance } from "@/lib/data/wallet";
 import { CheckoutForm, type Prefill } from "./CheckoutForm";
 
 export const metadata: Metadata = { title: "Checkout | Etivio", robots: { index: false } };
@@ -24,7 +25,9 @@ export default function CheckoutPage() {
 async function Checkout() {
   const viewer = await sessionUser(await createClient());
   let prefill: Prefill | null = null;
+  let wallet = 0;
   if (viewer) {
+    wallet = await walletBalance(viewer.id);
     const db = createAdminClient();
     const [{ data: profile }, { data: billing }] = await Promise.all([
       db.from("profiles").select("full_name").eq("id", viewer.id).maybeSingle(),
@@ -33,5 +36,5 @@ async function Checkout() {
     const [first = "", ...rest] = (billing?.name || profile?.full_name || "").trim().split(/\s+/);
     prefill = { firstName: first, lastName: rest.join(" "), email: viewer.email, country: billing?.country ?? "", state: billing?.city ?? "" };
   }
-  return <CheckoutForm prefill={prefill} />;
+  return <CheckoutForm prefill={prefill} walletMinor={wallet} />;
 }

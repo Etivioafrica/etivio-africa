@@ -6,6 +6,7 @@ import { ShareButton } from "@/components/dash/ShareButton";
 import { Suspense } from "react";
 import { enrollFree, toggleSaved } from "@/app/(app)/learn/actions";
 import { AddToCart } from "./AddToCart";
+import { GroupBuyBox } from "./GroupBuyBox";
 import { PaymentNotice } from "./PaymentNotice";
 import type { getCourseDetails } from "@/lib/data/learn";
 import { formatDate, formatDuration, formatPrice } from "@/lib/format";
@@ -125,6 +126,11 @@ export function CourseView({ data }: { data: CourseData }) {
               <div className="et-ud-card-body">
                 <p className="et-ud-price">{free ? "Free" : formatPrice(course.priceMinor, course.currency)}</p>
                 {cta}
+                {!enrolled && !free && (
+                  <Suspense fallback={null}>
+                    <GroupBuyBox courseId={course.id} />
+                  </Suspense>
+                )}
                 {signedIn && !enrolled && (
                   <form action={toggleSaved}>
                     <input type="hidden" name="courseId" value={course.id} />

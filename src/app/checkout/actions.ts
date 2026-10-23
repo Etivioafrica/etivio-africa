@@ -2,9 +2,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sessionUser } from "@/lib/supabase/session";
-import { createOrder, paystackCheckoutUrl, priceItems, type Billing, type CartRef, type PricedItem } from "@/lib/data/checkout";
+import { completeWalletOrder, createOrder, paystackCheckoutUrl, priceItems, type Billing, type CartRef, type PricedItem } from "@/lib/data/checkout";
 import { accountIdByEmail, isEmail } from "@/lib/data/guest";
 import { paystackReady } from "@/lib/paystack";
+import { walletBalance } from "@/lib/data/wallet";
 
 // Cart page and checkout summary: current prices and whether each item can still be bought by this visitor.
 export async function priceCart(refs: CartRef[]): Promise<PricedItem[]> {
@@ -35,7 +36,6 @@ export async function placeOrder(_prev: PlaceOrderState, fd: FormData): Promise<
   if (!isEmail(billing.email)) return { error: "Please enter a valid email. Your receipt and login details go there." };
   if (!/^[+\d][\d\s()-]{6,}$/.test(billing.phone)) return { error: "Please enter a valid phone number." };
   if (!billing.country) return { error: "Please choose your country." };
-  if (!paystackReady()) return { error: "Payments aren't available right now. Please try again later." };
 
   // A guest using an email that already has an account: their purchase joins that account, so skip what it owns.
   const ownerId = viewer?.id ?? (await accountIdByEmail(billing.email));
@@ -51,8 +51,17 @@ export async function placeOrder(_prev: PlaceOrderState, fd: FormData): Promise<
     };
   if (new Set(items.map((i) => i.currency)).size > 1) return { error: "Items in different currencies need separate orders." };
 
-  const order = await createOrder(viewer?.id ?? null, billing, items);
+  // Signed-in buyers spend their wallet first; if it covers everything, Paystack isn't needed.
+  const total = items.reduce((n, i) => n + i.priceMinor, 0);
+  const wallet = viewer ? Math.min(await walletBalance(viewer.id), total) : 0;
+  if (wallet < total && !paystackReady()) return { error: "Payments aren't available right now. Please try again later." };
+  const order = await createOrder(viewer?.id ?? null, billing, items, { walletMinor: wallet });
   if (!order) return { error: "We couldn't start your order. Please try again." };
+  if (order.total_minor === 0) {
+    const done = await completeWalletOrder(order.id);
+    if (!done.ok || !done.destination) return { error: "We couldn't use your wallet just now. Please try again." };
+    redirect(done.destination);
+  }
   const url = await paystackCheckoutUrl(order, billing, items.map((i) => i.title));
   if (!url) return { error: "We couldn't reach the payment provider. Please try again." };
   redirect(url);

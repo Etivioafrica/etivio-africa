@@ -7,9 +7,10 @@ import { AlertCircle, Award, BookOpen, CheckCircle2, ChevronRight, TrendingDown,
 import { Status, StatStrip } from "@/components/dash/ui";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { requireAdmin } from "@/lib/admin";
-import { compactMoney, formatDate, formatDuration } from "@/lib/format";
+import { compactMoney, formatDate, formatDuration, formatPrice } from "@/lib/format";
+import { groupPrice } from "@/lib/data/group-buy";
 import { courseMetrics, getStudentProgress, loadReviews } from "@/lib/data/courses-admin";
-import { adminAddLesson, adminAddModule, adminDeleteCourse, adminDeleteModule, adminSetCourseStatus, adminUpdateSlug } from "../actions";
+import { adminAddLesson, adminAddModule, adminDeleteCourse, adminDeleteModule, adminSaveGroupBuy, adminSetCourseStatus, adminUpdateSlug } from "../actions";
 import { StudentsTable } from "../students/StudentsTable";
 import { ReviewsClient } from "../reviews/ReviewsClient";
 import { AddQuizButton } from "./QuizButton";
@@ -307,6 +308,39 @@ async function CourseEditor({ params, searchParams }: Props) {
               </span>
               <ChevronRight size={16} className="et-card-cta-arrow" />
             </Link>
+          </section>
+          <section className="et-card">
+            <div className="et-card-head">
+              <h2>Group buy</h2>
+            </div>
+            <div className="et-card-pad">
+              <ActionForm action={adminSaveGroupBuy} toast className="et-form et-gb-admin">
+                <input type="hidden" name="id" value={course.id} />
+                <label className="et-check">
+                  <input type="checkbox" name="enabled" defaultChecked={course.group_buy_enabled} disabled={course.price_minor <= 0} /> Let people buy this course as a group
+                </label>
+                <div className="et-form-grid et-gb-admin-grid">
+                  <div className="et-field">
+                    <label htmlFor="gb-size">People per group</label>
+                    <input id="gb-size" name="size" type="number" min={2} max={50} className="et-input" defaultValue={course.group_size} />
+                  </div>
+                  <div className="et-field">
+                    <label htmlFor="gb-discount">Discount (%)</label>
+                    <input id="gb-discount" name="discount" type="number" min={10} max={40} className="et-input" defaultValue={course.group_discount_percent} />
+                  </div>
+                  <div className="et-field">
+                    <label htmlFor="gb-days">Days to fill</label>
+                    <input id="gb-days" name="days" type="number" min={1} max={30} className="et-input" defaultValue={course.group_days} />
+                  </div>
+                </div>
+                <small className="et-muted">
+                  {course.price_minor > 0
+                    ? `At the saved settings each member pays ${formatPrice(groupPrice(course.price_minor, course.group_discount_percent), course.currency)} instead of ${formatPrice(course.price_minor, course.currency)}. If a group doesn't fill in time, members get their money in their Etivio wallet.`
+                    : "Group buy is for paid courses. Set a price first."}
+                </small>
+                <SubmitButton className="et-btn et-btn-primary et-btn-sm">Save group buy</SubmitButton>
+              </ActionForm>
+            </div>
           </section>
           <section className="et-card">
             <div className="et-card-head">

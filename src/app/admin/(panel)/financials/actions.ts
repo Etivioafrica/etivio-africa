@@ -86,7 +86,12 @@ export async function setPayoutStatus(fd: FormData) {
   const { admin, db } = await requireAdmin("financials");
   const id = str(fd, "id");
   const status = str(fd, "status") === "paid" ? "paid" : "cancelled";
-  await db.from("payouts").update({ status, paid_at: status === "paid" ? new Date().toISOString() : null }).eq("id", id).eq("status", "pending");
+  const reference = str(fd, "reference").slice(0, 80);
+  await db
+    .from("payouts")
+    .update({ status, paid_at: status === "paid" ? new Date().toISOString() : null, ...(status === "paid" && reference ? { reference } : {}) })
+    .eq("id", id)
+    .eq("status", "pending");
   await audit(admin.id, `payout.${status}`, { type: "payout", id });
   refresh();
 }

@@ -1,59 +1,35 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { PageHead } from "@/components/dash/ui";
-import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { getCurrentUser } from "@/lib/auth";
 import { canTeach } from "@/lib/roles";
-import { createCourse } from "../../actions";
-import { Select } from "@/components/dash/Select";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getCourseCategories } from "@/lib/data/courses-admin";
+import { CourseWizard } from "@/app/admin/(panel)/courses/new/CourseWizard";
 
 export const metadata = { title: "New course" };
 
-export default async function NewCourse() {
-  const user = await getCurrentUser();
-  if (!canTeach(user.roles)) redirect("/teach");
-
+export default function NewCourse() {
   return (
     <div className="et-page">
-      <Link href="/teach/courses" className="et-back">
-        <ArrowLeft size={14} />
-        Courses
-      </Link>
-      <PageHead title="New course" sub="Start with the basics. You can change everything later." />
-      <section className="et-card et-card-pad">
-        <ActionForm action={createCourse}>
-          <div className="et-field">
-            <label htmlFor="title">Course title</label>
-            <input id="title" name="title" required minLength={3} placeholder="e.g. Product design fundamentals" />
-          </div>
-          <div className="et-field">
-            <label htmlFor="summary">Short summary</label>
-            <textarea id="summary" name="summary" rows={3} placeholder="One or two sentences learners see on the course card." />
-          </div>
-          <div className="et-form-grid">
-            <div className="et-field">
-              <label htmlFor="level">Level</label>
-              <Select id="level" name="level" defaultValue="beginner">
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-              </Select>
-            </div>
-            <div className="et-field">
-              <label htmlFor="price">Price (₦)</label>
-              <input id="price" name="price" inputMode="decimal" placeholder="0" />
-              <small>Leave empty or 0 for a free course.</small>
-            </div>
-          </div>
-          <div className="et-form-foot">
-            <Link href="/teach/courses" className="et-btn et-btn-ghost">
-              Cancel
-            </Link>
-            <SubmitButton pendingLabel="Creating…">Create course</SubmitButton>
-          </div>
-        </ActionForm>
-      </section>
+      <Suspense fallback={<div className="et-skel" style={{ height: 520 }} />}>
+        <Content />
+      </Suspense>
     </div>
+  );
+}
+
+// Tutors use the same four-step wizard as admins (with the AI tools); they're the instructor, and the course is
+// submitted for review instead of published.
+async function Content() {
+  const user = await getCurrentUser();
+  if (!canTeach(user.roles)) redirect("/teach");
+  const [{ data: profile }, categories] = await Promise.all([createAdminClient().from("profiles").select("full_name, trusted_tutor").eq("id", user.id).maybeSingle(), getCourseCategories()]);
+  return (
+    <CourseWizard
+      instructors={[{ id: user.id, label: profile?.full_name || user.name || "You" }]}
+      categories={categories}
+      defaultInstructor={user.id}
+      tutor={{ canPublish: !!profile?.trusted_tutor || user.roles.includes("super_admin") }}
+    />
   );
 }

@@ -23,7 +23,7 @@ export async function uploader(kind: string): Promise<{ userId: string; kind: Up
     kind === "avatar" ||
     kind === "banner" ||
     (roles.includes("editor") && kind === "blog") ||
-    (roles.includes("tutor") && (kind === "cover" || kind === "video" || kind === "product"));
+    (roles.includes("tutor") && (kind === "cover" || kind === "video" || kind === "product" || kind === "document"));
   if (!allowed || profile?.status !== "active" || profile.deleted_at) return { response: NextResponse.json({ error: "You can't upload this type of file." }, { status: 403 }) };
   return { userId: user.id, kind: kind as UploadKind };
 }

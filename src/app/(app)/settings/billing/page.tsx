@@ -18,7 +18,7 @@ export default async function BillingSettings() {
   const supabase = await createClient();
 
   const tutor = canTeach(user.roles);
-  const [{ data: cards }, { data: payments }, { data: billing }, { data: payout }] = await Promise.all([
+  const [{ data: cards }, { data: payments }, { data: billing }, { data: payout }, { data: walletAll }] = await Promise.all([
     supabase
       .from("payment_methods")
       .select("id, brand, last4, exp_month, exp_year, bank, is_default")
@@ -35,13 +35,30 @@ export default async function BillingSettings() {
     tutor
       ? supabase.from("payout_accounts").select("bank_code, bank_name, account_number, account_name, verified_at").eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("wallet_transactions").select("amount_minor").eq("user_id", user.id),
   ]);
+  const walletBalance = (walletAll ?? []).reduce((n, t) => n + t.amount_minor, 0);
 
   const paid = (payments ?? []).filter((p) => p.status === "success");
   const spent = paid.reduce((n, p) => n + p.amount_minor, 0);
 
   return (
     <>
+      <SetRow title="Etivio wallet" sub="Money from group buys that didn't fill, top-ups and credits. It's used first at checkout.">
+        <div className="et-set-box">
+          <div className="et-set-box-row">
+            <span className="et-set-item">
+              <span>
+                <b className="et-wallet-balance">{formatMoney(walletBalance)}</b>
+                <small>Available to spend</small>
+              </span>
+            </span>
+            <Link href="/learn/wallet" className="et-btn et-btn-ghost et-btn-sm">
+              Open wallet <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      </SetRow>
       <SetRow title="Payment methods" sub="Cards saved from Paystack checkout for faster course purchases. We never store full card numbers.">
         <div className="et-set-box">
           {(cards ?? []).map((c) => (

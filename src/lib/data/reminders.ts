@@ -48,6 +48,7 @@ export async function sendDueReminders() {
   const { data } = await db
     .from("orders")
     .select("id, reference, email, created_at, reminders_sent")
+    .eq("purpose", "purchase")
     .in("status", ["pending", "failed"])
     .lt("reminders_sent", MAX_REMINDERS)
     .gte("created_at", since)
@@ -69,7 +70,8 @@ export async function sendDueReminders() {
 // The first reminder, sent right away when the buyer cancels or the payment fails.
 export async function remindNow(reference: string) {
   if (!/^ET[A-Z0-9]{8,40}$/.test(reference)) return;
-  const { data: o } = await createAdminClient().from("orders").select("id, reference, email, created_at, reminders_sent, status").eq("reference", reference).maybeSingle();
-  if (!o || o.status === "success" || o.reminders_sent > 0) return;
+  const { data: o } = await createAdminClient().from("orders").select("id, reference, email, created_at, reminders_sent, status, purpose").eq("reference", reference).maybeSingle();
+  // Wallet top-ups don't get "finish your purchase" emails.
+  if (!o || o.status === "success" || o.reminders_sent > 0 || o.purpose !== "purchase") return;
   await remind(o);
 }

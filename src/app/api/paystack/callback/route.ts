@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const verified = await verifyTransaction(reference);
   if (verified.status && verified.data) {
     const res = await fulfillOrder(verified.data);
-    if (res.ok && res.destination) return to(res.destination);
+    if (res.destination) return to(res.destination);
   }
   // Failed or abandoned: back to checkout with a message (the cart is still there), and a reminder by email.
   after(() => remindNow(reference));

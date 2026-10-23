@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isStaff } from "@/lib/roles";
 import { grantProduct } from "./grants";
+import { groupPaymentCleared } from "./group-buy";
 import { emailGuestAccess, emailOrderReceipt } from "@/lib/email/notify";
 import { accountForGuest, maskEmail } from "./guest";
 import { initializeTransaction, type VerifiedTransaction } from "@/lib/paystack";
@@ -89,10 +90,11 @@ async function splits(items: PricedItem[]) {
 export type Billing = { firstName: string; lastName: string; email: string; phone: string; country: string; state: string };
 
 // Records a pending order and one pending payment row per item. Items must already be checked (no `problem`).
-export async function createOrder(userId: string | null, billing: Billing, items: PricedItem[]) {
+// `walletMinor` is paid from the buyer's wallet (taken when the order completes); Paystack charges the rest.
+export async function createOrder(userId: string | null, billing: Billing, items: PricedItem[], { groupBuyId = null, walletMinor = 0 }: { groupBuyId?: string | null; walletMinor?: number } = {}) {
   const db = createAdminClient();
   const reference = `ET${randomUUID().replace(/-/g, "").slice(0, 20).toUpperCase()}`;
-  const total = items.reduce((n, i) => n + i.priceMinor, 0);
+  const total = items.reduce((n, i) => n + i.priceMinor, 0) - walletMinor;
   const { data: order, error } = await db
     .from("orders")
     .insert({
@@ -106,6 +108,8 @@ export async function createOrder(userId: string | null, billing: Billing, items
       state: billing.state || null,
       total_minor: total,
       currency: items[0]?.currency ?? "NGN",
+      group_buy_id: groupBuyId,
+      wallet_minor: walletMinor,
     })
     .select("id, reference, total_minor, currency")
     .single();
@@ -140,12 +144,13 @@ export async function fulfillOrder(tx: VerifiedTransaction): Promise<{ ok: boole
   const db = createAdminClient();
   const { data: order } = await db
     .from("orders")
-    .select("id, reference, user_id, email, first_name, last_name, total_minor, currency, status")
+    .select(ORDER_COLUMNS)
     .eq("reference", tx.reference)
     .maybeSingle();
   if (!order) return { ok: false, reason: "unknown reference" };
   // Guests aren't signed in when they come back from Paystack, so the page tells them which inbox to check.
-  const destination = `/checkout/complete?order=${order.reference}${order.user_id ? "" : `&email=${encodeURIComponent(maskEmail(order.email))}`}`;
+  const destination =
+    order.purpose === "wallet_topup" ? "/learn/wallet?topup=done" : `/checkout/complete?order=${order.reference}${order.user_id ? "" : `&email=${encodeURIComponent(maskEmail(order.email))}`}`;
   if (order.status === "success") return { ok: true, destination };
   if (tx.status !== "success") {
     // Only a definite failure closes it. "abandoned" or "ongoing" may still turn into a payment.
@@ -153,7 +158,7 @@ export async function fulfillOrder(tx: VerifiedTransaction): Promise<{ ok: boole
       await db.from("orders").update({ status: "failed" }).eq("id", order.id).eq("status", "pending");
       await db.from("payments").update({ status: "failed" }).eq("order_id", order.id).eq("status", "pending");
     }
-    return { ok: false, reason: tx.status };
+    return { ok: false, reason: tx.status, ...(order.purpose === "wallet_topup" ? { destination: "/learn/wallet?topup=failed" } : {}) };
   }
   if (tx.amount !== order.total_minor || tx.currency !== order.currency) {
     const note = `Amount mismatch: paid ${tx.amount} ${tx.currency}`;
@@ -161,7 +166,29 @@ export async function fulfillOrder(tx: VerifiedTransaction): Promise<{ ok: boole
     await db.from("payments").update({ status: "failed", note }).eq("order_id", order.id).eq("status", "pending");
     return { ok: false, reason: "amount mismatch" };
   }
-  const paidAt = tx.paid_at ?? new Date().toISOString();
+  return completeOrder(order, tx.paid_at ?? new Date().toISOString(), destination);
+}
+
+const ORDER_COLUMNS = "id, reference, user_id, email, first_name, last_name, total_minor, currency, status, group_buy_id, wallet_minor, purpose";
+type OrderRow = { id: string; reference: string; user_id: string | null; email: string; first_name: string; last_name: string; status: string; total_minor: number; currency: string; group_buy_id: string | null; wallet_minor: number; purpose: string };
+
+// Orders the wallet covers in full: nothing goes to Paystack, the order completes straight away.
+export async function completeWalletOrder(orderId: string) {
+  const db = createAdminClient();
+  const { data: order } = await db.from("orders").select(ORDER_COLUMNS).eq("id", orderId).maybeSingle();
+  if (!order || order.total_minor !== 0 || !order.user_id) return { ok: false as const };
+  const ok = await db.rpc("spend_wallet", { p_user: order.user_id, p_amount: order.wallet_minor, p_order: order.id });
+  if (!ok.data) {
+    await db.from("orders").update({ status: "failed", note: "Wallet balance too low when completing" }).eq("id", order.id).eq("status", "pending");
+    return { ok: false as const };
+  }
+  return completeOrder(order, new Date().toISOString(), `/checkout/complete?order=${order.reference}`);
+}
+
+// Marks the order paid and grants every item (or adds the buyer to their group). Only the call that flips the order
+// from pending (or failed) to success does anything.
+async function completeOrder(order: OrderRow, paidAt: string, destination: string): Promise<{ ok: boolean; destination?: string; reason?: string }> {
+  const db = createAdminClient();
   const { data: flipped } = await db
     .from("orders")
     .update({ status: "success", paid_at: paidAt })
@@ -171,6 +198,12 @@ export async function fulfillOrder(tx: VerifiedTransaction): Promise<{ ok: boole
     .select("id")
     .maybeSingle();
   if (!flipped) return { ok: true, destination };
+
+  // Wallet top-up: credit the wallet and stop (no items, no receipt for a course).
+  if (order.purpose === "wallet_topup") {
+    if (order.user_id) await db.from("wallet_transactions").insert({ user_id: order.user_id, amount_minor: order.total_minor, currency: order.currency, kind: "topup", order_id: order.id, note: "Added with Paystack" });
+    return { ok: true, destination };
+  }
 
   // Guests: find or create their account now that the money is confirmed.
   let userId = order.user_id;
@@ -186,13 +219,20 @@ export async function fulfillOrder(tx: VerifiedTransaction): Promise<{ ok: boole
     await db.from("orders").update({ user_id: userId }).eq("id", order.id);
   }
 
+  // Paystack charged the rest; take the wallet part now (wallet-only orders already took it).
+  if (order.wallet_minor > 0 && order.status !== "success") {
+    const { data: spent } = await db.rpc("spend_wallet", { p_user: userId, p_amount: order.wallet_minor, p_order: order.id });
+    if (!spent) await db.from("orders").update({ note: "Wallet balance was too low to cover its part when the payment cleared. Check before refunding." }).eq("id", order.id);
+  }
+
   const { data: items } = await db
     .from("payments")
     .update({ status: "success", paid_at: paidAt, user_id: userId })
     .eq("order_id", order.id)
     .select("id, course_id, product_id");
   for (const item of items ?? []) {
-    if (item.course_id) await db.from("enrollments").upsert({ user_id: userId, course_id: item.course_id }, { onConflict: "user_id,course_id", ignoreDuplicates: true });
+    if (item.course_id && order.group_buy_id) await groupPaymentCleared(order.group_buy_id, userId, order.id);
+    else if (item.course_id) await db.from("enrollments").upsert({ user_id: userId, course_id: item.course_id }, { onConflict: "user_id,course_id", ignoreDuplicates: true });
     if (item.product_id) await grantProduct(userId, item.product_id, item.id);
   }
   after(() => emailOrderReceipt(order.id));
@@ -225,4 +265,15 @@ export async function paystackCheckoutUrl(order: { id: string; reference: string
     },
   });
   return init.status && init.data ? init.data.authorization_url : null;
+}
+
+// A wallet top-up: an order with no items for the amount the person wants to add. Signed-in buyers only.
+export async function createTopupOrder(userId: string, billing: Billing, amountMinor: number) {
+  const reference = `ET${randomUUID().replace(/-/g, "").slice(0, 20).toUpperCase()}`;
+  const { data } = await createAdminClient()
+    .from("orders")
+    .insert({ reference, user_id: userId, email: billing.email, first_name: billing.firstName, last_name: billing.lastName, total_minor: amountMinor, currency: "NGN", purpose: "wallet_topup" })
+    .select("id, reference, total_minor, currency")
+    .single();
+  return data;
 }

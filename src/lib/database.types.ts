@@ -253,7 +253,7 @@ export type Database = {
           {
             foreignKeyName: "billing_details_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -728,7 +728,7 @@ export type Database = {
           {
             foreignKeyName: "course_quizzes_module_id_fkey"
             columns: ["module_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "course_modules"
             referencedColumns: ["id"]
           },
@@ -797,6 +797,10 @@ export type Database = {
           currency: string
           description: string | null
           featured: boolean
+          group_buy_enabled: boolean
+          group_days: number
+          group_discount_percent: number
+          group_size: number
           id: string
           instructor_id: string
           level: Database["public"]["Enums"]["course_level"]
@@ -822,6 +826,10 @@ export type Database = {
           currency?: string
           description?: string | null
           featured?: boolean
+          group_buy_enabled?: boolean
+          group_days?: number
+          group_discount_percent?: number
+          group_size?: number
           id?: string
           instructor_id: string
           level?: Database["public"]["Enums"]["course_level"]
@@ -847,6 +855,10 @@ export type Database = {
           currency?: string
           description?: string | null
           featured?: boolean
+          group_buy_enabled?: boolean
+          group_days?: number
+          group_discount_percent?: number
+          group_size?: number
           id?: string
           instructor_id?: string
           level?: Database["public"]["Enums"]["course_level"]
@@ -1082,6 +1094,109 @@ export type Database = {
           },
         ]
       }
+      group_buy_members: {
+        Row: {
+          group_id: string
+          joined_at: string
+          order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          joined_at?: string
+          order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          joined_at?: string
+          order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "group_buys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_members_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_buys: {
+        Row: {
+          code: string
+          course_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          discount_percent: number
+          expires_at: string
+          filled_at: string | null
+          id: string
+          size: number
+          status: Database["public"]["Enums"]["group_buy_status"]
+          unit_price_minor: number
+        }
+        Insert: {
+          code: string
+          course_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          discount_percent: number
+          expires_at: string
+          filled_at?: string | null
+          id?: string
+          size: number
+          status?: Database["public"]["Enums"]["group_buy_status"]
+          unit_price_minor: number
+        }
+        Update: {
+          code?: string
+          course_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          discount_percent?: number
+          expires_at?: string
+          filled_at?: string | null
+          id?: string
+          size?: number
+          status?: Database["public"]["Enums"]["group_buy_status"]
+          unit_price_minor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buys_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_notes: {
         Row: {
           body: string
@@ -1221,18 +1336,21 @@ export type Database = {
           currency: string
           email: string
           first_name: string
+          group_buy_id: string | null
           id: string
           last_name: string
           last_reminded_at: string | null
           note: string | null
           paid_at: string | null
           phone: string | null
+          purpose: string
           reference: string
           reminders_sent: number
           state: string | null
           status: Database["public"]["Enums"]["payment_status"]
           total_minor: number
           user_id: string | null
+          wallet_minor: number
         }
         Insert: {
           country?: string | null
@@ -1240,18 +1358,21 @@ export type Database = {
           currency?: string
           email: string
           first_name: string
+          group_buy_id?: string | null
           id?: string
           last_name: string
           last_reminded_at?: string | null
           note?: string | null
           paid_at?: string | null
           phone?: string | null
+          purpose?: string
           reference: string
           reminders_sent?: number
           state?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           total_minor: number
           user_id?: string | null
+          wallet_minor?: number
         }
         Update: {
           country?: string | null
@@ -1259,20 +1380,30 @@ export type Database = {
           currency?: string
           email?: string
           first_name?: string
+          group_buy_id?: string | null
           id?: string
           last_name?: string
           last_reminded_at?: string | null
           note?: string | null
           paid_at?: string | null
           phone?: string | null
+          purpose?: string
           reference?: string
           reminders_sent?: number
           state?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           total_minor?: number
           user_id?: string | null
+          wallet_minor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_group_buy_id_fkey"
+            columns: ["group_buy_id"]
+            isOneToOne: false
+            referencedRelation: "group_buys"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_user_id_fkey"
             columns: ["user_id"]
@@ -1457,7 +1588,7 @@ export type Database = {
           {
             foreignKeyName: "payout_accounts_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1466,6 +1597,7 @@ export type Database = {
       payouts: {
         Row: {
           amount_minor: number
+          bank_details: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -1474,10 +1606,12 @@ export type Database = {
           note: string | null
           paid_at: string | null
           reference: string | null
+          requested_by_tutor: boolean
           status: Database["public"]["Enums"]["payout_status"]
         }
         Insert: {
           amount_minor: number
+          bank_details?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1486,10 +1620,12 @@ export type Database = {
           note?: string | null
           paid_at?: string | null
           reference?: string | null
+          requested_by_tutor?: boolean
           status?: Database["public"]["Enums"]["payout_status"]
         }
         Update: {
           amount_minor?: number
+          bank_details?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1498,6 +1634,7 @@ export type Database = {
           note?: string | null
           paid_at?: string | null
           reference?: string | null
+          requested_by_tutor?: boolean
           status?: Database["public"]["Enums"]["payout_status"]
         }
         Relationships: [
@@ -2398,6 +2535,74 @@ export type Database = {
           },
         ]
       }
+      wallet_transactions: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          group_buy_id: string | null
+          id: number
+          kind: string
+          note: string | null
+          order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          group_buy_id?: string | null
+          id?: never
+          kind: string
+          note?: string | null
+          order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          group_buy_id?: string | null
+          id?: never
+          kind?: string
+          note?: string | null
+          order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_group_buy_id_fkey"
+            columns: ["group_buy_id"]
+            isOneToOne: false
+            referencedRelation: "group_buys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2410,65 +2615,71 @@ export type Database = {
       admin_daily_activity: {
         Args: { p_days?: number; p_end?: string }
         Returns: {
-          day: string
-          signups: number
-          enrollments: number
-          completions: number
-          page_views: number
           active_users: number
+          completions: number
+          day: string
+          enrollments: number
+          page_views: number
+          signups: number
         }[]
       }
       admin_instructor_balances: {
         Args: never
         Returns: {
-          instructor_id: string
-          full_name: string
           earned_minor: number
+          full_name: string
+          instructor_id: string
           paid_minor: number
           pending_minor: number
           sales: number
         }[]
       }
       admin_list_users: {
-        Args: { p_search?: string; p_role?: Database["public"]["Enums"]["app_role"]; p_deleted?: boolean; p_limit?: number; p_offset?: number }
+        Args: {
+          p_deleted?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_role?: Database["public"]["Enums"]["app_role"]
+          p_search?: string
+        }
         Returns: {
-          id: string
-          email: string
-          full_name: string
           avatar_url: string
+          course_count: number
+          created_at: string
+          deleted_at: string
+          email: string
+          email_confirmed: boolean
+          enrollment_count: number
+          full_name: string
+          id: string
+          last_sign_in_at: string
           roles: Database["public"]["Enums"]["app_role"][]
           status: Database["public"]["Enums"]["account_status"]
-          created_at: string
-          last_sign_in_at: string
-          email_confirmed: boolean
-          deleted_at: string
-          enrollment_count: number
-          course_count: number
           total_count: number
         }[]
       }
       admin_monthly_revenue: {
         Args: { p_months?: number }
         Returns: {
-          month: string
           gross_minor: number
-          platform_minor: number
           instructor_minor: number
+          month: string
+          platform_minor: number
           sales: number
         }[]
       }
       admin_top_courses: {
-        Args: { p_days?: number; p_limit?: number; p_end?: string }
+        Args: { p_days?: number; p_end?: string; p_limit?: number }
         Returns: {
-          course_id: string
-          title: string
-          enrollments: number
           completions: number
+          course_id: string
+          enrollments: number
           learners: number
+          title: string
         }[]
       }
       admin_top_pages: {
-        Args: { p_days?: number; p_limit?: number; p_end?: string }
+        Args: { p_days?: number; p_end?: string; p_limit?: number }
         Returns: {
           path: string
           views: number
@@ -2482,18 +2693,15 @@ export type Database = {
       blog_post_metrics: {
         Args: never
         Returns: {
+          avg_read: number
+          comments: number
+          likes: number
+          pending: number
           post_id: string
           views: number
-          likes: number
-          comments: number
-          pending: number
-          avg_read: number
         }[]
       }
-      course_is_published: {
-        Args: { p_course_id: string }
-        Returns: boolean
-      }
+      course_is_published: { Args: { p_course_id: string }; Returns: boolean }
       course_lesson_counts: {
         Args: { p_course_ids: string[] }
         Returns: {
@@ -2504,13 +2712,13 @@ export type Database = {
       course_metrics: {
         Args: never
         Returns: {
-          course_id: string
-          students: number
           completed: number
-          revenue_minor: number
-          rating: number
-          reviews: number
+          course_id: string
           pending_reviews: number
+          rating: number
+          revenue_minor: number
+          reviews: number
+          students: number
         }[]
       }
       course_ratings: {
@@ -2521,46 +2729,37 @@ export type Database = {
           reviews: number
         }[]
       }
+      credit_group_member: {
+        Args: { p_group: string; p_user: string }
+        Returns: undefined
+      }
+      expire_group_buys: { Args: never; Returns: number }
       has_role: {
         Args: { p_role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
-      is_admin: {
-        Args: never
-        Returns: boolean
-      }
-      is_enrolled: {
-        Args: { p_course_id: string }
-        Returns: boolean
-      }
-      is_instructor: {
-        Args: never
-        Returns: boolean
-      }
-      mark_thread_read: {
-        Args: { p_thread_id: string }
-        Returns: undefined
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_enrolled: { Args: { p_course_id: string }; Returns: boolean }
+      is_instructor: { Args: never; Returns: boolean }
+      mark_thread_read: { Args: { p_thread_id: string }; Returns: undefined }
       my_profile: {
         Args: never
         Returns: {
-          status: Database["public"]["Enums"]["account_status"]
           deleted_at: string
           last_seen_at: string
-          notification_prefs: Json
           learning_goal: string
-          skill_level: string
-          weekly_hours: string
-          weekly_goal: number
+          notification_prefs: Json
           onboarded_at: string
           show_current_learning: boolean
+          skill_level: string
+          status: Database["public"]["Enums"]["account_status"]
           updated_at: string
+          weekly_goal: number
+          weekly_hours: string
         }[]
       }
-      owns_course: {
-        Args: { p_course_id: string }
-        Returns: boolean
-      }
+      owns_course: { Args: { p_course_id: string }; Returns: boolean }
+      payout_available: { Args: { p_user: string }; Returns: number }
       product_ratings: {
         Args: { p_product_ids: string[] }
         Returns: {
@@ -2570,39 +2769,76 @@ export type Database = {
         }[]
       }
       quiz_progress: {
-        Args: { p_user_id: string; p_course_ids: string[] }
+        Args: { p_course_ids: string[]; p_user_id: string }
         Returns: {
           course_id: string
-          quizzes: number
           passed: number
+          quizzes: number
         }[]
       }
-      rls_auto_enable: {
-        Args: never
-        Returns: unknown
+      request_payout: {
+        Args: { p_amount: number; p_bank: string; p_user: string }
+        Returns: string
+      }
+      spend_wallet: {
+        Args: { p_amount: number; p_order: string; p_user: string }
+        Returns: boolean
       }
       track_visit: {
-        Args: { p_visit_id: string; p_visitor_id: string; p_user_id: string; p_path: string; p_new_campaign: boolean; p_referrer: string; p_referrer_host: string; p_utm_source: string; p_utm_medium: string; p_utm_campaign: string; p_utm_term: string; p_utm_content: string; p_channel: string; p_country: string; p_region: string; p_city: string; p_device: string; p_browser: string; p_os: string }
+        Args: {
+          p_browser: string
+          p_channel: string
+          p_city: string
+          p_country: string
+          p_device: string
+          p_new_campaign: boolean
+          p_os: string
+          p_path: string
+          p_referrer: string
+          p_referrer_host: string
+          p_region: string
+          p_user_id: string
+          p_utm_campaign: string
+          p_utm_content: string
+          p_utm_medium: string
+          p_utm_source: string
+          p_utm_term: string
+          p_visit_id: string
+          p_visitor_id: string
+        }
         Returns: string
       }
-      user_id_by_email: {
-        Args: { p_email: string }
-        Returns: string
-      }
+      user_id_by_email: { Args: { p_email: string }; Returns: string }
+      wallet_balance: { Args: { p_user: string }; Returns: number }
     }
     Enums: {
       account_status: "active" | "suspended"
       announcement_status: "draft" | "scheduled" | "published" | "archived"
-      app_role: "super_admin" | "editor" | "accountant" | "tutor" | "student" | "coach" | "event_manager" | "community_owner" | "reviewer"
+      app_role:
+        | "super_admin"
+        | "editor"
+        | "accountant"
+        | "tutor"
+        | "student"
+        | "coach"
+        | "event_manager"
+        | "community_owner"
+        | "reviewer"
       application_status: "pending" | "approved" | "rejected"
       course_level: "beginner" | "intermediate" | "advanced"
       course_status: "draft" | "pending" | "published" | "rejected" | "archived"
       document_visibility: "public" | "enrolled" | "private"
+      group_buy_status: "open" | "filled" | "expired"
       payment_status: "pending" | "success" | "failed" | "refunded"
       payout_status: "pending" | "paid" | "cancelled"
       post_status: "draft" | "published" | "scheduled"
       product_kind: "template" | "ebook" | "resource_pack" | "bundle"
-      product_status: "draft" | "pending" | "published" | "rejected" | "archived"
+      product_status:
+        | "draft"
+        | "pending"
+        | "published"
+        | "rejected"
+        | "archived"
       thread_status: "open" | "pending" | "closed"
     }
     CompositeTypes: {
@@ -2733,11 +2969,22 @@ export const Constants = {
     Enums: {
       account_status: ["active", "suspended"],
       announcement_status: ["draft", "scheduled", "published", "archived"],
-      app_role: ["super_admin", "editor", "accountant", "tutor", "student", "coach", "event_manager", "community_owner", "reviewer"],
+      app_role: [
+        "super_admin",
+        "editor",
+        "accountant",
+        "tutor",
+        "student",
+        "coach",
+        "event_manager",
+        "community_owner",
+        "reviewer",
+      ],
       application_status: ["pending", "approved", "rejected"],
       course_level: ["beginner", "intermediate", "advanced"],
       course_status: ["draft", "pending", "published", "rejected", "archived"],
       document_visibility: ["public", "enrolled", "private"],
+      group_buy_status: ["open", "filled", "expired"],
       payment_status: ["pending", "success", "failed", "refunded"],
       payout_status: ["pending", "paid", "cancelled"],
       post_status: ["draft", "published", "scheduled"],

@@ -16,7 +16,7 @@ export default async function Financials() {
     db.rpc("admin_monthly_revenue", { p_months: 12 }),
     db.rpc("admin_instructor_balances"),
     db.from("payments").select("amount_minor, platform_fee_minor, instructor_share_minor, status"),
-    db.from("payouts").select("id, instructor_id, amount_minor, status, reference, created_at, paid_at").order("created_at", { ascending: false }).limit(20),
+    db.from("payouts").select("id, instructor_id, amount_minor, status, reference, created_at, paid_at, requested_by_tutor, bank_details").order("status", { ascending: false }).order("created_at", { ascending: false }).limit(30),
     db
       .from("payments")
       .select("id, amount_minor, currency, status, provider, reference, paid_at, created_at, buyer:profiles!payments_user_id_fkey(full_name), course:courses(title), product:products(title)")
@@ -164,6 +164,9 @@ export default async function Financials() {
         <section className="et-card">
           <div className="et-card-head">
             <h2>Payouts</h2>
+            {(payouts ?? []).some((p) => p.status === "pending" && p.requested_by_tutor) && (
+              <span className="et-tag et-gba-open">{(payouts ?? []).filter((p) => p.status === "pending" && p.requested_by_tutor).length} withdrawal requests</span>
+            )}
           </div>
           {payouts?.length ? (
             <table className="et-table">
@@ -172,7 +175,12 @@ export default async function Financials() {
                   <tr key={p.id}>
                     <td>
                       <b>{payoutNames.get(p.instructor_id) ?? "Instructor"}</b>
-                      <small>{p.reference || formatDate(p.created_at)}</small>
+                      <small>
+                        {p.requested_by_tutor ? "Withdrawal request · " : ""}
+                        {formatDate(p.created_at)}
+                        {p.reference ? ` · ${p.reference}` : ""}
+                      </small>
+                      {p.bank_details && <small className="et-wd-bank">{p.bank_details}</small>}
                     </td>
                     <td className="et-money et-td-right">{formatMoney(p.amount_minor)}</td>
                     <td>
@@ -181,9 +189,10 @@ export default async function Financials() {
                     <td className="et-td-right">
                       {p.status === "pending" && (
                         <span className="et-inline" style={{ justifyContent: "flex-end" }}>
-                          <form action={setPayoutStatus}>
+                          <form action={setPayoutStatus} className="et-inline">
                             <input type="hidden" name="id" value={p.id} />
                             <input type="hidden" name="status" value="paid" />
+                            <input name="reference" className="et-input et-wd-ref" placeholder="Transfer ref (optional)" aria-label="Transfer reference" />
                             <button type="submit" className="et-btn et-btn-success et-btn-sm">
                               Mark paid
                             </button>
