@@ -1868,6 +1868,25 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 .et-wd-ok{margin:0;font-size:13px;color:#16a34a;font-weight:600}
 .et-wd-bank{display:block;margin-top:2px;font-family:var(--font-geist-mono),monospace;font-size:11.5px;color:var(--a-fg)}
 .et-wd-ref{width:150px;height:32px;font-size:12.5px}
+/* Student-tutor messages */
+.et-inbox{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.et-inbox li+li{border-top:1px solid var(--a-border)}
+.et-inbox a{display:flex;align-items:center;gap:12px;padding:14px 18px;color:inherit;text-decoration:none}
+.et-inbox a:hover{background:var(--a-panel-2)}
+.et-inbox a.is-unread .et-inbox-last{color:var(--a-fg);font-weight:600}
+.et-inbox-face{width:40px;height:40px;flex-shrink:0;border-radius:50%;object-fit:cover}
+.et-inbox-text{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.et-inbox-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.et-inbox-top b{font-size:14px}
+.et-inbox-top small,.et-inbox-course{font-size:12px;color:var(--a-muted)}
+.et-inbox-last{font-size:13.5px;color:var(--a-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.et-inbox-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 20px;text-align:center}
+.et-inbox-empty p{margin:0;font-size:13.5px;color:var(--a-muted)}
+.et-convo{display:flex;flex-direction:column;height:calc(100dvh - 60px - 56px - 60px);min-height:460px}
+.et-convo .et-chat-head{display:flex;flex-direction:column;gap:2px}
+.et-mt-form{display:flex;flex-direction:column;gap:8px}
+.et-mt-form label{font-size:13.5px;font-weight:600}
+.et-mt-form textarea{resize:vertical}
 .et-pe-labelrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .et-aw{position:fixed;z-index:70;right:24px;bottom:24px;display:flex;flex-direction:column;align-items:flex-end;gap:14px}
 .et-aw-launch{display:grid;place-items:center;width:56px;height:56px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 28px rgba(15,23,42,.28);cursor:pointer;transition:transform .15s}

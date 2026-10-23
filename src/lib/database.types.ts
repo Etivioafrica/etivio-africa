@@ -628,6 +628,229 @@ export type Database = {
           },
         ]
       }
+      conversation_messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string | null
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          last_message: string | null
+          last_message_at: string
+          student_id: string
+          student_unread: number
+          tutor_id: string
+          tutor_unread: number
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string
+          student_id: string
+          student_unread?: number
+          tutor_id: string
+          tutor_unread?: number
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string
+          student_id?: string
+          student_unread?: number
+          tutor_id?: string
+          tutor_unread?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          discount_minor: number
+          email: string
+          id: string
+          order_id: string
+          user_id: string | null
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          discount_minor: number
+          email: string
+          id?: string
+          order_id: string
+          user_id?: string | null
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          discount_minor?: number
+          email?: string
+          id?: string
+          order_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          active: boolean
+          applies_to: string
+          code: string
+          course_ids: string[]
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          emails: string[]
+          ends_at: string | null
+          id: string
+          kind: string
+          max_uses: number | null
+          min_order_minor: number
+          per_person: number | null
+          product_ids: string[]
+          starts_at: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          applies_to?: string
+          code: string
+          course_ids?: string[]
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          emails?: string[]
+          ends_at?: string | null
+          id?: string
+          kind: string
+          max_uses?: number | null
+          min_order_minor?: number
+          per_person?: number | null
+          product_ids?: string[]
+          starts_at?: string | null
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          active?: boolean
+          applies_to?: string
+          code?: string
+          course_ids?: string[]
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          emails?: string[]
+          ends_at?: string | null
+          id?: string
+          kind?: string
+          max_uses?: number | null
+          min_order_minor?: number
+          per_person?: number | null
+          product_ids?: string[]
+          starts_at?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_categories: {
         Row: {
           created_at: string
@@ -1332,8 +1555,10 @@ export type Database = {
       orders: {
         Row: {
           country: string | null
+          coupon_id: string | null
           created_at: string
           currency: string
+          discount_minor: number
           email: string
           first_name: string
           group_buy_id: string | null
@@ -1354,8 +1579,10 @@ export type Database = {
         }
         Insert: {
           country?: string | null
+          coupon_id?: string | null
           created_at?: string
           currency?: string
+          discount_minor?: number
           email: string
           first_name: string
           group_buy_id?: string | null
@@ -1376,8 +1603,10 @@ export type Database = {
         }
         Update: {
           country?: string | null
+          coupon_id?: string | null
           created_at?: string
           currency?: string
+          discount_minor?: number
           email?: string
           first_name?: string
           group_buy_id?: string | null
@@ -1397,6 +1626,13 @@ export type Database = {
           wallet_minor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_group_buy_id_fkey"
             columns: ["group_buy_id"]
@@ -1469,6 +1705,7 @@ export type Database = {
           course_id: string | null
           created_at: string
           currency: string
+          discount_minor: number
           id: string
           instructor_id: string | null
           instructor_share_minor: number
@@ -1487,6 +1724,7 @@ export type Database = {
           course_id?: string | null
           created_at?: string
           currency?: string
+          discount_minor?: number
           id?: string
           instructor_id?: string | null
           instructor_share_minor?: number
@@ -1505,6 +1743,7 @@ export type Database = {
           course_id?: string | null
           created_at?: string
           currency?: string
+          discount_minor?: number
           id?: string
           instructor_id?: string | null
           instructor_share_minor?: number

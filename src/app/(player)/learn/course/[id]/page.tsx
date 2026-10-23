@@ -20,6 +20,8 @@ import { askFromLesson } from "@/app/(app)/support/actions";
 import { formatAnnouncementDate, liveDate, stripHtml } from "@/lib/announcements";
 import { ReviewCard } from "@/components/learn/ReviewCard";
 import { AskAi } from "@/components/learn/AskAi";
+import { MessageTutor } from "@/components/chat/MessageTutor";
+import { conversationFor } from "@/lib/data/messages";
 import { LESSON_CHAT_DAILY_LIMIT } from "@/lib/ai";
 
 export const metadata = { title: "Course" };
@@ -231,8 +233,22 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
     </div>
   );
 
+  const chatId = data.isOwner ? null : await conversationFor(id, user.id);
   const support = (
     <div className="et-pl-stack">
+      {!data.isOwner && (
+        <section className="et-card">
+          <div className="et-card-head">
+            <h2>Ask your tutor</h2>
+          </div>
+          <div className="et-card-pad">
+            <p className="et-muted" style={{ fontSize: 13, margin: "0 0 12px" }}>
+              Questions about the course content go straight to {course.instructor}. They reply in Messages.
+            </p>
+            <MessageTutor courseId={id} tutorName={course.instructor} conversationId={chatId} />
+          </div>
+        </section>
+      )}
       <section className="et-card">
         <div className="et-card-head">
           <h2>Ask the Etivio team</h2>

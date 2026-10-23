@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import Shell from "@/components/shell/Shell";
 import { getCurrentUser } from "@/lib/auth";
@@ -24,7 +25,7 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
   // Re-read whenever the layout re-renders (full loads and refresh() after actions), so a badge earned
   // without a navigation still triggers the celebration.
   const supabase = await createClient();
-  const { data: unseen } = await supabase.from("user_badges").select("badge_id").eq("user_id", user.id).is("seen_at", null);
+  const [{ data: unseen }, jar] = await Promise.all([supabase.from("user_badges").select("badge_id").eq("user_id", user.id).is("seen_at", null), cookies()]);
   return (
     <Shell
       user={{
@@ -36,6 +37,7 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
         showTeach: showsTeach(user.roles, user.tutorApplication),
       }}
       needsOnboarding={user.needsOnboarding}
+      lastSide={jar.get("et-side")?.value === "teach" ? "teach" : "learn"}
       unseenBadges={(unseen ?? []).map((b) => b.badge_id).join(",")}
     >
       {children}

@@ -178,6 +178,7 @@ const learnNav: Group[] = [
       { label: "Saved", href: "/profile/saved", icon: Heart },
       { label: "Marketplace", href: "/explore", icon: Store },
       { label: "Wallet", href: "/learn/wallet", icon: Wallet },
+      { label: "Messages", href: "/learn/messages", icon: MessagesSquare },
     ],
   },
   account,
@@ -210,6 +211,7 @@ const teachNav = (canTeach: boolean): Group[] => [
               ],
             },
             { label: "Students", href: "/teach/students", icon: Users },
+            { label: "Messages", href: "/teach/messages", icon: MessagesSquare },
             { label: "Earnings", href: "/teach/earnings", icon: Wallet },
           ],
         },
@@ -237,6 +239,7 @@ export default function Shell({
   badges = {},
   unseenBadges = "",
   needsOnboarding = false,
+  lastSide = "learn",
   children,
 }: {
   user: ShellUser;
@@ -246,6 +249,8 @@ export default function Shell({
   unseenBadges?: string;
   // Show the welcome guide (new learners, until finished or skipped).
   needsOnboarding?: boolean;
+  // Learn or Teach, whichever the person used last (cookie). Shared pages like Settings keep that sidebar.
+  lastSide?: "learn" | "teach";
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -290,7 +295,14 @@ export default function Shell({
       .then(() => {});
   }, [admin, pathname, user.id]);
 
-  const teachMode = pathname.startsWith("/teach");
+  // /teach and /learn pages set the side; shared pages (Settings, Profile, Support) keep the one used last.
+  const routeSide = pathname.startsWith("/teach") ? "teach" : pathname.startsWith("/learn") ? "learn" : null;
+  const [side, setSide] = useState(lastSide);
+  if (routeSide && routeSide !== side) setSide(routeSide);
+  useEffect(() => {
+    if (routeSide) document.cookie = `et-side=${routeSide}; path=/; max-age=31536000; samesite=lax`;
+  }, [routeSide]);
+  const teachMode = routeSide === "teach" || (!routeSide && side === "teach" && !!user.showTeach);
   const groups = admin ? adminNav(user.roles, badges) : teachMode ? teachNav(canTeach(user.roles)) : learnNav;
   const matches = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
   const flat = groups.flatMap((g) => g.items);

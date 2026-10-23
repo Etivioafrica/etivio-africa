@@ -3,24 +3,27 @@ import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-export type ChatMessage = { id: string; body: string; is_staff: boolean; created_at: string; sender?: string };
+export type ChatMessage = { id: string; body: string; is_staff?: boolean; sender_id?: string | null; created_at: string; sender?: string };
 export type SendResult = { error?: string; message?: ChatMessage };
 
 const time = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 // Live conversation. New messages arrive over Supabase Realtime; RLS decides who can see them.
+// Support threads by default; pass `course` for a student-tutor conversation (messages are "mine" by sender).
 export function ChatThread({
   threadId,
   initial,
   viewer,
   send,
   closed,
+  course,
 }: {
   threadId: string;
   initial: ChatMessage[];
   viewer: "staff" | "user";
   send: (fd: FormData) => Promise<SendResult>;
   closed?: boolean;
+  course?: { viewerId: string; otherName: string };
 }) {
   const [messages, setMessages] = useState(initial);
   const [error, setError] = useState<string | null>(null);
@@ -28,22 +31,25 @@ export function ChatThread({
   const bottom = useRef<HTMLDivElement>(null);
   const form = useRef<HTMLFormElement>(null);
 
+  const isCourse = !!course;
   const add = (m: ChatMessage) => setMessages((list) => (list.some((x) => x.id === m.id) ? list : [...list, m]));
 
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(`support:${threadId}`)
+      .channel(`${isCourse ? "conversation" : "support"}:${threadId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "support_messages", filter: `thread_id=eq.${threadId}` },
+        isCourse
+          ? { event: "INSERT", schema: "public", table: "conversation_messages", filter: `conversation_id=eq.${threadId}` }
+          : { event: "INSERT", schema: "public", table: "support_messages", filter: `thread_id=eq.${threadId}` },
         (payload) => add(payload.new as ChatMessage),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [threadId]);
+  }, [threadId, isCourse]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
@@ -67,12 +73,13 @@ export function ChatThread({
       <div className="et-chat-msgs">
         {messages.length ? (
           messages.map((m) => {
-            const mine = viewer === "staff" ? m.is_staff : !m.is_staff;
+            const mine = course ? m.sender_id === course.viewerId : viewer === "staff" ? m.is_staff : !m.is_staff;
+            const who = course ? (mine ? "You" : course.otherName) : m.is_staff ? (viewer === "staff" ? (m.sender ?? "Staff") : "Etivio support") : viewer === "staff" ? (m.sender ?? "User") : "You";
             return (
               <div key={m.id} className={`et-msg${mine ? " is-mine" : ""}`}>
                 <p>{m.body}</p>
                 <small>
-                  {m.is_staff ? (viewer === "staff" ? (m.sender ?? "Staff") : "Etivio support") : viewer === "staff" ? (m.sender ?? "User") : "You"} · {time(m.created_at)}
+                  {who} · {time(m.created_at)}
                 </small>
               </div>
             );
@@ -93,7 +100,7 @@ export function ChatThread({
             name="body"
             rows={1}
             maxLength={5000}
-            placeholder={viewer === "staff" ? "Reply to this user…" : "Write a message…"}
+            placeholder={course ? `Message ${course.otherName}…` : viewer === "staff" ? "Reply to this user…" : "Write a message…"}
             aria-label="Message"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

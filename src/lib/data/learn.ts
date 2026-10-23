@@ -335,6 +335,7 @@ export async function getCourseDetails(idOrSlug: string) {
       updatedAt: course.updated_at,
       publishedAt: course.published_at,
       featured: course.featured,
+      instructorId: course.instructor_id,
     },
     instructor: {
       name: course.instructor?.full_name || "Etivio instructor",
