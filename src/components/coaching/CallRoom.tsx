@@ -4,7 +4,8 @@ import Link from "next/link";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { ArrowLeft, Check, Maximize2, Mic, MicOff, Minimize2, MonitorUp, MonitorX, PhoneOff, Video, VideoOff, Volume2 } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
-import { createClient } from "@/lib/supabase/client";
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/lib/database.types";
 import { joinSessionCall } from "@/app/(call)/sessions/actions";
 import type { SessionRoom } from "@/lib/data/coaching";
 
@@ -20,6 +21,7 @@ type Sig =
   | { t: "offer" | "answer"; gen: number; sdp: RTCSessionDescriptionInit }
   | { t: "ice"; gen: number; c: RTCIceCandidateInit }
   | ({ t: "state" } & Peer)
+  | { t: "restart" }
   | { t: "bye" };
 
 const noop = () => () => {};
@@ -29,7 +31,16 @@ const VIDEO: MediaTrackConstraints = { facingMode: "user", width: { ideal: 1280 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 
 export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionRoom; opensAt: number; closesAt: number; backHref: string }) {
-  const db = useMemo(() => createClient(), []);
+  // Its own client with the Realtime heartbeat in a Web Worker: browsers slow timers in background tabs (for example
+  // while you share another tab), and without this the connection would drop and the other side would think you left.
+  const db = useMemo(
+    () =>
+      createBrowserClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
+        isSingleton: false,
+        realtime: { worker: true },
+      }),
+    [],
+  );
   const isCoach = room.role === "coach";
   const mounted = useSyncExternalStore(noop, () => true, () => false);
 
@@ -62,6 +73,8 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
   const state = useRef<Peer>({ mic: true, cam: false, screen: false });
   const helloTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const healTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const goneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flash = useCallback((msg: string, ms = 4000) => {
     setNotice(msg);
@@ -128,7 +141,27 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
   const videoSender = () => pc.current?.getTransceivers().find((t) => t.receiver.track.kind === "video")?.sender ?? null;
   const outgoingVideo = () => screen.current ?? cam.current ?? null;
 
+  const stopHealing = () => {
+    if (healTimer.current) clearInterval(healTimer.current);
+    healTimer.current = null;
+  };
+  // A stalled or failed connection is repaired, not hung up: the coach restarts the network side (ICE restart) and
+  // the learner asks for one. It keeps trying every few seconds until the call is back or someone leaves.
+  const heal = () => {
+    if (healTimer.current || !joined.current) return;
+    const attempt = () => {
+      const p = pc.current;
+      if (!joined.current || !p || p.connectionState === "connected") return stopHealing();
+      if (isCoach) void offer(true);
+      else send({ t: "restart" });
+    };
+    healTimer.current = setInterval(attempt, 6000);
+    attempt();
+  };
+  const isLive = () => !!pc.current && ["new", "connecting", "connected", "disconnected"].includes(pc.current.connectionState);
+
   const closePc = () => {
+    stopHealing();
     pc.current?.close();
     pc.current = null;
     remote.current = null;
@@ -157,13 +190,18 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
       if (pc.current !== p) return;
       const s = p.connectionState;
       if (s === "connected") {
+        stopHealing();
         setLink("connected");
         shareState();
-      } else if (s === "disconnected") setLink("reconnecting");
-      else if (s === "failed") {
+      } else if (s === "disconnected") {
+        // Often a brief hiccup that sorts itself out; repair it if it hasn't after a few seconds.
         setLink("reconnecting");
-        // The coach restarts the network side of the call; the learner answers the new offer.
-        if (isCoach) void offer(true);
+        setTimeout(() => {
+          if (pc.current === p && p.connectionState !== "connected") heal();
+        }, 5000);
+      } else if (s === "failed") {
+        setLink("reconnecting");
+        heal();
       }
     };
     return p;
@@ -212,6 +250,10 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
     }
     if (isCoach) {
       if (m.t === "hello") await offer();
+      else if (m.t === "restart") {
+        if (pc.current && pc.current.connectionState !== "connected") await offer(true);
+        else if (!pc.current) await offer();
+      }
       else if (m.t === "answer" && m.gen === gen.current && pc.current) {
         await pc.current.setRemoteDescription(m.sdp).catch(() => {});
         await drainIce();
@@ -262,7 +304,7 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
 
   // Learner: keep saying hello until the coach's offer arrives (covers the coach joining after you, or a refresh).
   const startHello = () => {
-    if (isCoach || helloTimer.current) return;
+    if (isCoach || helloTimer.current || pc.current?.remoteDescription) return;
     send({ t: "hello" });
     helloTimer.current = setInterval(() => {
       if (pc.current?.remoteDescription) {
@@ -278,11 +320,21 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
       setPeerHere(here);
       if (!joined.current) return;
       if (here) {
+        if (goneTimer.current) clearTimeout(goneTimer.current);
+        goneTimer.current = null;
+        // Already in a call with them (their connection to the room just blipped): carry on.
+        if (isLive()) return;
         if (isCoach) void offer();
         else startHello();
-      } else {
-        closePc();
-        setLink("none");
+      } else if (!goneTimer.current) {
+        // Not being in the room for a moment isn't leaving: the call keeps going while audio and video still flow.
+        // Only close it if they're still gone and the call has dropped after 30 seconds. Leaving properly sends "bye".
+        goneTimer.current = setTimeout(() => {
+          goneTimer.current = null;
+          if (!joined.current || pc.current?.connectionState === "connected") return;
+          closePc();
+          setLink("none");
+        }, 30_000);
       }
     };
   });
@@ -325,7 +377,20 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
       closePc();
       [mic, cam, screen].forEach((r) => r.current?.stop());
       if (helloTimer.current) clearInterval(helloTimer.current);
+      if (goneTimer.current) clearTimeout(goneTimer.current);
     };
+    // Runs once: these refs and helpers are read at unmount time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Coming back to the tab: repair the call if it dropped while you were away.
+  useEffect(() => {
+    const back = () => {
+      if (document.visibilityState === "visible" && joined.current && pc.current && pc.current.connectionState !== "connected") heal();
+    };
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // A clock for the countdown and call timer.
@@ -367,6 +432,8 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
     setLink("none");
     if (helloTimer.current) clearInterval(helloTimer.current);
     helloTimer.current = null;
+    if (goneTimer.current) clearTimeout(goneTimer.current);
+    goneTimer.current = null;
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     setPhase("left");
   };
@@ -395,23 +462,42 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
     shareState();
   };
 
+  // Upper limit for the video we send. Screens keep their sharpness (text stays readable) and drop frames instead.
+  const capVideo = async (maxBitrate: number, pref: RTCDegradationPreference) => {
+    const sender = videoSender();
+    if (!sender) return;
+    try {
+      const params = sender.getParameters();
+      if (!params.encodings?.length) params.encodings = [{}];
+      params.encodings[0].maxBitrate = maxBitrate;
+      params.degradationPreference = pref;
+      await sender.setParameters(params);
+    } catch {
+      /* not every browser lets this change mid-call; the default still works */
+    }
+  };
+
   const stopShare = async () => {
     screen.current?.stop();
     screen.current = null;
     state.current.screen = false;
     setSharing(false);
     await videoSender()?.replaceTrack(cam.current);
+    await capVideo(1_200_000, "balanced");
     shareState();
   };
   const toggleShare = async () => {
     if (screen.current) return stopShare();
     try {
-      const d = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      // 15 frames a second is plenty for slides and code, and keeps sharing from swamping a slow connection.
+      const d = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 15 } } });
       screen.current = d.getVideoTracks()[0];
+      screen.current.contentHint = "detail";
       screen.current.onended = () => void stopShare();
       state.current.screen = true;
       setSharing(true);
       await videoSender()?.replaceTrack(screen.current);
+      await capVideo(1_500_000, "maintain-resolution");
       shareState();
     } catch {
       /* cancelled in the browser's picker */
@@ -448,10 +534,12 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
   const end = Date.parse(room.endsAt);
   const open = t >= opensAt && t <= closesAt;
   const when = mounted ? new Date(start).toLocaleString(undefined, { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }) : "";
+  // In a call with them if they're in the room, or the call is still flowing while their room connection blips.
+  const withPeer = peerHere || link === "connected";
   const status =
     phase !== "in"
       ? ""
-      : !peerHere
+      : !withPeer
         ? `Waiting for ${room.other.name} to join…`
         : link === "connected"
           ? t < start
@@ -514,7 +602,7 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
       </div>
     );
 
-  const peerVideo = peerHere && link === "connected" && (peer.cam || peer.screen);
+  const peerVideo = withPeer && link === "connected" && (peer.cam || peer.screen);
   return (
     <div className={`et-cr-call${fs ? " is-fs" : ""}`} ref={stage}>
       <div className="et-cr-top">
@@ -530,11 +618,11 @@ export function CallRoom({ room, opensAt, closesAt, backHref }: { room: SessionR
         <video ref={remoteVideo} className={`et-cr-video${peer.screen ? " is-screen" : ""}`} autoPlay playsInline style={{ visibility: peerVideo ? "visible" : "hidden" }} />
         {!peerVideo && (
           <div className="et-cr-off is-stage">
-            <Avatar src={room.other.avatar} initial={room.other.name.charAt(0)} seed={room.other.name} className={`et-cr-face${peerHere ? "" : " is-waiting"}`} />
-            <span>{!peerHere ? `Waiting for ${room.other.name}` : link !== "connected" ? "Connecting…" : `${room.other.name}'s camera is off`}</span>
+            <Avatar src={room.other.avatar} initial={room.other.name.charAt(0)} seed={room.other.name} className={`et-cr-face${withPeer ? "" : " is-waiting"}`} />
+            <span>{!withPeer ? `Waiting for ${room.other.name}` : link !== "connected" ? "Connecting…" : `${room.other.name}'s camera is off`}</span>
           </div>
         )}
-        {peerHere && link === "connected" && !peer.mic && (
+        {withPeer && link === "connected" && !peer.mic && (
           <span className="et-cr-muted-tag">
             <MicOff size={13} /> Muted
           </span>
