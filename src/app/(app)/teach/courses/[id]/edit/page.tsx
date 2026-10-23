@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCourseCategories } from "@/lib/data/courses-admin";
 import { CourseWizard } from "@/app/admin/(panel)/courses/new/CourseWizard";
 import { loadWizardCourse } from "@/app/admin/(panel)/courses/wizard-data";
+import { featureOn } from "@/lib/data/features";
 
 export const metadata = { title: "Edit course" };
 
@@ -30,6 +31,7 @@ async function Content({ params }: Props) {
   const { course, initial, students } = loaded;
   return (
     <CourseWizard
+      ai={await featureOn("ai_course_tools")}
       key={course.id}
       instructors={[{ id: user.id, label: profile?.full_name || "You" }]}
       categories={categories}

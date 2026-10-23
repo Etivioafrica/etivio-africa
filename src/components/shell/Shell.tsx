@@ -43,6 +43,7 @@ import { adminSignOut } from "@/app/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import TipLayer from "./TipLayer";
 import { AiWidget } from "./AiWidget";
+import type { FeatureKey, FeatureMap } from "@/lib/features";
 import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
 import { ROLE_LABELS, canAccess, canTeach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
@@ -51,7 +52,7 @@ import { CartButton } from "@/components/market/CartButton";
 
 export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null; showTeach?: boolean };
 type SubItem = { label: string; href: string; badge?: number };
-type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean; badge?: number; area?: AdminArea; children?: SubItem[] };
+type Item = { label: string; href: string; icon: LucideIcon; exact?: boolean; badge?: number; area?: AdminArea; children?: SubItem[]; feature?: FeatureKey };
 type Group = { label: string; items: Item[] };
 
 const account: Group = {
@@ -177,8 +178,9 @@ const learnNav: Group[] = [
       { label: "Library", href: "/learn/library", icon: FolderDown },
       { label: "Saved", href: "/profile/saved", icon: Heart },
       { label: "Marketplace", href: "/explore", icon: Store },
-      { label: "Wallet", href: "/learn/wallet", icon: Wallet },
-      { label: "Messages", href: "/learn/messages", icon: MessagesSquare },
+      { label: "Wallet", href: "/learn/wallet", icon: Wallet, feature: "wallet" },
+      { label: "Messages", href: "/learn/messages", icon: MessagesSquare, feature: "messages" },
+      { label: "Communities", href: "/communities", icon: Users, feature: "communities" },
     ],
   },
   account,
@@ -211,7 +213,7 @@ const teachNav = (canTeach: boolean): Group[] => [
               ],
             },
             { label: "Students", href: "/teach/students", icon: Users },
-            { label: "Messages", href: "/teach/messages", icon: MessagesSquare },
+            { label: "Messages", href: "/teach/messages", icon: MessagesSquare, feature: "messages" as const },
             { label: "Earnings", href: "/teach/earnings", icon: Wallet },
           ],
         },
@@ -240,6 +242,7 @@ export default function Shell({
   unseenBadges = "",
   needsOnboarding = false,
   lastSide = "learn",
+  features = {},
   children,
 }: {
   user: ShellUser;
@@ -251,6 +254,8 @@ export default function Shell({
   needsOnboarding?: boolean;
   // Learn or Teach, whichever the person used last (cookie). Shared pages like Settings keep that sidebar.
   lastSide?: "learn" | "teach";
+  // Features this person can use (Settings → Features). Anything missing counts as on.
+  features?: Partial<FeatureMap>;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -303,7 +308,9 @@ export default function Shell({
     if (routeSide) document.cookie = `et-side=${routeSide}; path=/; max-age=31536000; samesite=lax`;
   }, [routeSide]);
   const teachMode = routeSide === "teach" || (!routeSide && side === "teach" && !!user.showTeach);
-  const groups = admin ? adminNav(user.roles, badges) : teachMode ? teachNav(canTeach(user.roles)) : learnNav;
+  const groups = (admin ? adminNav(user.roles, badges) : teachMode ? teachNav(canTeach(user.roles)) : learnNav)
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.feature || features[i.feature] !== false) }))
+    .filter((g) => g.items.length);
   const matches = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
   const flat = groups.flatMap((g) => g.items);
   // When two links match (Profile and Saved on /profile/saved), only the more specific one lights up.
@@ -437,7 +444,7 @@ export default function Shell({
         <main className={`et-main${admin ? "" : " has-bottom-nav"}`}>{children}</main>
         {!admin && <BottomNav pathname={pathname} />}
         <TipLayer />
-        {!admin && <AiWidget name={display} />}
+        {!admin && features.ai_assistant !== false && <AiWidget name={display} />}
         {!admin && guideOpen && <Onboarding name={user.name || user.email} onClosed={() => setGuideOpen(false)} />}
         {/* Badge celebrations wait until the welcome guide is out of the way. */}
         {!admin && !guideOpen && <BadgeCelebration trigger={unseenBadges} />}

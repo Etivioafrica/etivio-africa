@@ -7,6 +7,7 @@ import { completeWalletOrder, createOrder, paystackCheckoutUrl, priceItems, type
 import { createGroup } from "@/lib/data/group-buy";
 import { walletBalance } from "@/lib/data/wallet";
 import { paystackReady } from "@/lib/paystack";
+import { featureOn } from "@/lib/data/features";
 
 export type GroupActionState = { error?: string } | null;
 
@@ -50,6 +51,7 @@ export async function startGroup(_prev: GroupActionState, fd: FormData): Promise
     .maybeSingle();
   if (!course || course.status !== "published" || !course.group_buy_enabled || course.price_minor <= 0) return { error: "Group buy isn't available for this course." };
   const { viewer, billing } = await buyer(`/courses/${course.slug}`);
+  if (!(await featureOn("group_buy"))) return { error: "Group buy isn't available right now." };
   const group = await createGroup(course, viewer.id);
   if (!group) return { error: "We couldn't start a group just now. Please try again." };
   return payForGroup(viewer.id, billing, course.id, group, course.title);
@@ -61,6 +63,7 @@ export async function joinGroup(_prev: GroupActionState, fd: FormData): Promise<
   const { data: g } = await db.from("group_buys").select("id, status, size, expires_at, unit_price_minor, course:courses(id, title, status)").eq("code", code).maybeSingle();
   if (!g || !g.course) return { error: "That group doesn't exist." };
   const { viewer, billing } = await buyer(`/groups/${code}`);
+  if (!(await featureOn("group_buy"))) return { error: "Group buy isn't available right now." };
   if (g.status !== "open" || Date.parse(g.expires_at) < Date.now()) return { error: "This group has closed. Start a new one from the course page." };
   const [{ count }, { data: mine }] = await Promise.all([
     db.from("group_buy_members").select("user_id", { count: "exact", head: true }).eq("group_id", g.id),

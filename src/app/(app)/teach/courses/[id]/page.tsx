@@ -10,6 +10,7 @@ import { getCourseForEditing } from "@/lib/data/teach";
 import { formatDuration } from "@/lib/format";
 import { addLesson, addModule, deleteCourse, deleteModule, setCourseStatus, updateCourse } from "../../actions";
 import { Select } from "@/components/dash/Select";
+import { featureOn } from "@/lib/data/features";
 
 export const metadata = { title: "Edit course" };
 
@@ -136,7 +137,7 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
         </section>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <AiAssistant courseId={course.id} hasModules={modules.length > 0} coverUrl={course.cover_url} />
+          {(await featureOn("ai_course_tools")) && <AiAssistant courseId={course.id} hasModules={modules.length > 0} coverUrl={course.cover_url} />}
           <section className="et-card">
             <div className="et-card-head">
               <h2>Details</h2>

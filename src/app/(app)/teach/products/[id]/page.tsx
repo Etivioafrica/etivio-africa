@@ -6,6 +6,7 @@ import { getCategories } from "@/lib/data/marketplace";
 import { toFormValues } from "@/lib/data/product-form";
 import { bundleOptions, loadProductForEdit } from "@/lib/data/products-admin";
 import { tutorSaveProduct } from "../actions";
+import { featureOn } from "@/lib/data/features";
 
 export const metadata = { title: "Edit product" };
 
@@ -18,6 +19,7 @@ export default async function EditTutorProduct({ params }: { params: Promise<{ i
   const [categories, options] = await Promise.all([getCategories(), bundleOptions({ id: user.id, isAdmin: false }, id)]);
   return (
     <ProductEditor
+      ai={await featureOn("ai_course_tools")}
       key={loaded.product.updated_at}
       mode="tutor"
       initial={toFormValues(loaded)}

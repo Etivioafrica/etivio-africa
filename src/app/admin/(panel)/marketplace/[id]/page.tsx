@@ -7,6 +7,7 @@ import { toFormValues } from "@/lib/data/product-form";
 import { bundleOptions, loadProductForEdit } from "@/lib/data/products-admin";
 import { adminSaveProduct } from "../actions";
 import { ProductReview } from "./ProductReview";
+import { featureOn } from "@/lib/data/features";
 
 export const metadata = { title: "Edit product" };
 
@@ -41,6 +42,7 @@ async function Edit({ params }: Props) {
         isOwn={loaded.product.creator_id === admin.id}
       />
       <ProductEditor
+        ai={await featureOn("ai_course_tools")}
         key={loaded.product.updated_at}
         mode="admin"
         initial={toFormValues(loaded)}

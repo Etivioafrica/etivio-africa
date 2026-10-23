@@ -47,6 +47,7 @@ export function CourseWizard({
   initial,
   edit,
   tutor,
+  ai = true,
 }: {
   instructors: { id: string; label: string }[];
   categories: Category[];
@@ -56,6 +57,8 @@ export function CourseWizard({
   // Set for tutors (/teach): they're always the instructor, and publishing means submitting for review unless
   // `canPublish` (trusted tutor, or the course was approved before).
   tutor?: { canPublish: boolean };
+  // AI course tools (Settings → Features).
+  ai?: boolean;
 }) {
   const base = tutor ? "/teach/courses" : "/admin/courses";
   const router = useRouter();
@@ -337,9 +340,11 @@ export function CourseWizard({
                 <label htmlFor="w-title">Course title</label>
                 <input id="w-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Product design fundamentals" maxLength={140} autoFocus />
               </div>
+              {ai && (
               <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiDetails}>
                 <Sparkles size={13} /> {aiBusy === "copy" ? "Writing…" : "Write the summary, description and skills with AI"}
               </button>
+              )}
               <div className="et-field">
                 <label htmlFor="w-summary">Short summary</label>
                 <textarea id="w-summary" rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={300} placeholder="One or two sentences on what learners will be able to do after this course." />
@@ -408,9 +413,11 @@ export function CourseWizard({
                     <button type="button" className="et-btn et-btn-ghost et-btn-sm" onClick={() => cover.current?.open()}>
                       Replace
                     </button>
+                    {ai && (
                     <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiMakeCover}>
                       <Sparkles size={13} /> {aiBusy === "cover" ? "Creating…" : "New AI cover"}
                     </button>
+                    )}
                     <button type="button" className="et-icon-btn" onClick={() => setCoverUrl("")} aria-label="Remove cover">
                       <X size={15} />
                     </button>
@@ -423,7 +430,7 @@ export function CourseWizard({
                   <small>16:9 · crop and zoom before upload</small>
                 </button>
               )}
-              {!coverUrl && (
+              {!coverUrl && ai && (
                 <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiMakeCover}>
                   <Sparkles size={13} /> {aiBusy === "cover" ? "Creating a cover…" : "Or generate a cover with AI"}
                 </button>
@@ -438,9 +445,11 @@ export function CourseWizard({
               Add modules and the lessons inside them. Give each lesson a title, then click <b>Add content</b> to paste a YouTube link, write text, or attach files. Drag lessons to reorder them or move them between modules.
             </p>
             <div className="et-ai-bar">
+              {ai && (
               <button type="button" className="et-btn et-btn-ghost et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiPlan}>
                 <Sparkles size={14} /> {aiBusy === "outline" ? "Planning your course…" : "Generate outline with AI"}
               </button>
+              )}
               <label className="et-check">
                 <input type="checkbox" checked={aiWeb} onChange={(e) => setAiWeb(e.target.checked)} /> Research how this topic is taught online first
               </label>
@@ -481,7 +490,7 @@ export function CourseWizard({
                         onToggle={() => setOpenLesson((k) => (k === l.key ? null : l.key))}
                         onChange={(patch) => setLesson(m.key, l.key, patch)}
                         onEnter={() => addLesson(mi, li + 1)}
-                        ai={{ courseTitle: title, moduleTitle: m.title, level }}
+                        ai={ai ? { courseTitle: title, moduleTitle: m.title, level } : undefined}
                         onRemove={async () => {
                           const learners = edit?.students && l.id ? ` ${edit.students} enrolled learners lose their progress and notes on it.` : "";
                           if ((learners || l.videoUrl || hasText(l.content) || l.files.length) && !(await confirmDialog({ title: `Remove "${l.title || "this lesson"}"?`, body: `Its video, notes and files are removed too.${learners}`, confirmLabel: "Remove", danger: true }))) return;

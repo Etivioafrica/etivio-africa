@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin";
 import { getCourseCategories } from "@/lib/data/courses-admin";
 import { getInstructorOptions } from "../instructors";
 import { CourseWizard } from "./CourseWizard";
+import { featureOn } from "@/lib/data/features";
 
 export const metadata = { title: "New course" };
 
@@ -19,5 +20,5 @@ export default function NewCourse() {
 async function Content() {
   const { admin, db } = await requireAdmin("courses");
   const [instructors, categories] = await Promise.all([getInstructorOptions(db), getCourseCategories()]);
-  return <CourseWizard instructors={instructors} categories={categories} defaultInstructor={admin.id} />;
+  return <CourseWizard ai={await featureOn("ai_course_tools")} instructors={instructors} categories={categories} defaultInstructor={admin.id} />;
 }

@@ -33,6 +33,7 @@ export function ProductEditor({
   bundleOptions,
   backHref,
   onSave,
+  ai = true,
 }: {
   mode: "admin" | "tutor";
   initial?: Omit<ProductInput, "intent"> & { id: string };
@@ -42,6 +43,8 @@ export function ProductEditor({
   bundleOptions: BundleOption[];
   backHref: string;
   onSave: (input: ProductInput) => Promise<Result>;
+  // AI writing and cover tools (Settings → Features).
+  ai?: boolean;
 }) {
   const router = useRouter();
   const [toast, show] = useToast();
@@ -150,9 +153,11 @@ export function ProductEditor({
               <label htmlFor="pe-title">Title</label>
               <input id="pe-title" className="et-input" value={f.title} onChange={(e) => set({ title: e.target.value })} maxLength={140} placeholder="e.g. Startup Pitch Deck Template" />
             </div>
+            {ai && (
             <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiWrite}>
               <Sparkles size={13} /> {aiBusy === "copy" ? "Writing…" : "Write the summary, description and tags with AI"}
             </button>
+            )}
             <div className="et-field">
               <label htmlFor="pe-summary">Short summary</label>
               <textarea id="pe-summary" className="et-input" rows={2} value={f.summary} onChange={(e) => set({ summary: e.target.value })} maxLength={300} placeholder="One or two lines shown on cards and at the top of the page." />
@@ -161,9 +166,11 @@ export function ProductEditor({
             <div className="et-field">
               <div className="et-pe-labelrow">
                 <label>Description</label>
+                {ai && (
                 <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiDescribe}>
                   <Sparkles size={13} /> {aiBusy === "description" ? "Writing…" : f.description.replace(/<[^>]+>/g, "").trim() ? "Improve with AI" : "Write with AI"}
                 </button>
+                )}
               </div>
               <RichTextEditor value={f.description} onChange={(html) => set({ description: html })} />
             </div>
@@ -288,9 +295,11 @@ export function ProductEditor({
                   <button type="button" className="et-btn et-btn-ghost et-btn-sm" onClick={() => cover.current?.open()}>
                     Replace
                   </button>
+                  {ai && (
                   <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiMakeCover}>
                     <Sparkles size={13} /> {aiBusy === "cover" ? "Creating…" : "New AI cover"}
                   </button>
+                  )}
                   <button type="button" className="et-icon-btn" onClick={() => set({ coverUrl: "" })} aria-label="Remove cover">
                     <X size={14} />
                   </button>
@@ -303,7 +312,7 @@ export function ProductEditor({
                 <small>16:9 · shown on cards and the product page</small>
               </button>
             )}
-            {!f.coverUrl && (
+            {!f.coverUrl && ai && (
               <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiMakeCover}>
                 <Sparkles size={13} /> {aiBusy === "cover" ? "Creating a cover…" : "Or generate a cover with AI"}
               </button>

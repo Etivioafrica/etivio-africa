@@ -10,6 +10,7 @@ import Link from "next/link";
 import { compactMoney, formatDate, formatMoney } from "@/lib/format";
 import { MIN_WITHDRAWAL_MINOR } from "@/lib/payouts";
 import { WithdrawForm } from "./WithdrawForm";
+import { featureOn } from "@/lib/data/features";
 
 export const metadata = { title: "Earnings" };
 
@@ -33,6 +34,7 @@ export default async function Earnings() {
     db.from("payout_accounts").select("bank_name, account_number, verified_at").eq("user_id", user.id).maybeSingle(),
   ]);
   const availableMinor = Math.max(0, Number(available ?? 0));
+  const canWithdraw = await featureOn("withdrawals");
 
   const ok = (sales ?? []).filter((s) => s.status === "success");
   const earned = ok.reduce((n, s) => n + s.instructor_share_minor, 0);
@@ -49,6 +51,7 @@ export default async function Earnings() {
         <Stat label="Waiting to be paid" value={compactMoney(scheduled)} icon={Clock} />
         <Stat label="Paid to you" value={compactMoney(paid)} icon={Banknote} />
       </div>
+      {canWithdraw && (
       <section className="et-card et-card-pad et-wd-card">
         {account?.verified_at ? (
           <WithdrawForm availableMinor={availableMinor} minMinor={MIN_WITHDRAWAL_MINOR} bank={`${account.bank_name} (••••${account.account_number.slice(-4)})`} />
@@ -62,6 +65,7 @@ export default async function Earnings() {
           </div>
         )}
       </section>
+      )}
       <div className="et-grid-2">
         <section className="et-card">
           <div className="et-card-head">

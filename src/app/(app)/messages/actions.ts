@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SendResult } from "@/components/chat/ChatThread";
+import { featureOn } from "@/lib/data/features";
 
 export type StartState = { error?: string } | null;
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
@@ -11,6 +12,7 @@ const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 // conversation per student per course (a second "start" just adds to it).
 export async function startConversation(_prev: StartState, fd: FormData): Promise<StartState> {
   const user = await getCurrentUser();
+  if (!(await featureOn("messages"))) return { error: "Messages aren't available right now." };
   const courseId = str(fd, "course_id");
   const body = str(fd, "body").slice(0, 5000);
   if (body.length < 2) return { error: "Write a message first." };
@@ -36,6 +38,7 @@ export async function startConversation(_prev: StartState, fd: FormData): Promis
 // A reply from either side of a conversation.
 export async function sendCourseMessage(fd: FormData): Promise<SendResult> {
   const user = await getCurrentUser();
+  if (!(await featureOn("messages"))) return { error: "Messages aren't available right now." };
   const id = str(fd, "thread_id");
   const body = str(fd, "body").slice(0, 5000);
   if (!body) return { error: "Write a message first." };

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { groupPrice, openGroups } from "@/lib/data/group-buy";
 import { formatPrice } from "@/lib/format";
 import { GroupButton } from "./GroupButton";
+import { featureOnForVisitor } from "@/lib/data/features";
 
 const left = (iso: string) => {
   const h = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 3_600_000));
@@ -12,6 +13,7 @@ const left = (iso: string) => {
 // "Buy with friends" on the course page, when an admin has switched group buy on for the course.
 // Render after connection(): the time left depends on now.
 export async function GroupBuyBox({ courseId }: { courseId: string }) {
+  if (!(await featureOnForVisitor("group_buy"))) return null;
   const { data: c } = await createAdminClient().from("courses").select("id, price_minor, currency, group_buy_enabled, group_size, group_discount_percent, group_days").eq("id", courseId).maybeSingle();
   if (!c || !c.group_buy_enabled || c.price_minor <= 0) return null;
   const groups = await openGroups(c.id);

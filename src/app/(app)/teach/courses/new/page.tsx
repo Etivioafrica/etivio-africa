@@ -5,6 +5,7 @@ import { canTeach } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCourseCategories } from "@/lib/data/courses-admin";
 import { CourseWizard } from "@/app/admin/(panel)/courses/new/CourseWizard";
+import { featureOn } from "@/lib/data/features";
 
 export const metadata = { title: "New course" };
 
@@ -26,6 +27,7 @@ async function Content() {
   const [{ data: profile }, categories] = await Promise.all([createAdminClient().from("profiles").select("full_name, trusted_tutor").eq("id", user.id).maybeSingle(), getCourseCategories()]);
   return (
     <CourseWizard
+      ai={await featureOn("ai_course_tools")}
       instructors={[{ id: user.id, label: profile?.full_name || user.name || "You" }]}
       categories={categories}
       defaultInstructor={user.id}

@@ -5,6 +5,7 @@ import { canTeach } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatMoney, nairaToMinor } from "@/lib/format";
 import { MIN_WITHDRAWAL_MINOR } from "@/lib/payouts";
+import { featureOn } from "@/lib/data/features";
 
 export type WithdrawState = { ok?: string; error?: string } | null;
 
@@ -13,6 +14,7 @@ export type WithdrawState = { ok?: string; error?: string } | null;
 export async function requestWithdrawal(_prev: WithdrawState, fd: FormData): Promise<WithdrawState> {
   const user = await getCurrentUser();
   if (!canTeach(user.roles)) return { error: "Only tutors can withdraw earnings." };
+  if (!(await featureOn("withdrawals"))) return { error: "Withdrawals aren't available right now." };
   const amount = nairaToMinor(String(fd.get("amount") ?? ""));
   if (amount < MIN_WITHDRAWAL_MINOR) return { error: `The smallest withdrawal is ${formatMoney(MIN_WITHDRAWAL_MINOR)}.` };
   const db = createAdminClient();

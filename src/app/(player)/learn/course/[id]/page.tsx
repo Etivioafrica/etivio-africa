@@ -22,6 +22,7 @@ import { ReviewCard } from "@/components/learn/ReviewCard";
 import { AskAi } from "@/components/learn/AskAi";
 import { MessageTutor } from "@/components/chat/MessageTutor";
 import { conversationFor } from "@/lib/data/messages";
+import { featureOn } from "@/lib/data/features";
 import { LESSON_CHAT_DAILY_LIMIT } from "@/lib/ai";
 
 export const metadata = { title: "Course" };
@@ -233,10 +234,11 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
     </div>
   );
 
-  const chatId = data.isOwner ? null : await conversationFor(id, user.id);
+  const [messagesOn, aiOn] = await Promise.all([featureOn("messages"), featureOn("ai_lesson")]);
+  const chatId = data.isOwner || !messagesOn ? null : await conversationFor(id, user.id);
   const support = (
     <div className="et-pl-stack">
-      {!data.isOwner && (
+      {!data.isOwner && messagesOn && (
         <section className="et-card">
           <div className="et-card-head">
             <h2>Ask your tutor</h2>
@@ -357,7 +359,7 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
           ),
         },
         ...(!data.isOwner ? [{ id: "reviews", label: "Reviews", content: <ReviewCard courseId={id} canReview={review.canReview} mine={review.mine} progress={progress} /> }] : []),
-        ...(current && !isLocked
+        ...(current && !isLocked && aiOn
           ? [
               {
                 id: "ai",

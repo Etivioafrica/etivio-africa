@@ -5,6 +5,7 @@ import { getCourseCategories } from "@/lib/data/courses-admin";
 import { getInstructorOptions } from "../../instructors";
 import { CourseWizard } from "../../new/CourseWizard";
 import { loadWizardCourse } from "../../wizard-data";
+import { featureOn } from "@/lib/data/features";
 
 export const metadata = { title: "Edit course" };
 
@@ -29,5 +30,5 @@ async function Content({ params }: Props) {
   // Keep the current instructor selectable even if they're no longer a tutor.
   const options = instructors.some((i) => i.id === course.instructor_id) ? instructors : [{ id: course.instructor_id, label: course.instructor?.full_name || "Current instructor" }, ...instructors];
 
-  return <CourseWizard key={course.id} instructors={options} categories={categories} defaultInstructor={admin.id} edit={{ courseId: course.id, status: course.status, students }} initial={initial} />;
+  return <CourseWizard ai={await featureOn("ai_course_tools")} key={course.id} instructors={options} categories={categories} defaultInstructor={admin.id} edit={{ courseId: course.id, status: course.status, students }} initial={initial} />;
 }

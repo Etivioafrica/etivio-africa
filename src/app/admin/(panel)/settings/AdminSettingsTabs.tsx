@@ -13,6 +13,7 @@ export function AdminSettingsTabs({ showAppearance }: { showAppearance: boolean 
       ? [
           { href: "/admin/settings/learning", label: "Learning" },
           { href: "/admin/settings/appearance", label: "Appearance" },
+          { href: "/admin/settings/features", label: "Features" },
         ]
       : []),
   ];

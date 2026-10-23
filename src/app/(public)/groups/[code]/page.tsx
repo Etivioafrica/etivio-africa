@@ -9,6 +9,7 @@ import { CopyLink } from "@/components/dash/CopyLink";
 import { ShareButton } from "@/components/dash/ShareButton";
 import { GroupButton } from "@/components/market/GroupButton";
 import { getGroup } from "@/lib/data/group-buy";
+import { featureOnForVisitor } from "@/lib/data/features";
 import { createClient } from "@/lib/supabase/server";
 import { sessionUser } from "@/lib/supabase/session";
 import { formatPrice } from "@/lib/format";
@@ -45,8 +46,8 @@ function timeLeft(iso: string) {
 // The share link for a group buy: who's in, places left, time left, and the button to join and pay.
 async function Group({ params }: Props) {
   const { code } = await params;
-  const [g, viewer] = await Promise.all([getGroup(code), createClient().then(sessionUser)]);
-  if (!g) notFound();
+  const [g, viewer, on] = await Promise.all([getGroup(code), createClient().then(sessionUser), featureOnForVisitor("group_buy")]);
+  if (!g || !on) notFound();
   await connection();
   const isMember = !!viewer && g.members.some((m) => m.id === viewer.id);
   const open = g.status === "open" && Date.parse(g.expiresAt) > clock();

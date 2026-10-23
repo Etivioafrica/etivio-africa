@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { aiConfigured } from "@/lib/ai";
 import { makeCover, writeCourseCopy, writeLessonNotes, writeOutline, writeProductCopy, writeProductDescription, type Outline } from "@/lib/ai-writer";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { featureOn } from "@/lib/data/features";
 
 // AI course tools for tutors (their own courses) and super admins (any course). Each use counts toward a daily
 // limit and is logged in ai_messages.
@@ -13,6 +14,7 @@ type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
 async function gate(feature: "course_writer" | "thumbnail", note: string, courseId?: string) {
   if (!aiConfigured()) return { error: "AI tools aren't available right now." } as const;
+  if (!(await featureOn("ai_course_tools"))) return { error: "AI tools are turned off right now." } as const;
   const user = await getCurrentUser();
   const isAdmin = user.roles.includes("super_admin");
   if (!isAdmin && !user.roles.includes("tutor")) return { error: "AI tools are for tutors." } as const;

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sessionUser } from "@/lib/supabase/session";
+import { featureOnForVisitor } from "@/lib/data/features";
 import { LESSON_CHAT_DAILY_LIMIT as DAILY_LIMIT, aiConfigured, aiStream, promptText, type ChatMessage } from "@/lib/ai";
 
 // The learner's study assistant in the course player. Answers from the course outline and the current lesson's
@@ -9,6 +10,7 @@ import { LESSON_CHAT_DAILY_LIMIT as DAILY_LIMIT, aiConfigured, aiStream, promptT
 
 
 export async function POST(request: NextRequest) {
+  if (!(await featureOnForVisitor("ai_lesson"))) return NextResponse.json({ error: "This feature is turned off." }, { status: 404 });
   if (!aiConfigured()) return NextResponse.json({ error: "The study assistant isn't available right now." }, { status: 503 });
   const user = await sessionUser(await createClient());
   if (!user) return NextResponse.json({ error: "Sign in to use the study assistant." }, { status: 401 });
