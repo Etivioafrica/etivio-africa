@@ -119,8 +119,8 @@ export type SessionRow = {
   priceMinor: number;
   currency: string;
   note: string | null;
-  meetingUrl: string | null;
   cancelReason: string | null;
+  learnerJoinedAt: string | null;
   other: { id: string; name: string; avatar: string | null; slug?: string | null };
 };
 
@@ -130,7 +130,7 @@ export async function sessionsFor(userId: string, as: "learner" | "coach"): Prom
   const { data } = await db
     .from("coach_bookings")
     .select(
-      "id, starts_at, ends_at, status, price_minor, currency, note, meeting_url, cancel_reason, coach_id, learner_id, learner:profiles!coach_bookings_learner_id_fkey(full_name, avatar_url), coach:coach_profiles!coach_bookings_coach_id_fkey(slug, profile:profiles!coach_profiles_user_id_fkey(full_name, avatar_url))",
+      "id, starts_at, ends_at, status, price_minor, currency, note, cancel_reason, learner_joined_at, coach_id, learner_id, learner:profiles!coach_bookings_learner_id_fkey(full_name, avatar_url), coach:coach_profiles!coach_bookings_coach_id_fkey(slug, profile:profiles!coach_profiles_user_id_fkey(full_name, avatar_url))",
     )
     .eq(as === "learner" ? "learner_id" : "coach_id", userId)
     .neq("status", "pending")
@@ -146,8 +146,8 @@ export async function sessionsFor(userId: string, as: "learner" | "coach"): Prom
       priceMinor: b.price_minor,
       currency: b.currency,
       note: b.note,
-      meetingUrl: b.meeting_url,
       cancelReason: b.cancel_reason,
+      learnerJoinedAt: b.learner_joined_at,
       other:
         as === "learner"
           ? { id: b.coach_id, name: b.coach?.profile?.full_name || "Coach", avatar: b.coach?.profile?.avatar_url ?? null, slug: b.coach?.slug ?? null }
@@ -230,11 +230,10 @@ export async function sessionPaid(orderId: string, paidAt: string) {
   const { data: b } = await db.from("coach_bookings").select("id, coach_id, learner_id, status, cancel_reason, price_minor, currency").eq("order_id", orderId).maybeSingle();
   if (!b) return;
   await db.from("payments").update({ status: "success", paid_at: paidAt }).eq("order_id", orderId).eq("status", "pending");
-  const { data: coach } = await db.from("coach_profiles").select("meeting_url").eq("user_id", b.coach_id).maybeSingle();
   const confirm = () =>
     db
       .from("coach_bookings")
-      .update({ status: "confirmed", hold_expires_at: null, meeting_url: coach?.meeting_url ?? null, cancel_reason: null, cancelled_at: null })
+      .update({ status: "confirmed", hold_expires_at: null, cancel_reason: null, cancelled_at: null })
       .eq("id", b.id);
   if (b.status === "pending") {
     const { error } = await confirm().eq("status", "pending");
@@ -289,4 +288,38 @@ export async function adminSessions(limit = 100) {
     .order("starts_at", { ascending: false })
     .limit(limit);
   return (data ?? []).filter((b) => !(b.status === "cancelled" && b.cancel_reason === "Not paid in time"));
+}
+
+// The call room opens this long before a session starts and closes this long after it ends.
+export const ROOM_OPENS_MIN = 15;
+export const ROOM_CLOSES_MIN = 30;
+
+export type SessionRoom = {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  status: BookingStatus;
+  note: string | null;
+  role: "learner" | "coach";
+  me: { id: string; name: string; avatar: string | null };
+  other: { id: string; name: string; avatar: string | null };
+};
+
+// A session's call room, for its learner or coach only.
+export async function getSessionRoom(bookingId: string, userId: string): Promise<SessionRoom | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(bookingId)) return null;
+  const { data: b } = await createAdminClient()
+    .from("coach_bookings")
+    .select("id, coach_id, learner_id, starts_at, ends_at, status, note, learner:profiles!coach_bookings_learner_id_fkey(full_name, avatar_url), coach:coach_profiles!coach_bookings_coach_id_fkey(profile:profiles!coach_profiles_user_id_fkey(full_name, avatar_url))")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!b || (b.learner_id !== userId && b.coach_id !== userId)) return null;
+  const learner = { id: b.learner_id, name: b.learner?.full_name || "Learner", avatar: b.learner?.avatar_url ?? null };
+  const coach = { id: b.coach_id, name: b.coach?.profile?.full_name || "Coach", avatar: b.coach?.profile?.avatar_url ?? null };
+  const role = b.coach_id === userId ? "coach" : "learner";
+  return { id: b.id, startsAt: b.starts_at, endsAt: b.ends_at, status: b.status as BookingStatus, note: b.note, role, me: role === "coach" ? coach : learner, other: role === "coach" ? learner : coach };
+}
+
+export function roomWindow(room: { startsAt: string; endsAt: string }) {
+  return { opens: Date.parse(room.startsAt) - ROOM_OPENS_MIN * 60_000, closes: Date.parse(room.endsAt) + ROOM_CLOSES_MIN * 60_000 };
 }

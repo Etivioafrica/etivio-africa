@@ -33,14 +33,12 @@ export async function saveCoachProfile(_prev: FormState, fd: FormData): Promise<
   const timezone = str(fd, "timezone") || "Africa/Lagos";
   const notice = Number(str(fd, "notice_hours") || "12");
   const window = Number(str(fd, "window_days") || "30");
-  const meeting = str(fd, "meeting_url");
   if (headline.length < 10) return { error: "Add a headline of at least 10 characters, like \"Product designer helping you land your first job\"." };
   if (![30, 45, 60, 90].includes(minutes)) return { error: "Pick a session length." };
   if (!Number.isFinite(price) || price < 0 || price > 5_000_000) return { error: "Enter a price between 0 and 5,000,000." };
   if (!validTimezone(timezone)) return { error: "Pick a valid time zone." };
   if (!Number.isInteger(notice) || notice < 0 || notice > 168) return { error: "Notice must be between 0 and 168 hours." };
   if (!Number.isInteger(window) || window < 7 || window > 90) return { error: "Booking window must be between 7 and 90 days." };
-  if (meeting && !/^https:\/\/\S+$/.test(meeting)) return { error: "Your call link must start with https://" };
 
   const db = createAdminClient();
   const { data: existing } = await db.from("coach_profiles").select("slug").eq("user_id", user.id).maybeSingle();
@@ -53,7 +51,6 @@ export async function saveCoachProfile(_prev: FormState, fd: FormData): Promise<
     timezone,
     notice_hours: notice,
     window_days: window,
-    meeting_url: meeting || null,
     updated_at: new Date().toISOString(),
   };
   if (existing) {
@@ -136,17 +133,6 @@ export async function toggleDayOff(day: string, off: boolean): Promise<FormState
   return { ok: off ? "Day off added." : "Day off removed." };
 }
 
-export async function setSessionLink(bookingId: string, url: string): Promise<FormState> {
-  const { user, error } = await coach();
-  if (error) return { error };
-  const link = url.trim();
-  if (link && !/^https:\/\/\S+$/.test(link)) return { error: "The call link must start with https://" };
-  const { data } = await createAdminClient().from("coach_bookings").update({ meeting_url: link || null }).eq("id", bookingId).eq("coach_id", user.id).eq("status", "confirmed").select("id").maybeSingle();
-  if (!data) return { error: "Could not update this session." };
-  refresh();
-  return { ok: "Call link saved." };
-}
-
 // The learner didn't turn up. The coach is still paid.
 export async function markNoShow(bookingId: string): Promise<FormState> {
   const { user, error } = await coach();
@@ -157,10 +143,11 @@ export async function markNoShow(bookingId: string): Promise<FormState> {
     .eq("id", bookingId)
     .eq("coach_id", user.id)
     .eq("status", "confirmed")
+    .is("learner_joined_at", null)
     .lt("starts_at", new Date().toISOString())
     .select("id")
     .maybeSingle();
-  if (!data) return { error: "You can mark a no-show once the session has started." };
+  if (!data) return { error: "You can mark a no-show once the session has started, if the learner never joined the call." };
   refresh();
   return { ok: "Marked as a no-show." };
 }

@@ -1,11 +1,11 @@
 "use client";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
-import { CalendarDays, Link2, UserX, Video, X } from "lucide-react";
+import { CalendarDays, UserX, Video, X } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { confirmDialog, promptDialog } from "@/components/dash/dialogs";
 import { useToast } from "@/components/dash/useToast";
-import { cancelSession, markNoShow, setSessionLink } from "@/app/(app)/teach/coaching/actions";
+import { cancelSession, markNoShow } from "@/app/(app)/teach/coaching/actions";
 import { formatPrice } from "@/lib/format";
 import type { SessionRow } from "@/lib/data/coaching";
 
@@ -49,12 +49,6 @@ export function SessionList({ sessions, as, cancelHours }: { sessions: SessionRo
     run(() => cancelSession(s.id, reason));
   };
 
-  const link = async (s: SessionRow) => {
-    const url = await promptDialog({ title: "Call link", label: "Google Meet, Zoom or any https link", type: "url", defaultValue: s.meetingUrl ?? "", confirmLabel: "Save link" });
-    if (url === null) return;
-    run(() => setSessionLink(s.id, url));
-  };
-
   const noShow = async (s: SessionRow) => {
     if (!(await confirmDialog({ title: "Mark as a no-show?", body: "Use this when the learner didn't join. You're still paid for the session.", confirmLabel: "Mark no-show" }))) return;
     run(() => markNoShow(s.id));
@@ -85,7 +79,8 @@ export function SessionList({ sessions, as, cancelHours }: { sessions: SessionRo
         <ul className="et-cb-sessions">
           {list.map((s) => {
             const start = new Date(s.startsAt);
-            const live = s.status === "confirmed" && Date.parse(s.startsAt) - now < 15 * 60_000 && Date.parse(s.endsAt) > now;
+            // The call room opens 15 minutes before the start.
+            const live = s.status === "confirmed" && Date.parse(s.startsAt) - now < 15 * 60_000 && Date.parse(s.endsAt) + 30 * 60_000 > now;
             const isUpcoming = tab === "upcoming";
             return (
               <li key={s.id} className="et-cb-session">
@@ -110,19 +105,17 @@ export function SessionList({ sessions, as, cancelHours }: { sessions: SessionRo
                   {s.status === "cancelled" && s.cancelReason && <p className="et-cb-session-note">Reason: {s.cancelReason}</p>}
                   {isUpcoming && (
                     <div className="et-cb-actions">
-                      {s.meetingUrl ? (
-                        <a href={s.meetingUrl} target="_blank" rel="noopener noreferrer" className={`et-btn et-btn-sm ${live ? "et-btn-primary" : "et-btn-ghost"}`}>
-                          <Video size={14} /> {live ? "Join now" : "Call link"}
-                        </a>
+                      {live ? (
+                        <Link href={`/sessions/${s.id}`} className="et-btn et-btn-sm et-btn-primary">
+                          <Video size={14} /> Join call
+                        </Link>
                       ) : (
-                        <span className="et-cb-muted">{as === "learner" ? "Your coach will add the call link before the session." : "No call link yet."}</span>
+                        <Link href={`/sessions/${s.id}`} className="et-btn et-btn-sm et-btn-ghost">
+                          <Video size={14} /> Call room
+                        </Link>
                       )}
-                      {as === "coach" && (
-                        <button className="et-btn et-btn-ghost et-btn-sm" disabled={pending} onClick={() => link(s)}>
-                          <Link2 size={14} /> {s.meetingUrl ? "Change link" : "Add link"}
-                        </button>
-                      )}
-                      {as === "coach" && Date.parse(s.startsAt) < now && (
+                      {as === "coach" && s.learnerJoinedAt && <span className="et-cb-muted">Learner joined</span>}
+                      {as === "coach" && Date.parse(s.startsAt) < now && !s.learnerJoinedAt && (
                         <button className="et-btn et-btn-ghost et-btn-sm" disabled={pending} onClick={() => noShow(s)}>
                           <UserX size={14} /> No-show
                         </button>

@@ -11,7 +11,7 @@ import { sendEmail, siteUrl } from "./send";
 async function booking(id: string) {
   const { data } = await createAdminClient()
     .from("coach_bookings")
-    .select("id, coach_id, learner_id, starts_at, ends_at, status, price_minor, currency, note, meeting_url, cancel_reason, cancelled_by, coach:coach_profiles!coach_bookings_coach_id_fkey(slug, timezone, profile:profiles!coach_profiles_user_id_fkey(full_name)), learner:profiles!coach_bookings_learner_id_fkey(full_name)")
+    .select("id, coach_id, learner_id, starts_at, ends_at, status, price_minor, currency, note, cancel_reason, cancelled_by, coach:coach_profiles!coach_bookings_coach_id_fkey(slug, timezone, profile:profiles!coach_profiles_user_id_fkey(full_name)), learner:profiles!coach_bookings_learner_id_fkey(full_name)")
     .eq("id", id)
     .maybeSingle();
   return data;
@@ -39,9 +39,8 @@ function content(kind: "booked" | "cancelled" | "reminder", who: Who, b: NonNull
   const blocks =
     kind === "booked"
       ? [
-          { p: who === "learner" ? `You're booked with ${coach}. You'll find the call link on your Sessions page, and we'll remind you an hour before.` : `${learner} booked a session with you.` },
+          { p: who === "learner" ? `You're booked with ${coach}. The video call happens right on Etivio: open your Sessions page and press Join when it's time. We'll remind you an hour before.` : `${learner} booked a session with you.` },
           ...(b.note ? [{ p: who === "learner" ? "What you told your coach:" : "What they'd like to cover:" }, { quote: b.note }] : []),
-          ...(who === "coach" && !b.meeting_url ? [{ p: "There's no call link on this session yet. Add one on your Sessions page so they can join." }] : []),
         ]
       : kind === "cancelled"
         ? [
@@ -49,7 +48,7 @@ function content(kind: "booked" | "cancelled" | "reminder", who: Who, b: NonNull
             ...(b.cancel_reason ? [{ quote: b.cancel_reason }] : []),
             ...(who === "learner" && b.price_minor > 0 ? [{ p: `${formatPrice(b.price_minor, b.currency)} is back in your Etivio wallet. Use it to book again or on any course.` }] : []),
           ]
-        : [{ p: b.meeting_url ? "Join from your Sessions page when it's time." : "Open your Sessions page for the call link." }];
+        : [{ p: "The call happens on Etivio. The room opens 15 minutes before; join from a laptop or phone, and headphones help." }];
   return {
     subject,
     ...render({
@@ -59,7 +58,7 @@ function content(kind: "booked" | "cancelled" | "reminder", who: Who, b: NonNull
       greeting: name,
       blocks,
       info: { title: "Coaching session", rows },
-      cta: { label: kind === "reminder" && b.meeting_url ? "Join the call" : "Open sessions", url: kind === "reminder" && b.meeting_url ? b.meeting_url : page },
+      cta: kind === "cancelled" ? { label: "Open sessions", url: page } : { label: kind === "reminder" ? "Join the call" : "Open sessions", url: kind === "reminder" ? `${siteUrl()}/sessions/${b.id}` : page },
       reason: "You're getting this because of a coaching session on Etivio.",
     }),
   };

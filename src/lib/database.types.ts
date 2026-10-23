@@ -634,12 +634,14 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           coach_id: string
+          coach_joined_at: string | null
           created_at: string
           currency: string
           ends_at: string
           hold_expires_at: string | null
           id: string
           learner_id: string
+          learner_joined_at: string | null
           meeting_url: string | null
           note: string | null
           order_id: string | null
@@ -653,12 +655,14 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           coach_id: string
+          coach_joined_at?: string | null
           created_at?: string
           currency?: string
           ends_at: string
           hold_expires_at?: string | null
           id?: string
           learner_id: string
+          learner_joined_at?: string | null
           meeting_url?: string | null
           note?: string | null
           order_id?: string | null
@@ -672,12 +676,14 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           coach_id?: string
+          coach_joined_at?: string | null
           created_at?: string
           currency?: string
           ends_at?: string
           hold_expires_at?: string | null
           id?: string
           learner_id?: string
+          learner_joined_at?: string | null
           meeting_url?: string | null
           note?: string | null
           order_id?: string | null
@@ -3560,6 +3566,7 @@ export type Database = {
           views: number
         }[]
       }
+      can_use_session_channel: { Args: { p_topic: string }; Returns: boolean }
       cancel_coach_booking: {
         Args: { p_booking: string; p_by: string; p_reason: string }
         Returns: boolean

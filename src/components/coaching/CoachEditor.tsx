@@ -16,7 +16,6 @@ export type CoachProfileValues = {
   timezone: string;
   notice_hours: number;
   window_days: number;
-  meeting_url: string | null;
 } | null;
 
 export function CoachProfileForm({ profile }: { profile: CoachProfileValues }) {
@@ -80,11 +79,6 @@ export function CoachProfileForm({ profile }: { profile: CoachProfileValues }) {
               </option>
             ))}
           </Select>
-        </div>
-        <div className="et-field">
-          <label htmlFor="cp-meet">Your call link</label>
-          <input id="cp-meet" name="meeting_url" type="url" defaultValue={profile?.meeting_url ?? ""} placeholder="https://meet.google.com/..." />
-          <small>Added to every new booking. You can change it per session.</small>
         </div>
       </div>
       <div>
