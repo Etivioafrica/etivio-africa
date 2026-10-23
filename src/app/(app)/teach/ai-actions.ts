@@ -2,7 +2,7 @@
 import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { aiConfigured } from "@/lib/ai";
-import { makeCover, writeCourseCopy, writeLessonNotes, writeOutline, type Outline } from "@/lib/ai-writer";
+import { makeCover, writeCourseCopy, writeLessonNotes, writeOutline, writeProductCopy, writeProductDescription, type Outline } from "@/lib/ai-writer";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // AI course tools for tutors (their own courses) and super admins (any course). Each use counts toward a daily
@@ -58,6 +58,20 @@ export async function aiLesson(input: { courseTitle: string; moduleTitle?: strin
   const g = await gate("course_writer", `Lesson notes: ${input.lessonTitle}`);
   if ("error" in g) return { ok: false as const, error: g.error! };
   return attempt(() => writeLessonNotes(input));
+}
+
+export async function aiProductCopy(input: { kind: string; title: string; formats?: string; notes?: string; items?: string[] }) {
+  if (input.title.trim().length < 4) return { ok: false as const, error: "Give the product a title first." };
+  const g = await gate("course_writer", `Product copy: ${input.title}`);
+  if ("error" in g) return { ok: false as const, error: g.error! };
+  return attempt(() => writeProductCopy(input));
+}
+
+export async function aiProductDescription(input: { kind: string; title: string; summary?: string; formats?: string; existing?: string; items?: string[] }) {
+  if (input.title.trim().length < 4) return { ok: false as const, error: "Give the product a title first." };
+  const g = await gate("course_writer", `Product description: ${input.title}`);
+  if ("error" in g) return { ok: false as const, error: g.error! };
+  return attempt(() => writeProductDescription(input));
 }
 
 export async function aiCover(input: { title: string; summary?: string; style?: string }) {

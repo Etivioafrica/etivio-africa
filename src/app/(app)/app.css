@@ -1779,6 +1779,7 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 @keyframes et-aia-blink{0%,90%,100%{transform:scaleY(1)}93%{transform:scaleY(.1)}}
 @keyframes et-aia-spin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.86)}100%{transform:rotate(360deg) scale(1)}}
 @media (prefers-reduced-motion:reduce){.et-aia-body,.et-aia-eyes,.et-aia.is-busy .et-aia-body{animation:none}}
+.et-pe-labelrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .et-aw{position:fixed;z-index:70;right:24px;bottom:24px;display:flex;flex-direction:column;align-items:flex-end;gap:14px}
 .et-aw-launch{display:grid;place-items:center;width:56px;height:56px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 28px rgba(15,23,42,.28);cursor:pointer;transition:transform .15s}
 .et-aw-launch:hover{transform:translateY(-2px)}

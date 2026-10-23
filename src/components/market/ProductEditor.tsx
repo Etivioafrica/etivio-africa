@@ -2,7 +2,8 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileText, ImagePlus, Layers, LayoutTemplate, Package, Paperclip, Plus, Trash2, X } from "lucide-react";
+import { FileText, ImagePlus, Layers, LayoutTemplate, Package, Paperclip, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { aiCover, aiProductCopy, aiProductDescription } from "@/app/(app)/teach/ai-actions";
 import { CropUpload, type CropUploadHandle } from "@/components/dash/CropUpload";
 import { RichTextEditor } from "@/components/dash/RichTextEditor";
 import { Uploader } from "@/components/dash/Uploader";
@@ -60,6 +61,40 @@ export function ProductEditor({
   const bundleRows = f.bundle.map((b) => bundleOptions.find((o) => optionKey(o) === optionKey(b))).filter(Boolean) as BundleOption[];
   const bundleValue = bundleRows.reduce((n, b) => n + b.priceMinor, 0);
 
+  const [aiBusy, setAiBusy] = useState<"copy" | "description" | "cover" | null>(null);
+  const canAi = !aiBusy && f.title.trim().length >= 4;
+
+  async function aiWrite() {
+    setAiBusy("copy");
+    const res = await aiProductCopy({ kind: ITEM_TYPES[f.kind].label, title: f.title, formats: f.formats, notes: f.description, items: bundleRows.map((b) => b.title) });
+    setAiBusy(null);
+    if (!res.ok) return show({ error: res.error });
+    set({
+      ...(res.data.summary ? { summary: res.data.summary } : {}),
+      ...(res.data.description ? { description: res.data.description } : {}),
+      ...(res.data.tags.length ? { tags: res.data.tags.join(", ") } : {}),
+      ...(!f.formats.trim() && res.data.formats.length ? { formats: res.data.formats.join(", ") } : {}),
+    });
+    show({ ok: "Details written. Read them through and edit anything that isn't right." });
+  }
+
+  async function aiDescribe() {
+    setAiBusy("description");
+    const res = await aiProductDescription({ kind: ITEM_TYPES[f.kind].label, title: f.title, summary: f.summary, formats: f.formats, existing: f.description, items: bundleRows.map((b) => b.title) });
+    setAiBusy(null);
+    if (!res.ok) return show({ error: res.error });
+    set({ description: res.data });
+    show({ ok: "Description written. Read it through and edit anything that isn't right." });
+  }
+
+  async function aiMakeCover() {
+    setAiBusy("cover");
+    const res = await aiCover({ title: f.title, summary: f.summary });
+    setAiBusy(null);
+    if (!res.ok) return show({ error: res.error });
+    set({ coverUrl: res.data });
+  }
+
   function save(intent: ProductInput["intent"]) {
     start(async () => {
       const res = await onSave({ ...f, intent });
@@ -115,13 +150,21 @@ export function ProductEditor({
               <label htmlFor="pe-title">Title</label>
               <input id="pe-title" className="et-input" value={f.title} onChange={(e) => set({ title: e.target.value })} maxLength={140} placeholder="e.g. Startup Pitch Deck Template" />
             </div>
+            <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiWrite}>
+              <Sparkles size={13} /> {aiBusy === "copy" ? "Writing…" : "Write the summary, description and tags with AI"}
+            </button>
             <div className="et-field">
               <label htmlFor="pe-summary">Short summary</label>
               <textarea id="pe-summary" className="et-input" rows={2} value={f.summary} onChange={(e) => set({ summary: e.target.value })} maxLength={300} placeholder="One or two lines shown on cards and at the top of the page." />
               <small>{f.summary.length}/300</small>
             </div>
             <div className="et-field">
-              <label>Description</label>
+              <div className="et-pe-labelrow">
+                <label>Description</label>
+                <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiDescribe}>
+                  <Sparkles size={13} /> {aiBusy === "description" ? "Writing…" : f.description.replace(/<[^>]+>/g, "").trim() ? "Improve with AI" : "Write with AI"}
+                </button>
+              </div>
               <RichTextEditor value={f.description} onChange={(html) => set({ description: html })} />
             </div>
           </section>
@@ -245,6 +288,9 @@ export function ProductEditor({
                   <button type="button" className="et-btn et-btn-ghost et-btn-sm" onClick={() => cover.current?.open()}>
                     Replace
                   </button>
+                  <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiMakeCover}>
+                    <Sparkles size={13} /> {aiBusy === "cover" ? "Creating…" : "New AI cover"}
+                  </button>
                   <button type="button" className="et-icon-btn" onClick={() => set({ coverUrl: "" })} aria-label="Remove cover">
                     <X size={14} />
                   </button>
@@ -255,6 +301,11 @@ export function ProductEditor({
                 <ImagePlus size={22} strokeWidth={1.5} />
                 <b>Add a cover</b>
                 <small>16:9 · shown on cards and the product page</small>
+              </button>
+            )}
+            {!f.coverUrl && (
+              <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiMakeCover}>
+                <Sparkles size={13} /> {aiBusy === "cover" ? "Creating a cover…" : "Or generate a cover with AI"}
               </button>
             )}
             <div className="et-form-grid">

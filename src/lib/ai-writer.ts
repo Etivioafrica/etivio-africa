@@ -86,6 +86,67 @@ export async function writeCourseCopy(input: { title: string; level: string; out
   };
 }
 
+// Product page copy for a template, e-book, resource pack or bundle. The description comes back as safe HTML.
+export async function writeProductCopy(input: { kind: string; title: string; formats?: string; notes?: string; items?: string[] }) {
+  const raw = await aiJson<{ summary?: string; description?: string; tags?: string[]; formats?: string[] }>(
+    [
+      { role: "system", content: `You write marketplace product pages that make people want to buy, without hype. ${STYLE} Reply with JSON only.` },
+      {
+        role: "user",
+        content: [
+          `Product type: ${input.kind}. Title: "${clip(input.title, 140)}".`,
+          input.formats ? `Formats: ${clip(input.formats, 120)}.` : "",
+          input.items?.length ? `Included in this bundle:\n${input.items.slice(0, 30).map((t) => `- ${clip(t, 120)}`).join("\n")}` : "",
+          input.notes ? `The seller's notes so far (keep their facts):\n"""${promptText(input.notes, 2000)}"""` : "",
+          `Write: "summary", one or two sentences (max 280 characters) on what the buyer gets and why it helps; "description", 3 short paragraphs separated by blank lines (who it's for, what's inside, how to use it), max 1200 characters, plain text, no invented page counts or numbers; "tags", 4 to 6 short search tags; "formats", the likely file formats or apps if none were given (e.g. PDF, Figma, Canva), else an empty list.`,
+          `JSON shape: {"summary":"","description":"","tags":[""],"formats":[""]}`,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+      },
+    ],
+    { maxTokens: 1200 },
+  );
+  const text = typeof raw.description === "string" ? raw.description.trim().slice(0, 1500) : "";
+  return {
+    summary: clip(raw.summary, 300),
+    description: sanitizeRichText(
+      text
+        .split(/\n\s*\n/)
+        .map((para) => `<p>${para.trim().replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`)
+        .join(""),
+    ),
+    tags: (raw.tags ?? []).map((t) => clip(t, 40)).filter(Boolean).slice(0, 6),
+    formats: (raw.formats ?? []).map((t) => clip(t, 30)).filter(Boolean).slice(0, 4),
+  };
+}
+
+// A fuller product description as safe HTML (headings and lists), keeping anything the seller already wrote.
+export async function writeProductDescription(input: { kind: string; title: string; summary?: string; formats?: string; existing?: string; items?: string[] }) {
+  const text = await aiText(
+    [
+      { role: "system", content: `You write marketplace product descriptions that help people decide to buy, without hype. ${STYLE} Use simple HTML only: <h3>, <p>, <ul>, <li>, <strong>. No other tags, no markdown.` },
+      {
+        role: "user",
+        content: [
+          `Product type: ${input.kind}. Title: "${clip(input.title, 140)}".`,
+          input.summary ? `Summary: ${clip(input.summary, 300)}` : "",
+          input.formats ? `Formats: ${clip(input.formats, 120)}.` : "",
+          input.items?.length ? `Included in this bundle:\n${input.items.slice(0, 30).map((t) => `- ${clip(t, 120)}`).join("\n")}` : "",
+          input.existing ? `The seller's description so far (keep their facts, improve and extend it):\n"""${promptText(input.existing, 3000)}"""` : "",
+          "Write the description: a short opening paragraph, then sections with <h3> headings for who it's for, what's inside (a bullet list), and how to use it. End with one short paragraph on the result the buyer gets. 180 to 350 words. Don't invent page counts, numbers of items or testimonials.",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+      },
+    ],
+    { maxTokens: 1400 },
+  );
+  const html = sanitizeRichText(text.replace(/^```(?:html)?\s*|\s*```$/g, ""));
+  if (!promptText(html)) throw new Error("The AI didn't return a description. Try again.");
+  return html;
+}
+
 // A first draft of a lesson's written notes, as safe HTML for the rich text editor.
 export async function writeLessonNotes(input: { courseTitle: string; moduleTitle?: string; lessonTitle: string; level: string; existing?: string }) {
   const text = await aiText(
