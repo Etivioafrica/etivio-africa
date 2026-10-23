@@ -41,6 +41,13 @@ export function Welcome() {
     };
   }, []);
 
+  // In the iOS app: white status bar text on the blue logo screen, dark text on the light slides.
+  useEffect(() => {
+    const bar = (window as { Capacitor?: { Plugins?: { StatusBar?: { setStyle: (o: { style: string }) => Promise<void> } } } }).Capacitor?.Plugins?.StatusBar;
+    void bar?.setStyle({ style: intro === "done" ? "LIGHT" : "DARK" }).catch(() => {});
+    return () => void bar?.setStyle({ style: "DEFAULT" }).catch(() => {});
+  }, [intro]);
+
   // Next slide every 4.5 seconds once the intro is gone.
   useEffect(() => {
     if (intro !== "done") return;

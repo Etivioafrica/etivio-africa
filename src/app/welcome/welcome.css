@@ -1,3 +1,8 @@
+/* iOS tints the status bar area and fills any gap with the page background, so it matches this screen (blue while
+   the logo shows, then light) instead of the dark-mode background behind it. */
+html:has(.et-welcome),html:has(.et-welcome) body{background:#f4f5f7}
+html:has(.et-intro),html:has(.et-intro) body{background:#2563eb}
+
 /* App start screen (/welcome): character cards, a line per slide, Get started and log in. Light, solid colours. */
 .et-welcome{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;background:#f4f5f7;color:#0f1115;font-family:var(--font-geist-sans),system-ui,sans-serif}
 .et-welcome-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top) + 24px) 0 8px}
@@ -28,6 +33,9 @@
 .et-welcome-actions>a:active{transform:scale(.98)}
 .et-welcome-legal{margin-top:4px;text-align:center;font-size:11.5px;line-height:1.5;color:#9aa1ad}
 .et-welcome-legal a{color:#6b7280;text-decoration:underline}
+/* Installed on the home screen, iOS can stop fixed full-screen layers above the home bar; fill the whole screen so
+   the buttons sit just above it. */
+@media(display-mode:standalone){.et-welcome{bottom:auto;height:100lvh}}
 /* Wider screens (desktop browsers) see it as a phone-sized column. */
 @media(min-width:640px){.et-welcome{max-width:430px;margin:0 auto;box-shadow:0 0 60px #0000001f}}
 @media(max-height:680px){.et-welcome-cards{transform:scale(.85);margin-bottom:20px}.et-welcome-slide h1{font-size:28px}}
