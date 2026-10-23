@@ -266,7 +266,7 @@ export function AiWidget({ name }: { name: string }) {
           if (!open && !loaded) load();
           setOpen(!open);
         }} aria-label={open ? "Close Etivio AI" : "Open Etivio AI"} aria-expanded={open}>
-        {open ? <ChevronDown size={20} /> : <AiAvatar size={56} />}
+        {open ? <ChevronDown size={20} /> : <AiAvatar size={56} inverse />}
       </button>
     </div>
   );
