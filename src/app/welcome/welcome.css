@@ -1,32 +1,40 @@
-.et-welcome{position:fixed;inset:0;overflow:hidden;background:#060b18;color:#fff;font-family:var(--font-geist-sans),system-ui,sans-serif}
-.et-welcome-track{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
-.et-welcome-track::-webkit-scrollbar{display:none}
-.et-welcome-slide{position:relative;flex:0 0 100%;height:100%;scroll-snap-align:center}
-.et-welcome-slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
-.et-welcome-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#060b18 0%,rgba(6,11,24,.92) 28%,rgba(6,11,24,0) 58%)}
-.et-welcome-text{position:absolute;z-index:1;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 170px);padding:0 32px;text-align:center}
-.et-welcome-text h2{font-size:28px;font-weight:700;letter-spacing:-.02em}
-.et-welcome-text p{max-width:28ch;margin:10px auto 0;font-size:15px;line-height:1.5;color:#c7d2e8}
-.et-welcome-top{position:absolute;z-index:2;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 14px) 20px 0}
-.et-welcome-bars{display:flex;gap:6px}
-.et-welcome-bars button{flex:1;height:4px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.3);overflow:hidden;cursor:pointer}
-.et-welcome-bars span{display:block;width:0;height:100%;border-radius:inherit;background:#fff;transition:width .3s}
-.et-welcome-bars span.is-on{width:100%}
-.et-welcome-logo{display:block;height:24px;margin:14px auto 0;filter:brightness(0) invert(1)}
-.et-welcome-actions{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:12px;padding:0 24px calc(env(safe-area-inset-bottom) + 24px)}
-.et-welcome-actions a{display:block;padding:15px;border-radius:999px;text-align:center;font-size:15px;font-weight:700;text-decoration:none}
-.et-welcome-primary{background:#fff;color:#0a0f1a}
-.et-welcome-secondary{border:1.5px solid rgba(255,255,255,.45);color:#fff}
-.et-welcome-actions a:active{transform:scale(.98)}
-/* Wider screens (desktop browsers) see the slides as a phone-sized column. */
-@media(min-width:640px){.et-welcome{max-width:430px;margin:0 auto;box-shadow:0 0 80px rgba(0,0,0,.5)}}
+/* App start screen (/welcome): character cards, a line per slide, Get started and log in. Light, solid colours. */
+.et-welcome{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;background:#f4f5f7;color:#0f1115;font-family:var(--font-geist-sans),system-ui,sans-serif}
+.et-welcome-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top) + 24px) 0 8px}
 
-.et-splash{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#2563eb;transition:opacity .5s}
-.et-splash.is-done{opacity:0;pointer-events:none}
-.et-splash-tile{width:76px;height:76px;display:grid;place-items:center;border-radius:20px;background:#fff;box-shadow:0 14px 34px rgba(0,0,0,.25);animation:et-pop .5s ease-out both}
-.et-splash-tile img{width:44px;height:44px}
-.et-splash-word{position:relative;overflow:hidden;padding:0 4px;font-size:30px;font-weight:700;letter-spacing:-.03em;color:#fff}
-.et-splash-word i{position:absolute;inset:0;background:#2563eb;animation:et-reveal .8s cubic-bezier(.65,0,.35,1) .4s both}
-@keyframes et-pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
-@keyframes et-reveal{0%{transform:translateX(0)}100%{transform:translateX(101%)}}
-@media(prefers-reduced-motion:reduce){.et-splash-tile,.et-splash-word i{animation:none}.et-splash-word i{display:none}}
+.et-welcome-cards{position:relative;width:300px;height:190px;margin-bottom:36px}
+.et-welcome-card{position:absolute;bottom:0;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;border-radius:22px;animation:et-card-in .7s cubic-bezier(.2,.8,.2,1) both}
+.et-welcome-card img{width:78%;margin-bottom:-14%}
+.et-welcome-card.is-left{left:0;width:104px;height:140px;background:#dbe4f0;--r:-8deg;transform:rotate(-8deg);animation-delay:.08s}
+.et-welcome-card.is-mid{left:50%;z-index:1;width:126px;height:172px;margin-left:-63px;background:#2563eb;--r:0deg;box-shadow:0 16px 30px #0f11152e}
+.et-welcome-card.is-right{right:0;width:104px;height:140px;background:#ffd75e;--r:8deg;transform:rotate(8deg);animation-delay:.14s}
+@keyframes et-card-in{0%{opacity:0;transform:translateY(26px) rotate(var(--r)) scale(.92)}100%{opacity:1;transform:translateY(0) rotate(var(--r)) scale(1)}}
+.et-welcome.is-intro .et-welcome-card{animation-play-state:paused}
+
+.et-welcome-brand{height:16px;margin-bottom:14px;filter:grayscale(1) brightness(.75);opacity:.7}
+.et-welcome-track{display:flex;width:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.et-welcome-track::-webkit-scrollbar{display:none}
+.et-welcome-slide{flex:0 0 100%;padding:0 32px;text-align:center;scroll-snap-align:center}
+.et-welcome-slide h1{max-width:15ch;margin:0 auto;font-size:32px;font-weight:800;line-height:1.12;letter-spacing:-.03em}
+.et-welcome-slide p{max-width:30ch;margin:12px auto 0;font-size:15px;line-height:1.55;color:#6b7280}
+.et-welcome-dots{display:flex;gap:6px;margin-top:22px}
+.et-welcome-dots button{width:6px;height:6px;padding:0;border:0;border-radius:999px;background:#c9ced6;cursor:pointer;transition:width .3s,background .3s}
+.et-welcome-dots button.is-on{width:22px;background:#0f1115}
+
+.et-welcome-actions{display:flex;flex-direction:column;gap:12px;padding:12px 24px calc(env(safe-area-inset-bottom) + 18px)}
+.et-welcome-actions>a{display:block;padding:16px;border-radius:14px;text-align:center;font-size:15.5px;font-weight:700;text-decoration:none}
+.et-welcome-primary{background:#0f1115;color:#fff}
+.et-welcome-secondary{background:#fff;color:#0f1115;border:1px solid #e3e6eb}
+.et-welcome-actions>a:active{transform:scale(.98)}
+.et-welcome-legal{margin-top:4px;text-align:center;font-size:11.5px;line-height:1.5;color:#9aa1ad}
+.et-welcome-legal a{color:#6b7280;text-decoration:underline}
+/* Wider screens (desktop browsers) see it as a phone-sized column. */
+@media(min-width:640px){.et-welcome{max-width:430px;margin:0 auto;box-shadow:0 0 60px #0000001f}}
+@media(max-height:680px){.et-welcome-cards{transform:scale(.85);margin-bottom:20px}.et-welcome-slide h1{font-size:28px}}
+
+/* Launch: the white logo is revealed on Etivio blue (the native splash is the same blue), then the blue lifts away. */
+.et-intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#2563eb;transition:transform .7s cubic-bezier(.7,0,.2,1)}
+.et-intro.is-leaving{transform:translateY(-100%)}
+.et-intro-logo{width:min(190px,52vw);filter:brightness(0) invert(1);animation:et-logo-in 1s cubic-bezier(.65,0,.35,1) .25s both}
+@keyframes et-logo-in{0%{clip-path:inset(0 100% 0 0);transform:translateY(8px);opacity:.4}60%{opacity:1}100%{clip-path:inset(0 0 0 0);transform:translateY(0);opacity:1}}
+@media(prefers-reduced-motion:reduce){.et-welcome-card,.et-intro-logo{animation:none}.et-intro{transition:none}}
