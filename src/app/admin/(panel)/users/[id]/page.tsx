@@ -132,7 +132,7 @@ export default async function UserDetail({ params, searchParams }: { params: Pro
 
       <div className="et-page-head">
         <div className="et-cell-main">
-          <Avatar src={profile.avatar_url} initial={name.charAt(0).toUpperCase()} className="et-avatar et-avatar-xl" />
+          <Avatar src={profile.avatar_url} initial={name.charAt(0).toUpperCase()} seed={name} className="et-avatar et-avatar-xl" />
           <div>
             <h1>{name}</h1>
             <p className="et-inline" style={{ marginTop: 6 }}>

@@ -266,7 +266,7 @@ export function CourseView({ data }: { data: CourseData }) {
           <section className="et-ud-section" id="instructor">
             <h2>Instructor</h2>
             <div className="et-cd-instructor">
-              <Avatar src={instructor.avatar} initial={instructor.name.charAt(0).toUpperCase()} className="et-cd-avatar" />
+              <Avatar src={instructor.avatar} initial={instructor.name.charAt(0).toUpperCase()} seed={instructor.name} className="et-cd-avatar" />
               <div>
                 <b className="et-ud-inst-name">{instructor.name}</b>
                 {instructor.headline && <small>{instructor.headline}</small>}
@@ -284,7 +284,7 @@ export function CourseView({ data }: { data: CourseData }) {
                 {reviews.map((r) => (
                   <article key={r.id}>
                     <div className="et-cd-review-head">
-                      <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} className="et-cd-avatar is-sm" />
+                      <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} seed={r.author} className="et-cd-avatar is-sm" />
                       <div>
                         <b>{r.author}</b>
                         <span className="et-cd-stars">

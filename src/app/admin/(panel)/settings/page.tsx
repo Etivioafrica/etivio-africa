@@ -17,7 +17,7 @@ export default async function AdminProfileSettings() {
         <ActionForm action={saveAdminProfile} toast>
           <div className="et-field">
             <label>Photo</label>
-            <AvatarEditor variant="row" url={admin.avatarUrl} initial={(admin.name || admin.email).charAt(0).toUpperCase()} />
+            <AvatarEditor variant="row" url={admin.avatarUrl} initial={(admin.name || admin.email).charAt(0).toUpperCase()} seed={admin.name || admin.email} />
           </div>
           <div className="et-field">
             <label htmlFor="full_name">Name</label>

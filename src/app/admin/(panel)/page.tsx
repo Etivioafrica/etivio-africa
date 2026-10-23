@@ -173,7 +173,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
                 return (
                   <li key={u.id}>
                     <Link href={`/admin/users/${u.id}`}>
-                                            <Avatar src={u.avatar_url} initial={name.charAt(0).toUpperCase()} className="et-avatar" />
+                                            <Avatar src={u.avatar_url} initial={name.charAt(0).toUpperCase()} seed={name} className="et-avatar" />
                       <span className="et-people-main">
                         <b>{name}</b>
                         <small>{formatDate(u.created_at)}</small>

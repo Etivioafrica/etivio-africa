@@ -16,7 +16,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
       <section className="et-card et-set">
         <CoverEditor url={details?.coverUrl ?? null} />
         <div className="et-set-id">
-          <AvatarEditor variant="banner" url={user.avatarUrl} initial={initial} />
+          <AvatarEditor variant="banner" url={user.avatarUrl} initial={initial} seed={user.name || user.email} />
           <div className="et-set-name">
             <h2>
               {user.name || "Your account"}

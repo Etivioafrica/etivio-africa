@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { isAvatarFace } from "@/lib/avatars";
 import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -226,7 +227,8 @@ export async function claimUsername(raw: string): Promise<{ ok?: string; error?:
 // Profile photo saves immediately from the crop modal, separate from the details form.
 export async function saveAvatar(url: string | null) {
   const { supabase, user } = await authed();
-  if (url && !/^https?:\/\//.test(url)) return { error: "Invalid image URL." };
+  // An uploaded photo (full URL) or one of the character faces (a site path like /avatars/03.svg).
+  if (url && !/^https?:\/\//.test(url) && !isAvatarFace(url)) return { error: "Invalid image URL." };
   const { data: before } = await supabase.from("profiles").select("avatar_url").eq("id", user.id).single();
   const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
   if (error) return { error: "Could not save your photo." };

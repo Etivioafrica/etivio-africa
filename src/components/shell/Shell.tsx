@@ -43,6 +43,7 @@ import { signOut } from "@/app/(app)/actions";
 import { adminSignOut } from "@/app/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import TipLayer from "./TipLayer";
+import { AiWidget } from "./AiWidget";
 import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
 import { ROLE_LABELS, canAccess, canTeach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
@@ -406,6 +407,7 @@ export default function Shell({
         <main className={`et-main${admin ? "" : " has-bottom-nav"}`}>{children}</main>
         {!admin && <BottomNav pathname={pathname} />}
         <TipLayer />
+        {!admin && <AiWidget name={display} />}
         {!admin && guideOpen && <Onboarding name={user.name || user.email} onClosed={() => setGuideOpen(false)} />}
         {/* Badge celebrations wait until the welcome guide is out of the way. */}
         {!admin && !guideOpen && <BadgeCelebration trigger={unseenBadges} />}
@@ -484,7 +486,7 @@ function NavGroup({ item, active, pathname }: { item: Item; active: boolean; pat
 }
 
 function Avatar({ user, initial, size }: { user: ShellUser; initial: string; size?: "lg" }) {
-  return <PhotoAvatar src={user.avatarUrl} initial={initial} className={`et-avatar${size ? ` et-avatar-${size}` : ""}`} />;
+  return <PhotoAvatar src={user.avatarUrl} initial={initial} seed={user.name || user.email} className={`et-avatar${size ? ` et-avatar-${size}` : ""}`} />;
 }
 
 function MenuBody({ user, initial, admin, close }: { user: ShellUser; initial: string; admin: boolean; close: () => void }) {

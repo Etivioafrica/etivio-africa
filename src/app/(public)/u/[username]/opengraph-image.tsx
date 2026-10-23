@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { siteUrl } from "@/lib/email/site";
 import { getPublicProfile } from "@/lib/data/public-profile";
 import { normalizeUsername } from "@/lib/username";
 
@@ -10,7 +11,9 @@ export const contentType = "image/png";
 export default async function Image({ params }: { params: Promise<{ username: string }> }) {
   const data = await getPublicProfile(normalizeUsername(decodeURIComponent((await params).username)));
   const name = data?.profile.name ?? "Etivio";
-  const avatar = data?.profile.avatarUrl;
+  // Character faces are stored as site paths (/avatars/03.svg); the image renderer needs a full URL.
+  const raw = data?.profile.avatarUrl;
+  const avatar = raw?.startsWith("/") ? `${siteUrl()}${raw}` : raw;
   // The image renderer can't decode WebP, so WebP avatars fall back to the initial.
   const photo = avatar && !/\.webp($|\?)/i.test(avatar) ? avatar : null;
 

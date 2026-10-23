@@ -27,6 +27,7 @@ export type ExploreItem = {
   compareAtMinor: number | null;
   currency: string;
   creator: string;
+  creatorAvatar: string | null;
   category: string | null;
   categoryId: string | null;
   level: string | null;

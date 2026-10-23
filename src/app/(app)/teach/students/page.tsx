@@ -36,7 +36,7 @@ export default async function Students() {
                   <tr key={`${s.userId}:${s.courseId}`}>
                     <td>
                       <Link href={`/teach/students/${s.userId}`} className="et-cell-main">
-                                                <Avatar src={s.avatarUrl} initial={s.name.charAt(0).toUpperCase()} className="et-avatar" />
+                                                <Avatar src={s.avatarUrl} initial={s.name.charAt(0).toUpperCase()} seed={s.name} className="et-avatar" />
                         <b>{s.name}</b>
                       </Link>
                     </td>

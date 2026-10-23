@@ -86,7 +86,7 @@ export function StudentsTable({ rows, courses, initialCourse = "all", fixedCours
                 <tr key={`${r.userId}:${r.courseId}`}>
                   <td>
                     <Link href={`/admin/users/${r.userId}`} className="et-cell-main">
-                                            <Avatar src={r.avatar} initial={r.name.charAt(0).toUpperCase()} className="et-avatar" />
+                                            <Avatar src={r.avatar} initial={r.name.charAt(0).toUpperCase()} seed={r.name} className="et-avatar" />
                       <span>
                         <b>{r.name}</b>
                         <small>{LABEL[stateOf(r)]}</small>

@@ -298,7 +298,7 @@ function ProductView({ data }: { data: PublicProduct }) {
                 {reviews.map((r) => (
                   <article key={r.id}>
                     <div className="et-cd-review-head">
-                      <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} className="et-cd-avatar is-sm" />
+                      <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} seed={r.author} className="et-cd-avatar is-sm" />
                       <div>
                         <b>{r.author}</b>
                         <span className="et-cd-stars">
@@ -322,7 +322,7 @@ function ProductView({ data }: { data: PublicProduct }) {
           <section className="et-ud-section" id="creator">
             <h2>Creator</h2>
             <div className="et-cd-instructor">
-              <Avatar src={creator.avatar} initial={creator.name.charAt(0).toUpperCase()} className="et-cd-avatar" />
+              <Avatar src={creator.avatar} initial={creator.name.charAt(0).toUpperCase()} seed={creator.name} className="et-cd-avatar" />
               <div>
                 {creator.profile ? (
                   <Link href={creator.profile} className="et-ud-inst-name">

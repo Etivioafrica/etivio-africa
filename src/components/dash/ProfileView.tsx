@@ -49,7 +49,7 @@ export function ProfileHero({ profile: p, actions, badges, skills = [] }: { prof
         {p.coverUrl && <img src={p.coverUrl} alt="" />}
       </div>
       <div className="et-pf-main">
-                <Avatar src={p.avatarUrl} initial={initial} className="et-avatar et-pf-avatar" />
+                <Avatar src={p.avatarUrl} initial={initial} seed={p.name} className="et-avatar et-pf-avatar" />
         <div className="et-pf-id">
           <h1>{p.name}</h1>
           {p.headline && <p className="et-pf-headline">{p.headline}</p>}

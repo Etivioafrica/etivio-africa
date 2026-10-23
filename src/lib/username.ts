@@ -4,7 +4,7 @@ export const USERNAME_RE = /^[a-z0-9_]{3,30}$/;
 
 // Words that would collide with app routes or could be used to impersonate Etivio.
 const RESERVED = new Set([
-  "admin", "administrator", "api", "app", "auth", "blog", "billing", "courses", "dashboard", "docs", "etivio", "etivioafrica",
+  "admin", "administrator", "api", "app", "auth", "blog", "billing", "courses", "dashboard", "docs", "etivio",
   "help", "learn", "login", "logout", "me", "official", "privacy", "profile", "root", "settings", "signin", "signup", "staff",
   "support", "system", "teach", "team", "terms", "tutor", "verify", "www",
 ]);

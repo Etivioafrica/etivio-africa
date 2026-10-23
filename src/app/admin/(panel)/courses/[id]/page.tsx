@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { defaultAvatar } from "@/lib/avatars";
 import { COURSE_STATUS_LABEL } from "@/lib/course-status";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -162,7 +163,8 @@ async function CourseEditor({ params, searchParams }: Props) {
                   {students.slice(0, 6).map((st) => (
                     <li key={st.user_id}>
                       <Link href={`/admin/users/${st.user_id}`}>
-                        <span className="et-avatar">{(st.student?.full_name || "?").charAt(0).toUpperCase()}</span>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={defaultAvatar(st.student?.full_name || "Student")} alt="" className="et-avatar" />
                         <span className="et-people-main">
                           <b>{st.student?.full_name || "Unnamed"}</b>
                           <small>Enrolled {formatDate(st.enrolled_at)}</small>

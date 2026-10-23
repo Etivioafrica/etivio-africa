@@ -1,53 +1,9 @@
 "use client";
-import { Fragment, useEffect, useRef, useState } from "react";
-import { BookOpenCheck, Lightbulb, ListChecks, Send, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Send, Sparkles } from "lucide-react";
+import { Formatted } from "./Formatted";
 
 type Message = { role: "user" | "assistant"; content: string };
-
-const QUICK = [
-  { mode: "summary", label: "Summarise this lesson", icon: ListChecks },
-  { mode: "quiz", label: "Quiz me", icon: BookOpenCheck },
-  { mode: "simple", label: "Explain simply", icon: Lightbulb },
-] as const;
-
-// Inline **bold** and `code`, as React nodes (never raw HTML).
-function inline(text: string) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? <b key={i}>{part.slice(2, -2)}</b> : part.startsWith("`") && part.endsWith("`") ? <code key={i}>{part.slice(1, -1)}</code> : <Fragment key={i}>{part}</Fragment>,
-  );
-}
-
-// The small slice of markdown the assistant uses: paragraphs, headings, bullet and numbered lists.
-function Formatted({ text }: { text: string }) {
-  const blocks: React.ReactNode[] = [];
-  let list: { ordered: boolean; items: string[] } | null = null;
-  const flush = () => {
-    if (!list) return;
-    const items = list.items.map((it, i) => <li key={i}>{inline(it)}</li>);
-    blocks.push(list.ordered ? <ol key={blocks.length}>{items}</ol> : <ul key={blocks.length}>{items}</ul>);
-    list = null;
-  };
-  for (const raw of text.split("\n")) {
-    const line = raw.trim();
-    const bullet = line.match(/^[-*•]\s+(.*)/);
-    const numbered = line.match(/^\d+[.)]\s+(.*)/);
-    if (bullet || numbered) {
-      const ordered = !!numbered;
-      if (!list || list.ordered !== ordered) {
-        flush();
-        list = { ordered, items: [] };
-      }
-      list.items.push((bullet ?? numbered)![1]);
-      continue;
-    }
-    flush();
-    if (!line) continue;
-    const heading = line.match(/^#{1,4}\s+(.*)/);
-    blocks.push(heading ? <h4 key={blocks.length}>{inline(heading[1])}</h4> : <p key={blocks.length}>{inline(line)}</p>);
-  }
-  flush();
-  return <>{blocks}</>;
-}
 
 // Study assistant tab in the course player. Answers come from the course outline and this lesson's notes.
 export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: startRemaining }: { courseId: string; lessonId: string; lessonTitle: string; initial: Message[]; remaining: number }) {
@@ -57,14 +13,15 @@ export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: sta
   const [error, setError] = useState("");
   const [remaining, setRemaining] = useState(startRemaining);
   const end = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: "nearest" });
   }, [messages]);
 
-  async function ask(mode: string, message = "") {
-    if (busy || (mode === "chat" && !message.trim())) return;
-    const label = mode === "chat" ? message.trim() : QUICK.find((q) => q.mode === mode)!.label;
+  async function ask(message: string) {
+    if (busy || !message.trim()) return;
+    const label = message.trim();
     setError("");
     setBusy(true);
     setInput("");
@@ -73,7 +30,7 @@ export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: sta
       const res = await fetch("/api/ai/lesson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId, lessonId, mode, message }),
+        body: JSON.stringify({ courseId, lessonId, message }),
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));
@@ -96,6 +53,7 @@ export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: sta
       setError((e as Error).message);
     } finally {
       setBusy(false);
+      box.current?.focus();
     }
   }
 
@@ -103,32 +61,40 @@ export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: sta
     <div className="et-ai">
       <div className="et-ai-head">
         <span className="et-ai-badge">
-          <Sparkles size={14} />
+          <Sparkles size={15} />
         </span>
-        <div>
+        <div className="et-ai-title">
           <b>Study assistant</b>
-          <small>Ask anything about &ldquo;{lessonTitle}&rdquo;. Answers use this course&apos;s lessons, and can be wrong, so check anything important.</small>
+          <small>Ask anything about this lesson. Answers can be wrong, so check anything important.</small>
         </div>
+        <span className={`et-ai-count${remaining <= 0 ? " is-out" : ""}`}>{remaining > 0 ? `${remaining} left today` : "Limit reached"}</span>
       </div>
 
-      <div className="et-ai-quick">
-        {QUICK.map(({ mode, label, icon: Icon }) => (
-          <button key={mode} type="button" disabled={busy || remaining <= 0} onClick={() => ask(mode)}>
-            <Icon size={14} /> {label}
-          </button>
-        ))}
-      </div>
-
-      {messages.length > 0 && (
-        <div className="et-ai-log" aria-live="polite">
-          {messages.map((m, i) => (
-            <div key={i} className={`et-ai-msg is-${m.role}`}>
-              {m.role === "assistant" ? m.content ? <Formatted text={m.content} /> : <span className="et-ai-dots" aria-label="Thinking"><i /><i /><i /></span> : <p>{m.content}</p>}
+      <div className="et-ai-log" aria-live="polite">
+        {messages.length ? (
+          messages.map((m, i) => (
+            <div key={i} className={`et-ai-row is-${m.role}`}>
+              {m.role === "assistant" && (
+                <span className="et-ai-avatar" aria-hidden>
+                  <Sparkles size={13} />
+                </span>
+              )}
+              <div className={`et-ai-msg is-${m.role}`}>
+                {m.role === "assistant" ? m.content ? <Formatted text={m.content} /> : <span className="et-ai-dots" aria-label="Thinking"><i /><i /><i /></span> : <p>{m.content}</p>}
+              </div>
             </div>
-          ))}
-          <div ref={end} />
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="et-ai-empty">
+            <span className="et-ai-badge">
+              <Sparkles size={18} />
+            </span>
+            <b>Stuck on &ldquo;{lessonTitle}&rdquo;?</b>
+            <p>Type a question below: ask for a summary, an explanation in simpler words, an example, or a quick quiz.</p>
+          </div>
+        )}
+        <div ref={end} />
+      </div>
 
       {error && <p className="et-ai-error">{error}</p>}
 
@@ -136,29 +102,28 @@ export function AskAi({ courseId, lessonId, lessonTitle, initial, remaining: sta
         className="et-ai-form"
         onSubmit={(e) => {
           e.preventDefault();
-          ask("chat", input);
+          ask(input);
         }}
       >
         <textarea
-          className="et-input"
-          rows={2}
+          ref={box}
+          rows={1}
           value={input}
           maxLength={1500}
           placeholder={remaining > 0 ? "Ask a question about this lesson…" : "You've used today's questions. Back tomorrow."}
-          disabled={busy || remaining <= 0}
+          disabled={remaining <= 0}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              ask("chat", input);
+              ask(input);
             }
           }}
         />
-        <button type="submit" className="et-btn et-btn-primary" disabled={busy || !input.trim() || remaining <= 0} aria-label="Send">
+        <button type="submit" className="et-ai-send" disabled={busy || !input.trim() || remaining <= 0} aria-label="Send">
           <Send size={15} />
         </button>
       </form>
-      <small className="et-ai-left">{remaining > 0 ? `${remaining} questions left today` : "Daily limit reached"}</small>
     </div>
   );
 }

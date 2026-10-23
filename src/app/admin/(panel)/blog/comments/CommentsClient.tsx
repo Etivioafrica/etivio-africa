@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { defaultAvatar } from "@/lib/avatars";
 import Link from "next/link";
 import { Check, EyeOff, MessageSquareReply, Trash2 } from "lucide-react";
 import { useToast } from "@/components/dash/useToast";
@@ -67,7 +68,8 @@ export function CommentsClient({ comments, initialFilter }: { comments: Comment[
           {shown.map((c) => (
             <article key={c.id} className="et-card">
               <header>
-                <span className="et-avatar">{c.author_name.charAt(0).toUpperCase()}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={defaultAvatar(c.author_name)} alt="" className="et-avatar" />
                 <div>
                   <p>
                     <b>{c.author_name}</b>

@@ -42,7 +42,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
           <section key={a.id} className="et-card">
             <div className="et-card-head">
               <Link href={`/admin/users/${a.user?.id}`} className="et-cell-main">
-                                <Avatar src={a.user.avatar_url} initial={(a.user?.full_name || "?").charAt(0).toUpperCase()} className="et-avatar" />
+                                <Avatar src={a.user.avatar_url} initial={(a.user?.full_name || "?").charAt(0).toUpperCase()} seed={a.user?.full_name || "?"} className="et-avatar" />
                 <span>
                   <b style={{ fontSize: 14 }}>{a.user?.full_name || "Unnamed"}</b>
                   <small className="et-muted" style={{ display: "block", fontSize: 12 }}>

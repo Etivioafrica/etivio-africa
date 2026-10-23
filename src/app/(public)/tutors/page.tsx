@@ -46,7 +46,7 @@ async function Tutors() {
     <div className="et-mkt-tutors">
       {tutors.map((t) => (
         <Link key={t.id} href={`/@${t.username}`} className="et-card et-card-pad et-mkt-tutor">
-          <Avatar src={t.avatar} initial={t.name.charAt(0).toUpperCase()} className="et-mkt-tutor-avatar" />
+          <Avatar src={t.avatar} initial={t.name.charAt(0).toUpperCase()} seed={t.name} className="et-mkt-tutor-avatar" />
           <b>{t.name}</b>
           {t.headline && <small>{t.headline}</small>}
           {t.location && (

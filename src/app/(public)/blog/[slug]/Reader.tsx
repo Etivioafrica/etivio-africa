@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { defaultAvatar } from "@/lib/avatars";
 import { Heart, MessageSquare } from "lucide-react";
 import { fmtShort } from "@/lib/blog";
 import type { PublicComment } from "@/lib/data/blog";
@@ -146,7 +147,8 @@ export function PostComments({ postId, comments }: { postId: string; comments: P
         <ul>
           {comments.map((c) => (
             <li key={c.id}>
-              <span className="et-avatar">{c.author_name.charAt(0).toUpperCase()}</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={defaultAvatar(c.author_name)} alt="" className="et-avatar" />
               <div>
                 <p>
                   <b>{c.author_name}</b>

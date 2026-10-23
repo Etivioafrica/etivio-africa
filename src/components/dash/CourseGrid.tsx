@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { defaultAvatar } from "@/lib/avatars";
 import { Cover } from "@/components/dash/ui";
 import { formatPrice } from "@/lib/format";
 import { ArrowRight, BookOpen, Heart, Sparkles, Star } from "lucide-react";
@@ -37,7 +38,8 @@ export function CourseGrid({ courses, enrolledIds, savedIds }: { courses: (Cours
               )}
               <h3>{c.title}</h3>
               <p className="et-ccard-by">
-                <span className="et-ccard-avatar">{c.instructor.charAt(0).toUpperCase()}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={defaultAvatar(c.instructor)} alt="" className="et-ccard-avatar" />
                 {c.instructor}
               </p>
               <p className="et-ccard-meta">

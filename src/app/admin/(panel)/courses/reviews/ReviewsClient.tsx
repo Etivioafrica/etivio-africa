@@ -105,7 +105,7 @@ export function ReviewsClient({ reviews, initialFilter = "all", hideCourse, kind
           {shown.map((r) => (
             <article key={r.id} className="et-card">
               <header>
-                <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} className="et-avatar" />
+                <Avatar src={r.avatar} initial={r.author.charAt(0).toUpperCase()} seed={r.author} className="et-avatar" />
                 <div>
                   <p>
                     <Link href={`/admin/users/${r.user_id}`}>

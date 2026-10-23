@@ -22,12 +22,12 @@ export async function getExploreItems(): Promise<ExploreItem[]> {
   const [{ data: courses }, { data: products }, { data: metrics }, { data: cats }, { data: access }, { data: files }, { data: items }] = await Promise.all([
     db
       .from("courses")
-      .select("id, slug, title, summary, cover_url, price_minor, currency, category_id, level, skills, featured, published_at, instructor:profiles!courses_instructor_id_fkey(full_name)")
+      .select("id, slug, title, summary, cover_url, price_minor, currency, category_id, level, skills, featured, published_at, instructor:profiles!courses_instructor_id_fkey(full_name, avatar_url)")
       .eq("status", "published")
       .eq("marketplace_listed", true),
     db
       .from("products")
-      .select("id, kind, slug, title, summary, cover_url, price_minor, compare_at_minor, currency, category_id, tags, formats, featured, published_at, creator:profiles!products_creator_id_fkey(full_name)")
+      .select("id, kind, slug, title, summary, cover_url, price_minor, compare_at_minor, currency, category_id, tags, formats, featured, published_at, creator:profiles!products_creator_id_fkey(full_name, avatar_url)")
       .eq("status", "published"),
     db.rpc("course_metrics"),
     db.from("course_categories").select("id, name"),
@@ -69,6 +69,7 @@ export async function getExploreItems(): Promise<ExploreItem[]> {
         compareAtMinor: null,
         currency: c.currency,
         creator: c.instructor?.full_name || "Etivio",
+        creatorAvatar: c.instructor?.avatar_url ?? null,
         category: c.category_id ? (catName.get(c.category_id) ?? null) : null,
         categoryId: c.category_id,
         level: c.level,
@@ -94,6 +95,7 @@ export async function getExploreItems(): Promise<ExploreItem[]> {
         compareAtMinor: p.compare_at_minor,
         currency: p.currency,
         creator: p.creator?.full_name || "Etivio",
+        creatorAvatar: p.creator?.avatar_url ?? null,
         category: p.category_id ? (catName.get(p.category_id) ?? null) : null,
         categoryId: p.category_id,
         level: null,

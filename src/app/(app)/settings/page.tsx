@@ -51,7 +51,7 @@ export default async function ProfileSettings() {
       </SetRow>
 
       <SetRow title="Profile picture" sub="Shown on your profile, in chats, and next to your courses.">
-        <AvatarEditor variant="row" url={user.avatarUrl} initial={(user.name || user.email).charAt(0).toUpperCase()} />
+        <AvatarEditor variant="row" url={user.avatarUrl} initial={(user.name || user.email).charAt(0).toUpperCase()} seed={user.name || user.email} />
       </SetRow>
 
       <SetRow title="About you" sub="What you're learning or teaching. Interests help us suggest courses.">

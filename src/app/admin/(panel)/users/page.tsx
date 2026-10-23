@@ -98,7 +98,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                   <tr key={u.id}>
                     <td>
                       <Link href={`/admin/users/${u.id}`} className="et-cell-main">
-                                                <Avatar src={u.avatar_url} initial={(u.full_name || u.email).charAt(0).toUpperCase()} className="et-avatar" />
+                                                <Avatar src={u.avatar_url} initial={(u.full_name || u.email).charAt(0).toUpperCase()} seed={u.full_name || u.email} className="et-avatar" />
                         <span>
                           <b>{u.full_name || "Unnamed"}</b>
                           <small>

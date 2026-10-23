@@ -16,6 +16,8 @@ const endpoint = (model: string) => `https://api.cloudflare.com/client/v4/accoun
 
 // Questions a learner can ask the study assistant per 24 hours.
 export const LESSON_CHAT_DAILY_LIMIT = 40;
+// Questions per 24 hours for the Etivio AI widget in the app.
+export const ASSISTANT_DAILY_LIMIT = 30;
 
 export const aiConfigured = () => Boolean(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_AI_TOKEN);
 
@@ -43,19 +45,27 @@ export async function aiStream(messages: ChatMessage[], { maxTokens = 900, onDon
   const encoder = new TextEncoder();
   let buffer = "";
   let full = "";
+  let finished = false;
+  // Ends the reply once, whether the model sent [DONE] or the connection closed (it doesn't always close promptly).
+  const finish = async (controller: ReadableStreamDefaultController<Uint8Array>) => {
+    if (finished) return;
+    finished = true;
+    reader.cancel().catch(() => {});
+    await onDone?.(full);
+    controller.close();
+  };
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
+      if (finished) return;
       const { done, value } = await reader.read();
-      if (done) {
-        await onDone?.(full);
-        return controller.close();
-      }
+      if (done) return finish(controller);
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
       for (const line of lines) {
         const data = line.startsWith("data: ") ? line.slice(6).trim() : "";
-        if (!data || data === "[DONE]") continue;
+        if (data === "[DONE]") return finish(controller);
+        if (!data) continue;
         try {
           const piece = textOf(JSON.parse(data));
           if (piece) {
