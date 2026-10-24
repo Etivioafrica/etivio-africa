@@ -121,11 +121,23 @@ export function MobileTopBar({
     const onScroll = () => setScrolled(main.scrollTop > 56);
     onScroll();
     main.addEventListener("scroll", onScroll, { passive: true });
-    // The screen's own heading becomes the small title (read after the new page renders).
-    const t = setTimeout(() => setTitle(section?.title ?? document.querySelector(".et-main .et-page-head h1")?.textContent ?? ""), 60);
+    // The screen's own heading becomes the small title. Watched, because the new page can render after this runs.
+    const read = () => {
+      setTitle(section?.title ?? main.querySelector(":is(.et-page-head,.et-tab-head) h1")?.textContent ?? "");
+      // A tab strip wider than the screen scrolls; bring the open tab into view so the strip shows where you are.
+      // Only the strip moves sideways; the page itself stays put.
+      const on = main.querySelector<HTMLElement>(":is(.et-seg,.et-mseg) .is-on");
+      const strip = on?.parentElement;
+      if (on && strip) strip.scrollLeft += on.getBoundingClientRect().left - strip.getBoundingClientRect().left - (strip.clientWidth - on.offsetWidth) / 2;
+    };
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(main, { childList: true, subtree: true });
+    const stop = setTimeout(() => watch.disconnect(), 4000);
     return () => {
       main.removeEventListener("scroll", onScroll);
-      clearTimeout(t);
+      watch.disconnect();
+      clearTimeout(stop);
     };
   }, [pathname, section?.title]);
 
