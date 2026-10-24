@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ArrowUp, BarChart3, ChevronDown, HelpCircle, ImagePlus, Loader2, Minus, Plus, Trophy, Video, X } from "lucide-react";
+import { ArrowUp, BarChart3, Check, ChevronDown, HelpCircle, ImagePlus, Loader2, Minus, Play, Plus, Trophy, Video, X } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/upload-client";
@@ -51,7 +51,11 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   const [kind, setKind] = useState<CampusKind>("update");
   const [body, setBody] = useState("");
   const [image, setImage] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  // The picked photo shows straight away from the device while it uploads.
+  const [photo, setPhoto] = useState<{ local: string; percent: number; checking: boolean } | null>(null);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const uploading = !!photo && !image;
   const [videoOpen, setVideoOpen] = useState(false);
   const [video, setVideo] = useState("");
   const [options, setOptions] = useState(["", ""]);
@@ -109,6 +113,15 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
     } catch {}
   }, [body, open]);
 
+  // The text box grows with the text, and shrinks back once a photo, video or poll is added.
+  const hasMedia = !!photo || videoOpen || kind === "poll";
+  useEffect(() => {
+    const t = area.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = `${t.scrollHeight}px`;
+  }, [body, hasMedia, open]);
+
   // @mention suggestions for the word being typed.
   useEffect(() => {
     if (!mention || mention.term.length < 1) return;
@@ -144,15 +157,37 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
 
   async function upload(f: File) {
     setError("");
-    setUploading(true);
+    if (!f.type.startsWith("image/")) return setError("Pick a photo (JPG, PNG, WebP or GIF).");
+    if (f.size > 10 * 1024 * 1024) return setError("Photos can be up to 10 MB.");
+    removePhoto();
+    const local = URL.createObjectURL(f);
+    setPhoto({ local, percent: 0, checking: false });
     try {
-      const up = await uploadFile("post", f, f.name);
+      const up = await uploadFile("post", f, f.name || "photo.jpg", {
+        onProgress: (percent) => setPhoto((p) => (p && p.local === local ? { ...p, percent } : p)),
+        onChecking: () => setPhoto((p) => (p && p.local === local ? { ...p, percent: 100, checking: true } : p)),
+      });
+      setPhoto((p) => (p && p.local === local ? { ...p, checking: false } : p));
       setImage(up.url);
     } catch (e) {
+      setPhoto(null);
+      URL.revokeObjectURL(local);
       setError((e as Error).message);
-    } finally {
-      setUploading(false);
     }
+  }
+  function removePhoto() {
+    if (photo) URL.revokeObjectURL(photo.local);
+    setPhoto(null);
+    setImage(null);
+  }
+  // A photo pasted into the text or dropped on the sheet.
+  function takeFiles(files: FileList | null | undefined) {
+    const f = [...(files ?? [])].find((x) => x.type.startsWith("image/"));
+    if (f) {
+      upload(f);
+      return true;
+    }
+    return false;
   }
 
   // Closing keeps what was typed as a draft; posting clears it.
@@ -167,7 +202,7 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
     setBody("");
-    setImage(null);
+    removePhoto();
     setVideo("");
     setVideoOpen(false);
     setOptions(["", ""]);
@@ -196,6 +231,7 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   const ready = kind === "poll" ? body.trim() && options.filter((o) => o.trim()).length >= 2 : body.trim() || image || video.trim();
   const face = <Avatar src={viewer.avatar} initial={viewer.name.charAt(0).toUpperCase()} seed={viewer.name} className="et-cps-face" />;
   const K = KIND_STYLE[kind];
+  const yt = video.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? null;
   const target = typeof document === "undefined" ? null : (document.querySelector<HTMLElement>(".et-app") ?? document.body);
 
   return (
@@ -235,7 +271,22 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
               e.preventDefault();
               close();
             }}
-            onClick={(e) => e.target === dialog.current && close()}
+            onClick={(e) => {
+              if (e.target === dialog.current) close();
+              if (typeOpen && !(e.target as HTMLElement).closest(".et-cps-type")) setTypeOpen(false);
+            }}
+            onDragOver={(e) => {
+              if ([...e.dataTransfer.items].some((i) => i.type.startsWith("image/"))) {
+                e.preventDefault();
+                setDragging(true);
+              }
+            }}
+            onDragLeave={(e) => e.target === e.currentTarget && setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              takeFiles(e.dataTransfer.files);
+            }}
           >
             <div className="et-cps-sheet-head">
               <button type="button" className="et-icon-btn" onClick={close} aria-label="Close">
@@ -252,28 +303,51 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
                 {face}
                 <div>
                   <b>{viewer.name}</b>
-                  <label className={`et-cps-kind-select ${K.className}`}>
-                    <K.icon size={13} />
-                    <select value={kind} onChange={(e) => setKind(e.target.value as CampusKind)} aria-label="Post type">
-                      {(Object.keys(KIND_STYLE) as CampusKind[]).map((k) => (
-                        <option key={k} value={k}>
-                          {KIND_STYLE[k].label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={13} />
-                  </label>
+                  <div className="et-cps-type">
+                    <button type="button" className={`et-cps-kind-select ${K.className}`} onClick={() => setTypeOpen(!typeOpen)} aria-haspopup="listbox" aria-expanded={typeOpen}>
+                      <K.icon size={13} /> {K.label} <ChevronDown size={13} />
+                    </button>
+                    {typeOpen && (
+                      <ul className="et-cps-type-menu" role="listbox" aria-label="Post type">
+                        {(Object.keys(KIND_STYLE) as CampusKind[]).map((k) => {
+                          const T = KIND_STYLE[k];
+                          return (
+                            <li key={k}>
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={kind === k}
+                                onClick={() => {
+                                  setKind(k);
+                                  setTypeOpen(false);
+                                }}
+                              >
+                                <span className={`et-cps-type-dot ${T.className}`}>
+                                  <T.icon size={13} />
+                                </span>
+                                {T.label}
+                                {kind === k && <Check size={15} />}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="et-cps-area">
                 <textarea
                   ref={area}
-                  rows={5}
+                  rows={hasMedia ? 2 : 5}
                   maxLength={5000}
                   value={body}
                   placeholder={PLACEHOLDER[kind]}
                   onChange={(e) => onType(e.target.value, e.target.selectionStart)}
+                  onPaste={(e) => {
+                    if (takeFiles(e.clipboardData?.files)) e.preventDefault();
+                  }}
                   onKeyDown={(e) => {
                     if (people.length && mention && e.key === "Enter") {
                       e.preventDefault();
@@ -337,42 +411,97 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
                 </div>
               )}
 
-              {image && (
-                <div className="et-cps-preview">
+              {photo && (
+                <div className={`et-cps-photo${uploading ? " is-uploading" : ""}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={image} alt="" />
-                  <button type="button" className="et-icon-btn" onClick={() => setImage(null)} aria-label="Remove image">
-                    <X size={14} />
+                  <img src={photo.local} alt="" />
+                  {uploading && (
+                    <div className="et-cps-photo-status">
+                      <span>{photo.checking ? "Checking photo…" : `Uploading ${photo.percent}%`}</span>
+                      <i>
+                        <b style={{ width: `${photo.checking ? 100 : photo.percent}%` }} />
+                      </i>
+                    </div>
+                  )}
+                  <button type="button" className="et-cps-photo-x" onClick={removePhoto} aria-label="Remove photo">
+                    <X size={16} />
                   </button>
                 </div>
               )}
-              {videoOpen && <input className="et-input" value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Paste a YouTube link" inputMode="url" autoFocus />}
+              {videoOpen && (
+                <div className="et-cps-yt">
+                  {yt ? (
+                    <div className="et-cps-yt-card">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" />
+                      <span className="et-cps-yt-play">
+                        <Play size={20} fill="currentColor" />
+                      </span>
+                      <button
+                        type="button"
+                        className="et-cps-photo-x"
+                        onClick={() => {
+                          setVideo("");
+                          setVideoOpen(false);
+                        }}
+                        aria-label="Remove video"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="et-cps-yt-input">
+                      <Video size={18} className="is-video" />
+                      <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Paste a YouTube link" inputMode="url" autoFocus />
+                      <button
+                        type="button"
+                        className="et-icon-btn"
+                        onClick={() => {
+                          setVideo("");
+                          setVideoOpen(false);
+                        }}
+                        aria-label="Cancel video"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  )}
+                  {video.trim() && !yt && <small>That doesn&apos;t look like a YouTube link yet.</small>}
+                </div>
+              )}
               {error && <p className="et-flash et-flash-err">{error}</p>}
             </div>
 
             <div className="et-cps-sheet-tools">
-              <span>Add to your post</span>
               <input
                 ref={file}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 hidden
                 onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) upload(f);
+                  takeFiles(e.target.files);
                   e.target.value = "";
                 }}
               />
-              <button type="button" className="et-icon-btn" onClick={() => file.current?.click()} disabled={uploading || !!image} aria-label="Add a photo" title="Add a photo">
-                {uploading ? <Loader2 size={19} className="et-spin" /> : <ImagePlus size={19} className="is-photo" />}
+              <button type="button" className={photo ? "is-on" : ""} onClick={() => file.current?.click()} disabled={uploading}>
+                {uploading ? <Loader2 size={20} className="et-spin is-photo" /> : <ImagePlus size={20} className="is-photo" />}
+                <span>{uploading ? "Uploading…" : photo ? "Change photo" : "Photo"}</span>
               </button>
-              <button type="button" className={`et-icon-btn${videoOpen ? " is-on" : ""}`} onClick={() => setVideoOpen(!videoOpen)} aria-label="Add a YouTube video" title="Add a YouTube video">
-                <Video size={19} className="is-video" />
+              <button type="button" className={videoOpen ? "is-on" : ""} onClick={() => setVideoOpen(true)}>
+                <Video size={20} className="is-video" />
+                <span>YouTube</span>
               </button>
-              <button type="button" className={`et-icon-btn${kind === "poll" ? " is-on" : ""}`} onClick={() => setKind(kind === "poll" ? "update" : "poll")} aria-label="Add a poll" title="Add a poll">
-                <BarChart3 size={19} className="is-poll" />
+              <button type="button" className={kind === "poll" ? "is-on" : ""} onClick={() => setKind(kind === "poll" ? "update" : "poll")}>
+                <BarChart3 size={20} className="is-poll" />
+                <span>Poll</span>
               </button>
             </div>
+            {dragging && (
+              <div className="et-cps-drop">
+                <ImagePlus size={28} />
+                Drop your photo here
+              </div>
+            )}
           </dialog>,
           target,
         )}
