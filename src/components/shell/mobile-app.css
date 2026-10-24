@@ -1,0 +1,49 @@
+/* Phone app (learn and teach, under 860px): top bar, big titles with section switches, and bottom tabs. The desktop
+   sidebar, hamburger and header are hidden. */
+.et-mtop,.et-msection,.et-mtabs{display:none}
+
+@media(max-width:860px){
+  .et-app.is-phone-app .et-sidebar,.et-app.is-phone-app .et-scrim,.et-app.is-phone-app .et-header{display:none}
+
+  .et-app.is-phone-app .et-mtop{position:relative;z-index:40;display:grid;grid-template-columns:72px 1fr 72px;align-items:center;flex-shrink:0;height:calc(50px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 8px 0;background:var(--a-bg);border-bottom:1px solid transparent;transition:border-color .2s,background .2s}
+  .et-mtop.is-scrolled{background:var(--a-panel);border-color:var(--a-border)}
+  .et-mtop-side{display:flex;align-items:center;gap:4px}
+  .et-mtop-side.is-right{justify-content:flex-end}
+  .et-mtop-logo{height:20px;width:auto;margin-left:8px}
+  .et-app:not(.is-light) .et-mtop-logo{filter:brightness(0) invert(1)}
+  .et-mtop-back{display:grid;place-items:center;width:40px;height:40px;margin-left:-2px;border:0;background:none;color:var(--accent);cursor:pointer}
+  .et-mtop-title{overflow:hidden;text-align:center;white-space:nowrap;text-overflow:ellipsis;font-size:16px;font-weight:700;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s}
+  .et-mtop-title.is-on{opacity:1;transform:none}
+  .et-mtop-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:999px;color:var(--a-fg)}
+  .et-mtop-me{display:grid;place-items:center;width:38px;height:38px;margin-right:4px}
+  .et-mtop-avatar{width:32px;height:32px;border-radius:999px;object-fit:cover;display:grid;place-items:center;background:var(--accent);color:#fff;font-size:13px;font-weight:700}
+
+  .et-app.is-phone-app .et-main{padding-top:8px}
+  .et-app.is-phone-app .et-msection{display:block;margin:0 -16px 16px;padding:0 16px}
+  .et-msection h1{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+  .et-mseg{display:flex;gap:8px;margin-top:14px;overflow-x:auto;scrollbar-width:none}
+  .et-mseg::-webkit-scrollbar{display:none}
+  .et-mseg a{flex-shrink:0;height:34px;padding:0 15px;display:inline-flex;align-items:center;border-radius:999px;background:var(--a-panel-2);border:1px solid var(--a-border);font-size:13.5px;font-weight:600;color:var(--a-muted)}
+  .et-mseg a.is-on{background:var(--a-fg);border-color:var(--a-fg);color:var(--a-bg)}
+  /* The section title replaces the screen's own heading on these screens; its buttons stay. */
+  .et-main:has(> .et-msection) .et-page-head > div:first-child{display:none}
+  .et-main:has(> .et-msection) .et-page-head:not(:has(> :nth-child(2))){display:none}
+  /* Other screens: their heading is the big title. */
+  .et-app.is-phone-app .et-page-head h1{font-size:30px;font-weight:800;letter-spacing:-.03em}
+
+  .et-app.is-phone-app .et-mtabs{position:fixed;z-index:60;left:0;right:0;bottom:0;display:grid;padding-bottom:env(safe-area-inset-bottom);background:var(--a-panel);border-top:1px solid var(--a-border)}
+  .et-mtabs a{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 6px;font-size:10.5px;font-weight:600;color:var(--a-faint);-webkit-tap-highlight-color:transparent}
+  .et-mtabs a.is-active{color:var(--accent)}
+  .et-mtabs a:active{transform:scale(.92)}
+  .et-app.is-phone-app .et-main.has-bottom-nav{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  /* App feel: no pinch-zoom layout jumps when a field is tapped. */
+  .et-app.is-phone-app :is(input,select,textarea){font-size:16px}
+}
+
+/* Explore tab */
+.et-mx-search{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;margin-bottom:12px;border-radius:14px;background:var(--a-panel);border:1px solid var(--a-border);color:var(--a-faint)}
+.et-mx-search input{flex:1;min-width:0;height:100%;border:0;background:none;color:var(--a-fg);font-size:16px;outline:none}
+.et-mx-chips{display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.et-mx-chips::-webkit-scrollbar{display:none}
+.et-mx-chips a{flex-shrink:0;height:34px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;background:var(--a-panel-2);border:1px solid var(--a-border);font-size:13px;font-weight:600;color:var(--a-muted)}
+.et-mx-chips a.is-on{background:var(--accent);border-color:var(--accent);color:#fff}

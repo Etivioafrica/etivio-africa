@@ -35,7 +35,6 @@ import {
   Mail,
   FolderDown,
   Store,
-  House,
   CalendarClock,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
@@ -50,6 +49,7 @@ import { Onboarding } from "@/components/dash/Onboarding";
 import { ROLE_LABELS, canAccess, canTeach, isCoach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
 import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
 import { CartButton } from "@/components/market/CartButton";
+import { MobileSection, MobileTabBar, MobileTopBar, mobileTabs } from "./MobileChrome";
 
 export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null; showTeach?: boolean };
 type SubItem = { label: string; href: string; badge?: number };
@@ -340,12 +340,13 @@ export default function Shell({
   const isActive = (i: Item) => matches(i) && !flat.some((o) => o !== i && o.href.length > i.href.length && o.href.startsWith(`${i.href}/`) && matches(o));
   const results = search ? flat.filter((i) => i.label.toLowerCase().includes(search.toLowerCase())) : null;
 
+  const tabs = mobileTabs({ teach: teachMode, canTeach: canTeach(user.roles), coach: isCoach(user.roles), features });
   const display = user.name || user.email;
   const first = display.split(/[\s@]/)[0];
   const initial = display.charAt(0).toUpperCase();
 
   return (
-    <div className={`et-app${light ? " is-light" : ""}${collapsed ? " is-collapsed" : ""}`}>
+    <div className={`et-app${light ? " is-light" : ""}${collapsed ? " is-collapsed" : ""}${admin ? "" : " is-phone-app"}`}>
       {mobileOpen && <button className="et-scrim" aria-label="Close menu" onClick={() => setMobileOpen(false)} />}
       <aside
         className={`et-sidebar${mobileOpen ? " is-open" : ""}`}
@@ -431,6 +432,7 @@ export default function Shell({
       </aside>
 
       <div className="et-body">
+        {!admin && <MobileTopBar pathname={pathname} tabs={tabs} user={{ name: display, avatarUrl: user.avatarUrl, initial }} features={features} />}
         <header className="et-header">
           <div className="et-header-left">
             <button className="et-icon-btn et-menu-btn" onClick={() => setMobileOpen(true)} aria-label="Open menu">
@@ -464,8 +466,11 @@ export default function Shell({
             </div>
           </div>
         </header>
-        <main className={`et-main${admin ? "" : " has-bottom-nav"}`}>{children}</main>
-        {!admin && <BottomNav pathname={pathname} />}
+        <main className={`et-main${admin ? "" : " has-bottom-nav"}`}>
+          {!admin && <MobileSection pathname={pathname} features={features} />}
+          {children}
+        </main>
+        {!admin && <MobileTabBar pathname={pathname} tabs={tabs} />}
         <TipLayer />
         {!admin && features.ai_assistant !== false && <AiWidget name={display} />}
         {!admin && guideOpen && <Onboarding name={user.name || user.email} onClosed={() => setGuideOpen(false)} />}
@@ -473,30 +478,6 @@ export default function Shell({
         {!admin && !guideOpen && <BadgeCelebration trigger={unseenBadges} />}
       </div>
     </div>
-  );
-}
-
-// Phone navigation for learners: the four places people go most. Everything else is in the menu.
-const BOTTOM_NAV: { label: string; href: string; icon: LucideIcon; match: (p: string) => boolean }[] = [
-  { label: "Home", href: "/learn", icon: House, match: (p) => p === "/learn" },
-  { label: "Courses", href: "/learn/courses", icon: BookOpen, match: (p) => /^\/learn\/(courses|browse)(\/|$)/.test(p) },
-  { label: "Profile", href: "/profile", icon: UserRound, match: (p) => p === "/profile" || p.startsWith("/profile/") },
-  { label: "Settings", href: "/settings", icon: Settings, match: (p) => p === "/settings" || p.startsWith("/settings/") },
-];
-
-function BottomNav({ pathname }: { pathname: string }) {
-  return (
-    <nav className="et-bottom-nav" aria-label="Main">
-      {BOTTOM_NAV.map(({ label, href, icon: Icon, match }) => {
-        const on = match(pathname);
-        return (
-          <Link key={href} href={href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined}>
-            <Icon size={21} strokeWidth={on ? 2.2 : 1.8} />
-            <span>{label}</span>
-          </Link>
-        );
-      })}
-    </nav>
   );
 }
 

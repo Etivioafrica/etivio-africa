@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { cookies } from "next/headers";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Shell from "@/components/shell/Shell";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: { default: "Dashboard", template: "%s | Etivio" },
   robots: { index: false, follow: false },
 };
+
+// The signed-in app behaves like a phone app: no pinch zoom (fields are 16px on phones, so iOS doesn't zoom on focus).
+export const viewport: Viewport = { themeColor: "#2563eb", width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false, viewportFit: "cover" };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
