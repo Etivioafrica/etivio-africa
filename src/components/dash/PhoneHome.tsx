@@ -90,9 +90,15 @@ export function PhoneHome({
         <div className="et-ph-goal">
           <div className="et-ph-goal-head">
             <b>{!goal ? "Set a weekly goal" : left ? `${left} more ${left === 1 ? "lesson" : "lessons"} this week` : "Weekly goal reached"}</b>
-            <span className="et-ph-chip">
-              <Flame size={13} /> {streak} day{streak === 1 ? "" : "s"}
-            </span>
+            {goal ? (
+              <span className="et-ph-chip">
+                <Flame size={13} /> {streak} day{streak === 1 ? "" : "s"}
+              </span>
+            ) : (
+              <Link href="/profile" className="et-ph-goal-set">
+                Set goal
+              </Link>
+            )}
           </div>
           <p>{goal ? `${thisWeek} of ${goal} lessons done. Resets every Sunday.` : "Pick 3, 5 or 7 lessons a week and we'll keep count."}</p>
           <div className="et-ph-days" aria-label="This week">
@@ -101,11 +107,6 @@ export function PhoneHome({
                 {"SMTWTFS"[i]}
               </span>
             ))}
-            {!goal && (
-              <Link href="/profile" className="et-ph-goal-set">
-                Set goal
-              </Link>
-            )}
           </div>
         </div>
       </section>
