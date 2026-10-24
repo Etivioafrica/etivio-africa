@@ -8,6 +8,8 @@ import { getLearnerPrefs, getRecommendations } from "@/lib/data/recommend";
 import { getLearnerProfile } from "@/lib/data/profile";
 import { GOAL_TIPS } from "@/components/dash/LearnerGuidance";
 import { WelcomeHero } from "@/components/dash/WelcomeHero";
+import { PhoneHome } from "@/components/dash/PhoneHome";
+import { sessionsFor } from "@/lib/data/coaching";
 import { getPlatformSettings } from "@/lib/platform";
 import { AnnouncementBar } from "@/components/dash/AnnouncementBar";
 import { getCurrentUser } from "@/lib/auth";
@@ -23,12 +25,13 @@ export default async function LearnDashboard() {
   // Sends any scheduled announcement whose time has passed (claimed once, so this is cheap when there's nothing due).
   after(sendDueAnnouncements);
   // Landing page after sign-in, so it also catches badges earned outside a lesson (e.g. Early learner).
-  const [mine, recommended, prefs, profile, savedIds] = await Promise.all([
+  const [mine, recommended, prefs, profile, savedIds, sessions] = await Promise.all([
     getMyCourses(),
     getRecommendations(3),
     getLearnerPrefs(),
     getLearnerProfile(user.id),
     getSavedIds(),
+    sessionsFor(user.id, "learner"),
     syncBadges(user.id),
     syncCertificates(user.id),
   ]);
@@ -60,11 +63,23 @@ export default async function LearnDashboard() {
   const streak = profile?.heatmap.currentStreak ?? 0;
   const tip = prefs.goal ? GOAL_TIPS[prefs.goal] : null;
   const others = active.slice(current ? 1 : 0, 7);
+  const now = new Date().toISOString();
+  const upcoming = sessions.filter((s) => s.status === "confirmed" && s.endsAt > now).reverse();
 
   return (
-    <div className="et-page">
+    <div className="et-page et-home">
       {platform.announcement && <AnnouncementBar text={platform.announcement.text} link={platform.announcement.link} />}
       <WelcomeHero name={(user.name || "there").split(" ")[0]} date={today} message={hero.message} cta={hero.cta} background={platform.heroBgUrl} />
+      <PhoneHome
+        current={current ?? null}
+        upNext={upNext && player ? { id: upNext.id, title: upNext.title, index: player.lessons.indexOf(upNext) + 1 } : null}
+        courses={[...active, ...completed]}
+        week={week}
+        thisWeek={thisWeek}
+        goal={prefs.weeklyGoal || null}
+        streak={streak}
+        sessions={upcoming}
+      />
 
       <div className="et-dash-top">
         {current ? (
@@ -191,7 +206,7 @@ export default async function LearnDashboard() {
       </div>
 
       {others.length > 0 && (
-        <section className="et-dash-section">
+        <section className="et-dash-section is-desk">
           <div className="et-dash-head">
             <h2>Also in progress</h2>
             <Link href="/learn/courses">My courses</Link>
@@ -228,7 +243,7 @@ export default async function LearnDashboard() {
       )}
 
       {completed.length > 0 && (
-        <section className="et-dash-section">
+        <section className="et-dash-section is-desk">
           <div className="et-dash-head">
             <h2>Completed</h2>
             <Link href="/profile/certificates">Your certificates</Link>
