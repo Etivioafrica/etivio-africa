@@ -94,13 +94,13 @@ function Who({ author, at, kind, plain }: { author: CampusAuthor; at: string; ki
           <time dateTime={at} suppressHydrationWarning>
             {ago(at)}
           </time>
+          {k && kind !== "update" && (
+            <span className={`et-cps-kind ${k.className}`}>
+              <k.icon size={11} /> {k.label}
+            </span>
+          )}
         </small>
       </div>
-      {k && (
-        <span className={`et-cps-kind ${k.className}`}>
-          <k.icon size={12} /> {k.label}
-        </span>
-      )}
     </div>
   );
 }
@@ -399,6 +399,9 @@ export function PostCard({ post, viewer, open: startOpen, clamp = 420, initialCo
       <header>
         <Who author={post.author} at={post.createdAt} kind={post.kind} />
         <span className="et-cps-tools">
+          <button type="button" className={`et-icon-btn${saved ? " is-saved" : ""}`} onClick={save} aria-pressed={saved} aria-label={saved ? "Saved" : "Save"} title={saved ? "Saved" : "Save"}>
+            <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
+          </button>
           {(mine || viewer.staff) && (
             <button type="button" className="et-icon-btn" onClick={remove} aria-label="Delete post" title="Delete post">
               <Trash2 size={14} />
@@ -423,22 +426,42 @@ export function PostCard({ post, viewer, open: startOpen, clamp = 420, initialCo
       )}
       {post.quoted && <QuoteCard quote={post.quoted} />}
       {post.quoteGone && <p className="et-cps-gone">The original post was deleted.</p>}
+      {(likes > 0 || comments > 0 || post.quotes > 0) && (
+        <div className="et-cps-stats">
+          {likes > 0 && (
+            <span className="et-cps-stats-likes">
+              <span className="et-cps-heart">
+                <Heart size={10} fill="currentColor" />
+              </span>
+              {likes}
+            </span>
+          )}
+          <span className="et-cps-stats-right">
+            {comments > 0 && (
+              <button type="button" onClick={() => setOpen(!open)}>
+                {comments} {comments === 1 ? "comment" : "comments"}
+              </button>
+            )}
+            {post.quotes > 0 && (
+              <span>
+                {post.quotes} {post.quotes === 1 ? "repost" : "reposts"}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
       <footer>
-        <button type="button" className={`et-cps-act${liked ? " is-liked" : ""}`} onClick={like} aria-pressed={liked} aria-label="Like">
-          <Heart size={16} fill={liked ? "currentColor" : "none"} /> {likes || ""}
+        <button type="button" className={`et-cps-act${liked ? " is-liked" : ""}`} onClick={like} aria-pressed={liked}>
+          <Heart size={18} fill={liked ? "currentColor" : "none"} /> <span>Like</span>
         </button>
-        <button type="button" className={`et-cps-act${open ? " is-on" : ""}`} onClick={() => setOpen(!open)} aria-label="Comments">
-          <MessageCircle size={16} /> {comments || ""}
+        <button type="button" className={`et-cps-act${open ? " is-on" : ""}`} onClick={() => setOpen(!open)}>
+          <MessageCircle size={18} /> <span>Comment</span>
         </button>
-        <button type="button" className="et-cps-act" onClick={() => setQuoting(true)} aria-label="Repost">
-          <Repeat2 size={17} /> {post.quotes || ""}
+        <button type="button" className="et-cps-act" onClick={() => setQuoting(true)}>
+          <Repeat2 size={19} /> <span>Repost</span>
         </button>
-        <span className="et-cps-act-gap" />
-        <button type="button" className={`et-cps-act${saved ? " is-saved" : ""}`} onClick={save} aria-pressed={saved} aria-label={saved ? "Saved" : "Save"} title={saved ? "Saved" : "Save"}>
-          <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
-        </button>
-        <button type="button" className="et-cps-act" onClick={share} aria-label="Share" title="Share">
-          <Share2 size={16} /> {copied ? "Link copied" : ""}
+        <button type="button" className="et-cps-act" onClick={share}>
+          <Share2 size={18} /> <span>{copied ? "Copied" : "Share"}</span>
         </button>
       </footer>
       {open && <Comments postId={post.id} viewer={viewer} initial={initialComments} onCount={setComments} />}

@@ -1,23 +1,23 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bookmark, Hash, MessagesSquare, Newspaper, TrendingUp, Users, X } from "lucide-react";
+import { Bookmark, ChevronDown, Clock, Flame, Hash, MessagesSquare, Newspaper, TrendingUp, Users, X } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { getCurrentUser } from "@/lib/auth";
 import { featureOn } from "@/lib/data/features";
 import { isStaff } from "@/lib/roles";
 import { CAMPUS_KINDS, campusFeed, campusOn, campusSidebar, type CampusKind, type CampusSort, type FeedQuery } from "@/lib/data/campus";
-import { Composer, FeedList, NewPosts } from "./CampusFeed";
+import { Composer, FeedList, NewPosts, StarterPrompts } from "./CampusFeed";
 import "./campus.css";
 
 export const metadata = { title: "Campus" };
 
 type Props = { searchParams: Promise<{ kind?: string; sort?: string; tag?: string; saved?: string }> };
 
-const SORTS: { value: CampusSort; label: string }[] = [
-  { value: "latest", label: "Latest" },
-  { value: "hot", label: "Hot" },
-  { value: "top", label: "Top" },
+const SORTS: { value: CampusSort; label: string; hint: string }[] = [
+  { value: "latest", label: "Latest", hint: "Newest first" },
+  { value: "hot", label: "Hot", hint: "Popular right now" },
+  { value: "top", label: "Top", hint: "Most liked this month" },
 ];
 
 export default function CampusPage({ searchParams }: Props) {
@@ -69,29 +69,42 @@ async function Campus({ searchParams }: Props) {
         </div>
       </div>
 
-      <div className="et-cps-filters">
-        <nav className="et-seg" aria-label="Post type">
+      <div className="et-cps-bar">
+        <nav className="et-cps-tabs" aria-label="Post type">
           <Link href={href({ kind: "", saved: "" })} className={!kind && !saved ? "is-on" : ""}>
-            All
+            For you
           </Link>
           {CAMPUS_KINDS.map((k) => (
             <Link key={k.value} href={href({ kind: k.value, saved: "" })} className={kind === k.value ? "is-on" : ""}>
               {k.plural}
             </Link>
           ))}
-          <Link href={href({ kind: "", saved: "1", tag: "" })} className={saved ? "is-on" : ""}>
-            Saved
-          </Link>
         </nav>
-        {!saved && (
-          <nav className="et-seg et-cps-sort" aria-label="Sort">
-            {SORTS.map((s) => (
-              <Link key={s.value} href={href({ sort: s.value === "latest" ? "" : s.value })} className={sort === s.value ? "is-on" : ""}>
-                {s.label}
+        <details className="et-cps-sortmenu" key={`${sort}-${saved}`}>
+          <summary>
+            {saved ? <Bookmark size={14} /> : sort === "hot" ? <Flame size={14} /> : sort === "top" ? <TrendingUp size={14} /> : <Clock size={14} />}
+            {saved ? "Saved" : SORTS.find((x) => x.value === sort)?.label}
+            <ChevronDown size={14} />
+          </summary>
+          <div role="menu">
+            {SORTS.map((x) => (
+              <Link key={x.value} role="menuitem" href={href({ sort: x.value === "latest" ? "" : x.value, saved: "" })} className={!saved && sort === x.value ? "is-on" : ""}>
+                {x.value === "hot" ? <Flame size={15} /> : x.value === "top" ? <TrendingUp size={15} /> : <Clock size={15} />}
+                <span>
+                  <b>{x.label}</b>
+                  <small>{x.hint}</small>
+                </span>
               </Link>
             ))}
-          </nav>
-        )}
+            <Link role="menuitem" href={href({ kind: "", saved: "1", tag: "", sort: "" })} className={saved ? "is-on" : ""}>
+              <Bookmark size={15} />
+              <span>
+                <b>Saved</b>
+                <small>Posts you bookmarked</small>
+              </span>
+            </Link>
+          </div>
+        </details>
       </div>
 
       <div className="et-cps-layout">
@@ -112,10 +125,11 @@ async function Campus({ searchParams }: Props) {
             viewer={viewer}
             query={query}
             empty={
-              <div className="et-card et-cp-empty">
-                <span>{saved ? <Bookmark size={20} /> : <MessagesSquare size={20} />}</span>
-                <b>{saved ? "No saved posts yet" : tag ? `No posts with #${tag} yet` : kind ? `No ${CAMPUS_KINDS.find((k) => k.value === kind)?.plural.toLowerCase()} yet` : "Campus is quiet"}</b>
-                <p>{saved ? "Tap the bookmark on any post to keep it here." : "Be the first to post something."}</p>
+              <div className="et-cps-empty">
+                <span>{saved ? <Bookmark size={22} /> : <MessagesSquare size={22} />}</span>
+                <b>{saved ? "No saved posts yet" : tag ? `No posts with #${tag} yet` : kind ? `No ${CAMPUS_KINDS.find((k) => k.value === kind)?.plural.toLowerCase()} yet` : "Say hello to Campus"}</b>
+                <p>{saved ? "Tap the bookmark on any post to keep it here." : "Every learner on Etivio sees what you post here. Start the conversation."}</p>
+                {!saved && <StarterPrompts />}
               </div>
             }
           />
