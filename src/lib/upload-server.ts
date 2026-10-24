@@ -3,6 +3,8 @@ import sharp from "sharp";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { UPLOAD_KINDS, type UploadKind } from "@/lib/r2";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { checkImage, giveStrike } from "@/lib/moderation";
 
 // Who may upload what, shared by /api/upload/sign and /api/upload/finish. Returns the user, or a response to send.
 export async function uploader(kind: string): Promise<{ userId: string; kind: UploadKind } | { response: NextResponse }> {
@@ -21,6 +23,7 @@ export async function uploader(kind: string): Promise<{ userId: string; kind: Up
   const allowed =
     roles.includes("super_admin") ||
     kind === "avatar" ||
+    kind === "post" ||
     kind === "banner" ||
     (roles.includes("editor") && kind === "blog") ||
     (roles.includes("tutor") && (kind === "cover" || kind === "video" || kind === "product" || kind === "document"));
@@ -39,4 +42,25 @@ export async function cleanImage(input: Buffer, type: string) {
   if (type === "image/webp") return img.webp({ quality: 88 }).toBuffer();
   if (type === "image/avif") return img.avif({ quality: 60 }).toBuffer();
   return img.jpeg({ quality: 88, mozjpeg: true }).toBuffer();
+}
+
+// Checks an uploaded image for nudity or sexual content before it's kept. Returns the message to show, or null when
+// it's fine (or the check couldn't run: the person shouldn't be stuck because the AI is down).
+export async function screenImage(userId: string, input: Buffer) {
+  let small: Buffer;
+  try {
+    small = await sharp(input, { limitInputPixels: 40_000_000 }).rotate().resize(384, 384, { fit: "inside", withoutEnlargement: true }).flatten({ background: "#ffffff" }).jpeg({ quality: 75 }).toBuffer();
+  } catch {
+    return null;
+  }
+  const verdict = await checkImage(small);
+  if (verdict !== "explicit" && verdict !== "suggestive") return null;
+  const { data: flag } = await createAdminClient()
+    .from("moderation_flags")
+    .insert({ target_type: "image", author_id: userId, source: "auto", reason: "sexual", details: verdict === "explicit" ? "Explicit image blocked at upload" : "Suggestive image blocked at upload", status: "blocked" })
+    .select("id")
+    .single();
+  if (verdict === "suggestive") return "This image looks suggestive, so it can't be used on Etivio. Pick a different one.";
+  const strike = await giveStrike(userId, "Uploaded an explicit image", flag?.id ?? null, null);
+  return `This image breaks Etivio's rules on sexual and explicit content, so it wasn't uploaded. ${strike.message}`;
 }

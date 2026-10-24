@@ -6,6 +6,7 @@ import { isStaff } from "@/lib/roles";
 import { grantProduct } from "./grants";
 import { groupPaymentCleared } from "./group-buy";
 import { sessionPaid } from "./coaching";
+import { recordRedemption } from "./coupons";
 import { emailGuestAccess, emailOrderReceipt } from "@/lib/email/notify";
 import { accountForGuest, maskEmail } from "./guest";
 import { initializeTransaction, type VerifiedTransaction } from "@/lib/paystack";
@@ -91,11 +92,21 @@ async function splits(items: PricedItem[]) {
 export type Billing = { firstName: string; lastName: string; email: string; phone: string; country: string; state: string };
 
 // Records a pending order and one pending payment row per item. Items must already be checked (no `problem`).
-// `walletMinor` is paid from the buyer's wallet (taken when the order completes); Paystack charges the rest.
-export async function createOrder(userId: string | null, billing: Billing, items: PricedItem[], { groupBuyId = null, walletMinor = 0 }: { groupBuyId?: string | null; walletMinor?: number } = {}) {
+// `coupon` takes its per-item discounts off first (each item is recorded at what the buyer pays for it, and the
+// tutor split is on that). `walletMinor` is paid from the buyer's wallet (taken when the order completes); Paystack
+// charges the rest.
+export async function createOrder(
+  userId: string | null,
+  billing: Billing,
+  items: PricedItem[],
+  { groupBuyId = null, walletMinor = 0, coupon = null }: { groupBuyId?: string | null; walletMinor?: number; coupon?: { id: string; discounts: number[] } | null } = {},
+) {
   const db = createAdminClient();
   const reference = `ET${randomUUID().replace(/-/g, "").slice(0, 20).toUpperCase()}`;
-  const total = items.reduce((n, i) => n + i.priceMinor, 0) - walletMinor;
+  const discounts = items.map((_, i) => coupon?.discounts[i] ?? 0);
+  const paid = items.map((item, i) => ({ ...item, priceMinor: item.priceMinor - discounts[i] }));
+  const discountMinor = discounts.reduce((n, d) => n + d, 0);
+  const total = paid.reduce((n, i) => n + i.priceMinor, 0) - walletMinor;
   const { data: order, error } = await db
     .from("orders")
     .insert({
@@ -111,18 +122,21 @@ export async function createOrder(userId: string | null, billing: Billing, items
       currency: items[0]?.currency ?? "NGN",
       group_buy_id: groupBuyId,
       wallet_minor: walletMinor,
+      coupon_id: coupon && discountMinor > 0 ? coupon.id : null,
+      discount_minor: discountMinor,
     })
     .select("id, reference, total_minor, currency")
     .single();
   if (error || !order) return null;
-  const parts = await splits(items);
+  const parts = await splits(paid);
   const { error: itemsError } = await db.from("payments").insert(
-    items.map((item, i) => ({
+    paid.map((item, i) => ({
       order_id: order.id,
       user_id: userId,
       course_id: item.type === "course" ? item.id : null,
       product_id: item.type === "product" ? item.id : null,
       amount_minor: item.priceMinor,
+      discount_minor: discounts[i],
       currency: item.currency,
       instructor_id: parts[i].instructorId,
       instructor_share_minor: parts[i].share,
@@ -170,20 +184,21 @@ export async function fulfillOrder(tx: VerifiedTransaction): Promise<{ ok: boole
   return completeOrder(order, tx.paid_at ?? new Date().toISOString(), destination);
 }
 
-const ORDER_COLUMNS = "id, reference, user_id, email, first_name, last_name, total_minor, currency, status, group_buy_id, wallet_minor, purpose";
-type OrderRow = { id: string; reference: string; user_id: string | null; email: string; first_name: string; last_name: string; status: string; total_minor: number; currency: string; group_buy_id: string | null; wallet_minor: number; purpose: string };
+const ORDER_COLUMNS = "id, reference, user_id, email, first_name, last_name, total_minor, currency, status, group_buy_id, wallet_minor, purpose, coupon_id, discount_minor";
+type OrderRow = { id: string; reference: string; user_id: string | null; email: string; first_name: string; last_name: string; status: string; total_minor: number; currency: string; group_buy_id: string | null; wallet_minor: number; purpose: string; coupon_id: string | null; discount_minor: number };
 
-// Orders the wallet covers in full: nothing goes to Paystack, the order completes straight away.
-export async function completeWalletOrder(orderId: string) {
+// Orders with nothing left to charge (the wallet and/or a coupon cover it all): nothing goes to Paystack, the order
+// completes straight away. Guests can get here with a 100% coupon; their account is made in completeOrder.
+export async function completeFreeOrder(orderId: string) {
   const db = createAdminClient();
   const { data: order } = await db.from("orders").select(ORDER_COLUMNS).eq("id", orderId).maybeSingle();
-  if (!order || order.total_minor !== 0 || !order.user_id) return { ok: false as const };
-  const ok = await db.rpc("spend_wallet", { p_user: order.user_id, p_amount: order.wallet_minor, p_order: order.id });
+  if (!order || order.total_minor !== 0 || (order.wallet_minor > 0 && !order.user_id)) return { ok: false as const };
+  const ok = order.wallet_minor > 0 ? await db.rpc("spend_wallet", { p_user: order.user_id!, p_amount: order.wallet_minor, p_order: order.id }) : { data: true };
   if (!ok.data) {
     await db.from("orders").update({ status: "failed", note: "Wallet balance too low when completing" }).eq("id", order.id).eq("status", "pending");
     return { ok: false as const };
   }
-  return completeOrder(order, new Date().toISOString(), `/checkout/complete?order=${order.reference}`);
+  return completeOrder(order, new Date().toISOString(), `/checkout/complete?order=${order.reference}${order.user_id ? "" : `&email=${encodeURIComponent(maskEmail(order.email))}`}`);
 }
 
 // Marks the order paid and grants every item (or adds the buyer to their group). Only the call that flips the order
@@ -226,8 +241,10 @@ async function completeOrder(order: OrderRow, paidAt: string, destination: strin
     await db.from("orders").update({ user_id: userId }).eq("id", order.id);
   }
 
-  // Paystack charged the rest; take the wallet part now (wallet-only orders already took it).
-  if (order.wallet_minor > 0 && order.status !== "success") {
+  if (order.coupon_id) await recordRedemption({ ...order, user_id: userId });
+
+  // Paystack charged the rest; take the wallet part now (orders with nothing to charge already took it).
+  if (order.wallet_minor > 0 && order.total_minor > 0 && order.status !== "success") {
     const { data: spent } = await db.rpc("spend_wallet", { p_user: userId, p_amount: order.wallet_minor, p_order: order.id });
     if (!spent) await db.from("orders").update({ note: "Wallet balance was too low to cover its part when the payment cleared. Check before refunding." }).eq("id", order.id);
   }

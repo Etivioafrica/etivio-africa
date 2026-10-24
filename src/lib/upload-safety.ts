@@ -7,6 +7,7 @@ export type Family = "image" | "video" | "audio" | "pdf" | "office" | "zip" | "e
 export const KIND_FAMILIES = {
   cover: ["image"],
   avatar: ["image"],
+  post: ["image"],
   banner: ["image"],
   blog: ["image"],
   video: ["video"],

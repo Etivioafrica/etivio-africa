@@ -13,6 +13,7 @@ import { nairaToMinor, slugify } from "@/lib/format";
 import { sanitizeRichText } from "@/lib/sanitize";
 import type { Database } from "@/lib/database.types";
 import type { FormState } from "@/app/(app)/teach/actions";
+import { moderate, reviewCourseText } from "@/lib/moderation";
 
 type Level = Database["public"]["Enums"]["course_level"];
 type Status = Database["public"]["Enums"]["course_status"];
@@ -359,6 +360,15 @@ export async function discardUpload(url: string): Promise<Result> {
 
 // Who is using the course wizard. Staff with course access edit any course; tutors only their own, as the
 // instructor, and their courses go through review unless they're trusted or the course was approved before.
+// Tutors' course text gets the quick word-list check on every save (staff are trusted). The AI reads it all when it's
+// submitted or goes live, see reviewCourseText.
+async function wordCheck(editor: { staff: boolean; actorId: string }, input: { title: string; summary: string; description: string; skills: string }, modules: { title: string; lessons: { title: string; content: string | null }[] }[]) {
+  if (editor.staff) return null;
+  const text = [input.title, input.summary, input.description, input.skills, ...modules.flatMap((m) => [m.title, ...m.lessons.map((l) => `${l.title}\n${(l.content ?? "").replace(/<[^>]+>/g, " ")}`)])];
+  const check = await moderate("course", editor.actorId, text, undefined, { ai: false, strike: false });
+  return check.error ?? null;
+}
+
 async function courseEditor(courseId?: string) {
   const user = await getCurrentUser();
   const db = createAdminClient();
@@ -387,6 +397,8 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
   if (curriculumError) return { error: curriculumError };
   const lessonCount = modules.reduce((n, m) => n + m.lessons.length, 0);
   if (input.publish && !lessonCount) return { error: "Add at least one lesson before publishing." };
+  const banned = await wordCheck(editor, input, modules);
+  if (banned) return { error: banned };
 
   const base = slugify(title) || "course";
   let id: string | null = null;
@@ -422,6 +434,10 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
   if (submit) {
     const courseId = id;
     after(() => emailCourseSubmitted(courseId));
+  }
+  if (!editor.staff && (submit || goLive)) {
+    const courseId = id;
+    after(() => reviewCourseText(courseId, editor.actorId));
   }
   refresh();
   return { ok: goLive ? "Course published." : submit ? "Submitted for review. We'll email you when it's approved." : "Course created as a draft.", id };
@@ -636,6 +652,8 @@ export async function updateCourseFull(courseId: string, input: EditCourseInput)
   const lessonCount = modules.reduce((n, m) => n + m.lessons.length, 0);
   const nextStatus = input.status === "keep" ? before.status : input.status;
   if (nextStatus === "published" && !lessonCount) return { error: "A published course needs at least one lesson." };
+  const banned = await wordCheck(editor, input, modules);
+  if (banned) return { error: banned };
 
   const cover = safeUrl(input.coverUrl);
   const { error } = await db
@@ -662,6 +680,7 @@ export async function updateCourseFull(courseId: string, input: EditCourseInput)
     .eq("id", courseId);
   if (error) return { error: "Could not save the course." };
   if (nextStatus === "pending" && before.status !== "pending") after(() => emailCourseSubmitted(courseId));
+  if (!editor.staff && nextStatus !== before.status && (nextStatus === "pending" || nextStatus === "published")) after(() => reviewCourseText(courseId, editor.actorId));
 
   const synced = await syncCurriculum(db, admin.id, courseId, modules);
   if ("error" in synced) return { error: synced.error };

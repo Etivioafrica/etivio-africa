@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { INCOMING, UPLOAD_KINDS, copyObject, deleteObject, objectKey, objectSize, putObject, readObject } from "@/lib/r2";
 import { checkUpload } from "@/lib/upload-safety";
-import { cleanImage, uploader } from "@/lib/upload-server";
+import { cleanImage, screenImage, uploader } from "@/lib/upload-server";
 
 // POST /api/upload/finish { kind, key, name }: checks a file the browser just sent to R2 (size, then what it really
-// is from its first bytes), cleans images, and moves it to its folder. Anything that fails is deleted.
+// is from its first bytes), checks images for nudity, cleans them, and moves it to its folder. Anything that fails is
+// deleted.
 export const maxDuration = 60;
 
 const HEAD_BYTES = 4100;
@@ -36,11 +37,18 @@ export async function POST(request: NextRequest) {
   const key = objectKey(who.kind, safeName);
   const inline = verdict.family === "image" || verdict.family === "video" || verdict.family === "audio" || verdict.family === "pdf";
 
+  // Images up to 25 MB are checked for nudity and sexual content (bigger ones are product files, not pictures shown on the site).
+  const original = verdict.family === "image" && size <= 25 * 1024 * 1024 ? await readObject(incoming) : null;
+  if (original) {
+    const problem = await screenImage(who.userId, original);
+    if (problem) return fail(problem, 422);
+  }
+
   try {
     if (verdict.family === "image" && who.kind !== "product" && who.kind !== "document") {
       let cleaned: Buffer;
       try {
-        cleaned = await cleanImage(await readObject(incoming), verdict.type);
+        cleaned = await cleanImage(original ?? (await readObject(incoming)), verdict.type);
       } catch {
         return fail("We couldn't read this image. Try saving it again as JPG or PNG.", 415);
       }

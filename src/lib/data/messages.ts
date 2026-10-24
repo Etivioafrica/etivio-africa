@@ -42,7 +42,14 @@ export async function openConversation(id: string, userId: string) {
   const side: Side = c.student_id === userId ? "student" : "tutor";
   if (side === "student" && c.student_unread) await db.from("conversations").update({ student_unread: 0 }).eq("id", id);
   if (side === "tutor" && c.tutor_unread) await db.from("conversations").update({ tutor_unread: 0 }).eq("id", id);
-  const { data: messages } = await db.from("conversation_messages").select("id, body, sender_id, created_at").eq("conversation_id", id).order("created_at").limit(500);
+  // Messages held for a moderation check show only to whoever sent them.
+  const { data: messages } = await db
+    .from("conversation_messages")
+    .select("id, body, sender_id, created_at, hidden")
+    .eq("conversation_id", id)
+    .or(`hidden.eq.false,sender_id.eq.${userId}`)
+    .order("created_at")
+    .limit(500);
   return {
     id: c.id,
     side,

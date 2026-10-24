@@ -57,5 +57,7 @@ select json_build_object(
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prokind = 'f'
       and p.prorettype <> 'trigger'::regtype
+      -- Skip functions that come with an extension (btree_gist's cash_dist and friends).
+      and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
   )
 );

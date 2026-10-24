@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sessionUser } from "@/lib/supabase/session";
-import { completeWalletOrder, createOrder, paystackCheckoutUrl, priceItems, type Billing } from "@/lib/data/checkout";
+import { completeFreeOrder, createOrder, paystackCheckoutUrl, priceItems, type Billing } from "@/lib/data/checkout";
 import { createGroup } from "@/lib/data/group-buy";
 import { walletBalance } from "@/lib/data/wallet";
 import { paystackReady } from "@/lib/paystack";
@@ -32,7 +32,7 @@ async function payForGroup(userId: string, billing: Billing, courseId: string, g
   const order = await createOrder(userId, billing, [priced], { groupBuyId: group.id, walletMinor: wallet });
   if (!order) return { error: "We couldn't start your order. Please try again." };
   if (order.total_minor === 0) {
-    const done = await completeWalletOrder(order.id);
+    const done = await completeFreeOrder(order.id);
     if (!done.ok || !done.destination) return { error: "We couldn't use your wallet just now. Please try again." };
     redirect(done.destination);
   }

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, BookOpen, ChevronLeft, Compass, House, Inbox, LayoutDashboard, Library, UserRound, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Bell, BookOpen, ChevronLeft, Compass, House, Inbox, LayoutDashboard, Library, School, UserRound, Users, Wallet, type LucideIcon } from "lucide-react";
 import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
 import type { FeatureMap } from "@/lib/features";
 import "./mobile-app.css";
@@ -16,12 +16,20 @@ type Section = { title: string; match: (p: string) => boolean; segments?: Segmen
 
 const starts = (p: string, ...prefixes: string[]) => prefixes.some((x) => p === x || p.startsWith(`${x}/`));
 
-const learnTabs = (inbox: string): Tab[] => [
+// Campus takes the fourth tab; Messages and Announcements then live on the Me screen. With Campus off, it's Inbox again.
+const learnTabs = (inbox: string, campus: boolean): Tab[] => [
   { label: "Home", href: "/learn", icon: House, match: (p) => p === "/learn" },
   { label: "Learn", href: "/learn/courses", icon: BookOpen, match: (p) => starts(p, "/learn/courses", "/learn/browse", "/learn/library", "/profile/saved") },
   { label: "Explore", href: "/learn/explore", icon: Compass, match: (p) => starts(p, "/learn/explore") },
-  { label: "Inbox", href: inbox, icon: Inbox, match: (p) => starts(p, "/learn/messages", "/learn/announcements") },
-  { label: "Me", href: "/me", icon: UserRound, match: (p) => starts(p, "/me", "/profile", "/settings", "/support", "/learn/wallet", "/learn/sessions", "/communities") && !starts(p, "/profile/saved") },
+  campus
+    ? { label: "Campus", href: "/campus", icon: School, match: (p) => starts(p, "/campus") }
+    : { label: "Inbox", href: inbox, icon: Inbox, match: (p) => starts(p, "/learn/messages", "/learn/announcements") },
+  {
+    label: "Me",
+    href: "/me",
+    icon: UserRound,
+    match: (p) => (starts(p, "/me", "/profile", "/settings", "/support", "/learn/wallet", "/learn/sessions", "/communities") || (campus && starts(p, "/learn/messages", "/learn/announcements"))) && !starts(p, "/profile/saved"),
+  },
 ];
 
 const teachTabs = (canTeach: boolean, coach: boolean, messages: boolean): Tab[] => [
@@ -49,6 +57,7 @@ const sections = (messages: boolean): Section[] => [
     ],
   },
   { title: "Explore", match: (p) => p === "/learn/explore" },
+  { title: "Campus", match: (p) => p === "/campus" },
   {
     title: "Inbox",
     match: (p) => p === "/learn/messages" || p === "/learn/announcements",
@@ -70,11 +79,11 @@ const sections = (messages: boolean): Section[] => [
 ];
 
 // Screens a tab opens (no back arrow). Everything else is a pushed screen with a back arrow.
-const rootPaths = ["/learn", "/teach", "/me", "/learn/explore", "/learn/courses", "/learn/browse", "/learn/library", "/profile/saved", "/learn/messages", "/learn/announcements", "/teach/courses", "/teach/products", "/teach/students", "/teach/messages", "/teach/coaching", "/teach/earnings"];
+const rootPaths = ["/learn", "/teach", "/me", "/campus", "/learn/explore", "/learn/courses", "/learn/browse", "/learn/library", "/profile/saved", "/learn/messages", "/learn/announcements", "/teach/courses", "/teach/products", "/teach/students", "/teach/messages", "/teach/coaching", "/teach/earnings"];
 
 export function mobileTabs({ teach, canTeach, coach, features }: { teach: boolean; canTeach: boolean; coach: boolean; features: Partial<FeatureMap> }) {
   const messages = features.messages !== false;
-  return teach ? teachTabs(canTeach, coach, messages) : learnTabs(messages ? "/learn/messages" : "/learn/announcements");
+  return teach ? teachTabs(canTeach, coach, messages) : learnTabs(messages ? "/learn/messages" : "/learn/announcements", features.campus !== false);
 }
 
 export function MobileTabBar({ pathname, tabs }: { pathname: string; tabs: Tab[] }) {

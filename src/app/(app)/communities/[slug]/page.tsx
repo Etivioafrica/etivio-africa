@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { JOIN_LABEL, communityFeed, getCommunity, pendingRequests } from "@/lib/data/communities";
 import { decideRequest, leaveCommunity } from "../actions";
 import { Composer, JoinBox, PostCard } from "./CommunityClient";
+import { ReportButton } from "@/components/moderation/ReportButton";
 
 export const metadata = { title: "Community" };
 
@@ -29,7 +30,7 @@ async function Community({ params, searchParams }: Props) {
   if (!c) notFound();
   // Invite-only spaces stay hidden from people without the link.
   if (c.joinMode === "invite" && !c.isMember && invite !== c.invite_code) notFound();
-  const [feed, requests] = await Promise.all([c.isMember ? communityFeed(c.id, user.id) : Promise.resolve([]), c.canModerate ? pendingRequests(c.id) : Promise.resolve([])]);
+  const [feed, requests] = await Promise.all([c.isMember ? communityFeed(c.id, user.id, c.canModerate) : Promise.resolve([]), c.canModerate ? pendingRequests(c.id) : Promise.resolve([])]);
 
   return (
     <>
@@ -46,6 +47,7 @@ async function Community({ params, searchParams }: Props) {
           <small>
             <Users size={13} /> {c.members.toLocaleString()} {c.members === 1 ? "member" : "members"} · {c.joinMode === "course" && c.course ? `For students of ${c.course.title}` : JOIN_LABEL[c.joinMode]}
           </small>
+          {c.owner_id !== user.id && !c.is_official && <ReportButton type="community" id={c.id} label="Report" />}
         </div>
       </section>
 

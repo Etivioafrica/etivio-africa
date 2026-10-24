@@ -10,7 +10,9 @@ import {
   LifeBuoy,
   MessagesSquare,
   Newspaper,
+  ShieldAlert,
   ShieldCheck,
+  Tag,
   Wallet,
   ChevronDown,
   ChevronsLeft,
@@ -24,6 +26,7 @@ import {
   Menu,
   Moon,
   Presentation,
+  School,
   Search,
   Settings,
   Sun,
@@ -73,6 +76,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         items: [
           { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true, area: "dashboard" },
           { label: "Review queue", href: "/admin/review", icon: ClipboardCheck, area: "review", badge: badges.queue },
+          { label: "Moderation", href: "/admin/moderation", icon: ShieldAlert, area: "moderation", badge: badges.moderation },
         ],
       },
       {
@@ -140,6 +144,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
           { label: "Tracking", href: "/admin/tracking", icon: BarChart3, area: "tracking" },
           { label: "Financials", href: "/admin/financials", icon: Wallet, area: "financials" },
           { label: "Wallets", href: "/admin/wallets", icon: Wallet, area: "financials" },
+          { label: "Coupons", href: "/admin/coupons", icon: Tag, area: "coupons" },
         ],
       },
       {
@@ -169,6 +174,7 @@ const learnNav: Group[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", href: "/learn", icon: LayoutDashboard, exact: true },
+      { label: "Campus", href: "/campus", icon: School, feature: "campus" },
       { label: "Announcements", href: "/learn/announcements", icon: Megaphone },
     ],
   },

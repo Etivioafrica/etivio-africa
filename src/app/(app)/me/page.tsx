@@ -9,7 +9,9 @@ import {
   CreditCard,
   FolderDown,
   Heart,
+  Inbox,
   LifeBuoy,
+  Megaphone,
   Presentation,
   Settings,
   ShieldCheck,
@@ -37,6 +39,9 @@ export default async function MePage() {
   const display = user.name || user.email;
 
   const learning: Row[] = [
+    // Campus has the Inbox tab's place, so messages are reached from here.
+    ...(f.messages ? [{ label: "Messages", href: "/learn/messages", icon: Inbox }] : []),
+    { label: "Announcements", href: "/learn/announcements", icon: Megaphone },
     { label: "Library", href: "/learn/library", icon: FolderDown },
     { label: "Saved", href: "/profile/saved", icon: Heart },
     { label: "Certificates", href: "/profile/certificates", icon: Award },

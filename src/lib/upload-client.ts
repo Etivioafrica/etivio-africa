@@ -2,7 +2,7 @@
 // server check it and move it into place. Throws an Error with a message that can be shown to the person.
 
 export type Uploaded = { url: string; key: string; name: string; size: number; type: string };
-export type UploadKind = "cover" | "avatar" | "banner" | "blog" | "video" | "document" | "product";
+export type UploadKind = "cover" | "avatar" | "banner" | "blog" | "video" | "document" | "product" | "post";
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);

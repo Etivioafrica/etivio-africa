@@ -11,6 +11,7 @@ import { getPublicProfile, type PublicCourse, type PublicProfile } from "@/lib/d
 import Link from "next/link";
 import { formatDate, formatDuration } from "@/lib/format";
 import { normalizeUsername } from "@/lib/username";
+import { ReportButton } from "@/components/moderation/ReportButton";
 
 type Props = { params: Promise<{ username: string }> };
 
@@ -91,6 +92,9 @@ async function PublicProfileContent({ params }: Props) {
         courses={completed}
         empty={`${profile.name.split(" ")[0]} hasn't completed a course yet.`}
       />
+      <p className="et-report-foot">
+        <ReportButton type="profile" id={profile.id} label="Report this profile" />
+      </p>
     </>
   );
 }

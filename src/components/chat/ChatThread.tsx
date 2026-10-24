@@ -2,8 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ReportButton } from "@/components/moderation/ReportButton";
 
-export type ChatMessage = { id: string; body: string; is_staff?: boolean; sender_id?: string | null; created_at: string; sender?: string };
+export type ChatMessage = { id: string; body: string; is_staff?: boolean; sender_id?: string | null; created_at: string; sender?: string; hidden?: boolean };
 export type SendResult = { error?: string; message?: ChatMessage };
 
 const time = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -80,6 +81,8 @@ export function ChatThread({
                 <p>{m.body}</p>
                 <small>
                   {who} · {time(m.created_at)}
+                  {m.hidden ? " · Waiting for a check" : ""}
+                  {course && !mine && <ReportButton type="message" id={m.id} small />}
                 </small>
               </div>
             );

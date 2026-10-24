@@ -13,6 +13,7 @@ import type { getCourseDetails } from "@/lib/data/learn";
 import { formatDate, formatDuration, formatPrice } from "@/lib/format";
 import { toHtml } from "@/lib/blog";
 import { sanitizeRichText } from "@/lib/sanitize";
+import { ReportButton } from "@/components/moderation/ReportButton";
 
 const plural = (n: number, word: string) => `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
 const monthYear = (d: string) => new Date(d).toLocaleDateString("en-GB", { month: "numeric", year: "numeric" });
@@ -311,10 +312,16 @@ export function CourseView({ data }: { data: CourseData }) {
                         <b>Reply from Etivio:</b> {r.reply}
                       </p>
                     )}
+                    {signedIn && <ReportButton type="course_review" id={r.id} small />}
                   </article>
                 ))}
               </div>
             </section>
+          )}
+          {signedIn && (
+            <p className="et-report-foot">
+              <ReportButton type="course" id={course.id} label="Report this course" />
+            </p>
           )}
         </div>
       </div>

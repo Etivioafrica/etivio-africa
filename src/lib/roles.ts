@@ -51,12 +51,15 @@ export const ADMIN_AREAS = {
   marketplace: ["super_admin"],
   // The review queue: tutor courses and products waiting to go live.
   review: ["super_admin", "reviewer"],
+  // Reported and caught posts, messages, reviews and profiles.
+  moderation: ["super_admin", "reviewer"],
   blog: ["super_admin", "editor"],
   announcements: ["super_admin", "editor"],
   documents: ["super_admin"],
   chats: ["super_admin"],
   tracking: ["super_admin"],
   financials: ["super_admin", "accountant"],
+  coupons: ["super_admin", "accountant"],
   coaching: ["super_admin"],
   team: ["super_admin"],
   emails: ["super_admin"],

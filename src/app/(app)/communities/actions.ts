@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { featureOn } from "@/lib/data/features";
 import { canCreateCommunity, getCommunity, type JoinMode } from "@/lib/data/communities";
 import { slugify } from "@/lib/format";
+import { moderate } from "@/lib/moderation";
 
 type Result = { ok?: string; error?: string };
 const str = (fd: FormData, key: string, max: number) => String(fd.get(key) ?? "").trim().slice(0, max);
@@ -32,6 +33,8 @@ export async function joinCommunity(_prev: Result | null, fd: FormData): Promise
     answer = str(fd, "answer", 500);
     if (c.join_question && answer.length < 2) return { error: "Answer the question to send your request." };
     status = "pending";
+    const mod = await moderate("community", user.id, [answer], `/communities/${c.slug}`);
+    if (mod.error) return { error: mod.error };
   } else if (c.joinMode === "course") {
     const { data: enrolled } = c.course_id ? await db.from("enrollments").select("user_id").eq("course_id", c.course_id).eq("user_id", user.id).maybeSingle() : { data: null };
     if (!enrolled) return { error: "This community is for students of its course. Enrol in the course to join." };
@@ -60,10 +63,13 @@ export async function createPost(_prev: Result | null, fd: FormData): Promise<Re
   if (!c || !c.isMember) return { error: "Join the community to post." };
   const body = str(fd, "body", 5000);
   if (body.length < 2) return { error: "Write something first." };
-  const { error } = await createAdminClient().from("community_posts").insert({ community_id: c.id, author_id: user.id, body });
+  const mod = await moderate("community_post", user.id, [body], `/communities/${c.slug}`);
+  if (mod.error) return { error: mod.error };
+  const { data, error } = await createAdminClient().from("community_posts").insert({ community_id: c.id, author_id: user.id, body, hidden: mod.hold }).select("id").single();
   if (error) return { error: "Couldn't post. Try again." };
+  await mod.record(data?.id);
   refresh();
-  return { ok: "Posted." };
+  return { ok: mod.hold ? "Posted. It shows to others once the team has checked it." : "Posted." };
 }
 
 // The post's community, and what this person may do there.
@@ -82,16 +88,20 @@ export async function addComment(postId: string, body: string): Promise<Result &
   if (!a || !a.c.isMember) return { error: "Join the community to comment." };
   const text = body.trim().slice(0, 2000);
   if (!text) return { error: "Write a comment first." };
-  const { data, error } = await a.db.from("community_comments").insert({ post_id: postId, author_id: a.user.id, body: text }).select("id, body, created_at").single();
+  const mod = await moderate("community_comment", a.user.id, [text], `/communities/${a.c.slug}`);
+  if (mod.error) return { error: mod.error };
+  const { data, error } = await a.db.from("community_comments").insert({ post_id: postId, author_id: a.user.id, body: text, hidden: mod.hold }).select("id, body, created_at").single();
   if (error || !data) return { error: "Couldn't comment. Try again." };
+  await mod.record(data.id);
   return { comment: { id: data.id, body: data.body, createdAt: data.created_at, author: a.user.name || "You" } };
 }
 
 export async function loadComments(postId: string) {
   const a = await postAccess(postId);
   if (!a || !a.c.isMember) return [];
-  const { data } = await a.db.from("community_comments").select("id, body, created_at, author:profiles(full_name)").eq("post_id", postId).order("created_at").limit(200);
-  return (data ?? []).map((c) => ({ id: c.id, body: c.body, createdAt: c.created_at, author: c.author?.full_name || "Member" }));
+  const { data } = await a.db.from("community_comments").select("id, body, created_at, hidden, author_id, author:profiles(full_name)").eq("post_id", postId).order("created_at").limit(200);
+  // Held comments show only to whoever wrote them and to moderators.
+  return (data ?? []).filter((c) => !c.hidden || c.author_id === a.user.id || a.c.canModerate).map((c) => ({ id: c.id, body: c.body, createdAt: c.created_at, author: c.author?.full_name || "Member", mine: c.author_id === a.user.id }));
 }
 
 export async function toggleLike(postId: string): Promise<{ liked?: boolean; error?: string }> {
@@ -135,6 +145,8 @@ export async function createCommunity(_prev: Result | null, fd: FormData): Promi
   const db = createAdminClient();
   const name = str(fd, "name", 80);
   if (name.length < 3) return { error: "Give the community a name of at least 3 characters." };
+  const mod = await moderate("community", user.id, [name, str(fd, "description", 600), str(fd, "join_question", 200)]);
+  if (mod.error) return { error: mod.error };
   const joinMode = (MODES.includes(str(fd, "join_mode", 10) as JoinMode) ? str(fd, "join_mode", 10) : "open") as JoinMode;
   const courseId = str(fd, "course_id", 40) || null;
   if (joinMode === "course") {
@@ -168,5 +180,6 @@ export async function createCommunity(_prev: Result | null, fd: FormData): Promi
   }
   if (!id) return { error: "That name is taken. Try another." };
   await db.from("community_members").insert({ community_id: id, user_id: user.id, role: "owner", status: "active" });
+  await mod.record(id);
   redirect(`/communities/${slug}`);
 }

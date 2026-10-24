@@ -10,6 +10,7 @@ import { canEarn } from "@/lib/roles";
 import { bankName } from "@/lib/banks";
 import type { FormState } from "../teach/actions";
 import { normalizeUsername, usernameCandidates, usernameProblem } from "@/lib/username";
+import { bannedWord, moderate } from "@/lib/moderation";
 
 async function authed() {
   const supabase = await createClient();
@@ -60,6 +61,9 @@ export async function updateProfile(_prev: FormState, fd: FormData): Promise<For
     ),
   ].slice(0, 12);
 
+  const check = await moderate("profile", user.id, [text(fd, "full_name", 80), text(fd, "headline", 120), text(fd, "location", 80), text(fd, "bio"), interests.join(", ")], `/admin/users/${user.id}`);
+  if (check.error) return { error: check.error };
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -76,6 +80,7 @@ export async function updateProfile(_prev: FormState, fd: FormData): Promise<For
     })
     .eq("id", user.id);
   if (error) return { error: "Could not save your profile." };
+  await check.record(user.id);
   refresh();
   return { ok: "Profile saved." };
 }
@@ -203,7 +208,7 @@ export async function checkUsername(raw: string): Promise<UsernameCheck> {
   if (!name) return { name, status: "empty", message: "", suggestions: await freeSuggestions(supabase, seeds) };
   if (name === me?.username) return { name, status: "current", message: "This is your current username.", suggestions: [] };
 
-  const problem = usernameProblem(name);
+  const problem = usernameProblem(name) ?? (bannedWord(name.replace(/[._-]/g, " ")) ? "That username isn't allowed. Pick another." : null);
   if (problem) return { name, status: "invalid", message: problem, suggestions: await freeSuggestions(supabase, seeds) };
 
   const { data: existing } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
@@ -215,7 +220,7 @@ export async function checkUsername(raw: string): Promise<UsernameCheck> {
 export async function claimUsername(raw: string): Promise<{ ok?: string; error?: string }> {
   const { supabase, user } = await authed();
   const name = normalizeUsername(raw);
-  const problem = usernameProblem(name);
+  const problem = usernameProblem(name) ?? (bannedWord(name.replace(/[._-]/g, " ")) ? "That username isn't allowed. Pick another." : null);
   if (problem) return { error: problem };
   const { error } = await supabase.from("profiles").update({ username: name }).eq("id", user.id);
   if (error?.code === "23505") return { error: `Someone just took @${name}. Pick another.` };

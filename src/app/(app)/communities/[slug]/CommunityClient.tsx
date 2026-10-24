@@ -2,6 +2,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { Heart, MessageCircle, Pin, Send, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
+import { ReportButton } from "@/components/moderation/ReportButton";
 import { addComment, createPost, deletePost, joinCommunity, loadComments, pinPost, toggleLike } from "../actions";
 import type { FeedPost, JoinMode } from "@/lib/data/communities";
 
@@ -42,7 +43,7 @@ export function Composer({ slug }: { slug: string }) {
       <input type="hidden" name="slug" value={slug} />
       <textarea name="body" rows={3} maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} placeholder="Share something, ask a question or post a win…" />
       <div className="et-cm-compose-foot">
-        {state?.error ? <p className="et-gb-error">{state.error}</p> : <span />}
+        {state?.error ? <p className="et-gb-error">{state.error}</p> : state?.ok && state.ok !== "Posted." ? <p className="et-cm-note">{state.ok}</p> : <span />}
         <button type="submit" className="et-btn et-btn-primary et-btn-sm" disabled={busy || text.trim().length < 2}>
           <Send size={14} /> {busy ? "Posting…" : "Post"}
         </button>
@@ -51,7 +52,7 @@ export function Composer({ slug }: { slug: string }) {
   );
 }
 
-type Comment = { id: string; body: string; createdAt: string; author: string };
+type Comment = { id: string; body: string; createdAt: string; author: string; mine?: boolean };
 
 export function PostCard({ post, canModerate, viewerId }: { post: FeedPost; canModerate: boolean; viewerId: string }) {
   const [liked, setLiked] = useState(post.liked);
@@ -85,7 +86,7 @@ export function PostCard({ post, canModerate, viewerId }: { post: FeedPost; canM
     start(async () => {
       const res = await addComment(post.id, text);
       if (res.error || !res.comment) return setError(res.error ?? "Couldn't comment.");
-      setComments((c) => [...(c ?? []), res.comment!]);
+      setComments((c) => [...(c ?? []), { ...res.comment!, mine: true }]);
       setCount((n) => n + 1);
       setDraft("");
     });
@@ -100,8 +101,10 @@ export function PostCard({ post, canModerate, viewerId }: { post: FeedPost; canM
           <small>
             {when(post.createdAt)}
             {post.pinned ? " · Pinned" : ""}
+            {post.hidden ? " · Waiting for a check" : ""}
           </small>
         </span>
+        {post.author.id !== viewerId && <ReportButton type="community_post" id={post.id} />}
         {(canModerate || post.author.id === viewerId) && (
           <span className="et-cm-tools">
             {canModerate && (
@@ -139,6 +142,7 @@ export function PostCard({ post, canModerate, viewerId }: { post: FeedPost; canM
             comments.map((c) => (
               <div key={c.id} className="et-cm-comment">
                 <b>{c.author}</b> <small>{when(c.createdAt)}</small>
+                {!c.mine && <ReportButton type="community_comment" id={c.id} small />}
                 <p>{c.body}</p>
               </div>
             ))

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, Wallet } from "lucide-react";
 import { PageHead } from "@/components/dash/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { WALLET_KIND_LABEL, walletBalance, walletHistory } from "@/lib/data/wallet";
@@ -33,25 +33,38 @@ async function Content({ searchParams }: Props) {
       {topup === "done" && <p className="et-flash et-flash-ok">Top-up received. It&apos;s in your wallet now.</p>}
       {topup === "failed" && <p className="et-flash et-flash-warn">That payment didn&apos;t go through, so nothing was added. You can try again.</p>}
       <div className="et-wl-grid">
-        <section className="et-card et-wl-balance">
-          <span className="et-wl-icon">
-            <Wallet size={20} />
-          </span>
+        <section className="et-wl-card">
+          <div className="et-wl-card-top">
+            <span className="et-wl-icon">
+              <Wallet size={20} />
+            </span>
+            <span className="et-wl-brand">Etivio wallet</span>
+          </div>
           <small>Available balance</small>
-          <b>{formatMoney(balance)}</b>
+          <b className="et-wl-amountbig">{formatMoney(balance)}</b>
           <div className="et-wl-split">
             <span>
-              <ArrowDownLeft size={14} /> {formatMoney(credited)} in
+              <i>
+                <ArrowDownLeft size={14} />
+              </i>
+              <span>
+                <small>Added</small>
+                <b>{formatMoney(credited)}</b>
+              </span>
             </span>
             <span>
-              <ArrowUpRight size={14} /> {formatMoney(spent)} spent
+              <i>
+                <ArrowUpRight size={14} />
+              </i>
+              <span>
+                <small>Spent</small>
+                <b>{formatMoney(spent)}</b>
+              </span>
             </span>
           </div>
-          {balance > 0 && (
-            <Link href="/explore" className="et-btn et-btn-ghost et-btn-sm">
-              Find a course to spend it on
-            </Link>
-          )}
+          <Link href="/explore" className="et-wl-spend">
+            {balance > 0 ? "Find a course to spend it on" : "Browse courses"} <ArrowRight size={14} />
+          </Link>
         </section>
         <section className="et-card et-card-pad">
           <TopUpForm />

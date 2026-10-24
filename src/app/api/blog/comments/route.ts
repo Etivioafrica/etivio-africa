@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { livePostId, readJson } from "@/lib/blog-server";
+import { moderate } from "@/lib/moderation";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -39,7 +40,10 @@ export async function POST(req: Request) {
     if ((count ?? 0) >= 5) return NextResponse.json({ error: "You've commented a lot just now. Try again in a few minutes." }, { status: 429 });
   }
 
-  const { error } = await db.from("blog_comments").insert({ post_id: postId, user_id: user?.id ?? null, author_name: name, author_email: email || null, content });
+  const check = await moderate("blog_comment", user?.id ?? null, [name, content], "/admin/blog/comments");
+  if (check.error) return NextResponse.json({ error: check.error }, { status: 422 });
+  const { data, error } = await db.from("blog_comments").insert({ post_id: postId, user_id: user?.id ?? null, author_name: name, author_email: email || null, content }).select("id").single();
   if (error) return NextResponse.json({ error: "Couldn't post your comment. Try again." }, { status: 500 });
+  await check.record(data?.id);
   return NextResponse.json({ ok: true }, { status: 201 });
 }

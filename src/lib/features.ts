@@ -12,6 +12,7 @@ export const FEATURES = {
   ai_lesson: { label: "Ask AI in lessons", description: "The Ask AI tab in the course player.", initial: "on" },
   withdrawals: { label: "Tutor withdrawals", description: "Tutors request payouts from Earnings. When off, they only see their earnings.", initial: "on" },
   coaching: { label: "Coaches and booking", description: "Coach profiles, booking and paying for 1-on-1 sessions, and the coach tools in Teach.", initial: "off" },
+  campus: { label: "Campus", description: "The shared feed where learners post updates, questions, wins, polls and opportunities.", initial: "on" },
   communities: { label: "Communities", description: "Community spaces, posts and join approval. Coming soon.", initial: "off" },
 } satisfies Record<string, { label: string; description: string; initial: FeatureStatus }>;
 

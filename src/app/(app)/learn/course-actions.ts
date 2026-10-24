@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCoursePlayer } from "@/lib/data/learn";
 import { syncBadges } from "@/lib/data/badges";
 import { syncCertificates } from "@/lib/data/certificates";
+import { moderate } from "@/lib/moderation";
 
 export type QuizResult = {
   error?: string;
@@ -59,10 +60,15 @@ export async function submitReview(courseId: string, rating: number, body: strin
   const player = await getCoursePlayer(courseId);
   if (!player?.review.canReview) return { error: "You can review this course once you're 30% through it." };
   const text = body.trim().slice(0, 2000);
-  const { error } = await createAdminClient()
+  const check = await moderate("course_review", uid, [text]);
+  if (check.error) return { error: check.error };
+  const { data, error } = await createAdminClient()
     .from("course_reviews")
-    .upsert({ course_id: courseId, user_id: uid, rating, body: text || null, approved: false }, { onConflict: "course_id,user_id" });
+    .upsert({ course_id: courseId, user_id: uid, rating, body: text || null, approved: false }, { onConflict: "course_id,user_id" })
+    .select("id")
+    .single();
   if (error) return { error: "Couldn't save your review. Try again." };
+  await check.record(data?.id);
   refresh();
   return { ok: "Thanks! Your review shows on the course once the team has checked it." };
 }

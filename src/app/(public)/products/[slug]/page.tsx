@@ -14,6 +14,7 @@ import { claimFreeProduct, toggleSavedProduct } from "../actions";
 import { PaymentNotice } from "@/components/market/PaymentNotice";
 import { AddToCart } from "@/components/market/AddToCart";
 import { ReviewCard } from "@/components/learn/ReviewCard";
+import { ReportButton } from "@/components/moderation/ReportButton";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -313,6 +314,7 @@ function ProductView({ data }: { data: PublicProduct }) {
                         <b>Reply from Etivio:</b> {r.reply}
                       </p>
                     )}
+                    {signedIn && <ReportButton type="product_review" id={r.id} small />}
                   </article>
                 ))}
               </div>
@@ -336,6 +338,11 @@ function ProductView({ data }: { data: PublicProduct }) {
             </div>
             {creator.bio && <p className="et-cd-about">{creator.bio}</p>}
           </section>
+          {signedIn && (
+            <p className="et-report-foot">
+              <ReportButton type="product" id={p.id} label="Report this product" />
+            </p>
+          )}
         </div>
       </div>
     </div>

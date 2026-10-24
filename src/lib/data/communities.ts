@@ -69,24 +69,27 @@ export async function getCommunity(slug: string, userId: string, roles: AppRole[
   return { ...c, joinMode: c.join_mode as JoinMode, mine, canModerate, isMember: mine?.status === "active" || isStaff(roles), members: members ?? 0 };
 }
 
-export type FeedPost = { id: string; body: string; pinned: boolean; createdAt: string; comments: number; likes: number; liked: boolean; author: { id: string | null; name: string; avatar: string | null } };
+export type FeedPost = { id: string; body: string; pinned: boolean; hidden: boolean; createdAt: string; comments: number; likes: number; liked: boolean; author: { id: string | null; name: string; avatar: string | null } };
 
-export async function communityFeed(communityId: string, userId: string, limit = 50): Promise<FeedPost[]> {
+// Posts held for a moderation check show only to whoever wrote them and to moderators (`seeHidden`).
+export async function communityFeed(communityId: string, userId: string, seeHidden = false, limit = 50): Promise<FeedPost[]> {
   const db = createAdminClient();
   const { data: posts } = await db
     .from("community_posts")
-    .select("id, body, pinned, created_at, comment_count, like_count, author_id, author:profiles(full_name, avatar_url)")
+    .select("id, body, pinned, hidden, created_at, comment_count, like_count, author_id, author:profiles(full_name, avatar_url)")
     .eq("community_id", communityId)
     .order("pinned", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(limit);
-  const ids = (posts ?? []).map((p) => p.id);
+  const shown = (posts ?? []).filter((p) => !p.hidden || seeHidden || p.author_id === userId);
+  const ids = shown.map((p) => p.id);
   const { data: liked } = ids.length ? await db.from("community_likes").select("post_id").eq("user_id", userId).in("post_id", ids) : { data: [] };
   const likedSet = new Set((liked ?? []).map((l) => l.post_id));
-  return (posts ?? []).map((p) => ({
+  return shown.map((p) => ({
     id: p.id,
     body: p.body,
     pinned: p.pinned,
+    hidden: p.hidden,
     createdAt: p.created_at,
     comments: p.comment_count,
     likes: p.like_count,

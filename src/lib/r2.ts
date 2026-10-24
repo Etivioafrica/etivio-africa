@@ -21,6 +21,8 @@ const PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!.replace(/\/$/, "");
 export const UPLOAD_KINDS = {
   cover: { folder: "covers", maxMb: 10 },
   avatar: { folder: "avatars", maxMb: 5 },
+  // Pictures in Campus posts.
+  post: { folder: "posts", maxMb: 10 },
   banner: { folder: "banners", maxMb: 5 },
   blog: { folder: "blog", maxMb: 10 },
   video: { folder: "videos", maxMb: 2048 },

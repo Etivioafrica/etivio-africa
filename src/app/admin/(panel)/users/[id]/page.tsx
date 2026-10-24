@@ -13,6 +13,7 @@ import { CREATOR_ROLES, LIVE_CREATOR_ROLES, ROLE_BLURBS, ROLE_LABELS, STAFF_ROLE
 import { deleteUser, grantCourseAccess, purgeUser, restoreUser, revokeCourseAccess, sendPasswordReset, setUserRoles, setUserStatus } from "../actions";
 import { Avatar } from "@/components/dash/Avatar";
 import { Select } from "@/components/dash/Select";
+import { ClearStrikes } from "@/app/admin/(panel)/moderation/FlagActions";
 
 export const metadata = { title: "User" };
 
@@ -28,6 +29,9 @@ const TABS = [
   { id: "access", label: "Roles and access" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
+
+// Rendered per request, so reading the clock is fine.
+const clock = () => Date.now();
 
 const skel = (height: number) => <div className="et-skel" style={{ height }} />;
 
@@ -143,11 +147,18 @@ export default async function UserDetail({ params, searchParams }: { params: Pro
                 </span>
               ))}
               <Status value={profile.status} />
+              {profile.strikes > 0 && (
+                <Link href="/admin/moderation?tab=closed" className="et-status et-status-red">
+                  {profile.strikes} {profile.strikes === 1 ? "strike" : "strikes"}
+                  {profile.muted_until && Date.parse(profile.muted_until) > clock() ? ` · muted until ${formatDate(profile.muted_until)}` : ""}
+                </Link>
+              )}
             </p>
           </div>
         </div>
         {!isSelf && !deleted && (
           <div className="et-inline">
+            {profile.strikes > 0 && <ClearStrikes userId={id} />}
             <form action={setUserStatus}>
               <input type="hidden" name="id" value={id} />
               <input type="hidden" name="status" value={profile.status === "active" ? "suspended" : "active"} />

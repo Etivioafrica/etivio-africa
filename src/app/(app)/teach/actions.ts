@@ -8,6 +8,7 @@ import { emailCourseSubmitted } from "@/lib/email/notify";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/format";
 import type { Database } from "@/lib/database.types";
+import { moderate, reviewCourseText } from "@/lib/moderation";
 
 type Level = Database["public"]["Enums"]["course_level"];
 type Status = Database["public"]["Enums"]["course_status"];
@@ -44,11 +45,18 @@ function safeUrl(input: string) {
   }
 }
 
+// Quick word-list check on what a tutor typed (no AI, no strikes: these forms save often). Returns the error or null.
+async function words(userId: string, ...fields: string[]) {
+  return (await moderate("course", userId, fields, undefined, { ai: false, strike: false })).error ?? null;
+}
+
 export async function createCourse(_prev: FormState, fd: FormData): Promise<FormState> {
   const { supabase, userId } = await requireUserId();
   const title = str(fd, "title");
   if (title.length < 3) return { error: "Give your course a title of at least 3 characters." };
   const level = str(fd, "level") as Level;
+  const banned = await words(userId, title, str(fd, "summary"));
+  if (banned) return { error: banned };
 
   const base = slugify(title) || "course";
   let id: string | null = null;
@@ -84,6 +92,8 @@ export async function updateCourse(_prev: FormState, fd: FormData): Promise<Form
   const level = str(fd, "level") as Level;
   if (title.length < 3) return { error: "Title needs at least 3 characters." };
   if (!slug) return { error: "Add a URL slug." };
+  const banned = await words(userId, title, slug.replace(/-/g, " "), str(fd, "summary"), str(fd, "description"), str(fd, "skills"));
+  if (banned) return { error: banned };
 
   const coverInput = str(fd, "cover_url");
   const cover = safeUrl(coverInput);
@@ -116,6 +126,7 @@ export async function setCourseStatus(fd: FormData) {
   if (!STATUSES.includes(status)) return;
   const { error } = await supabase.from("courses").update({ status }).eq("id", id).eq("instructor_id", userId);
   if (!error && status === "pending") after(() => emailCourseSubmitted(id));
+  if (!error && (status === "pending" || status === "published")) after(() => reviewCourseText(id, userId));
   refresh();
 }
 
@@ -126,10 +137,10 @@ export async function deleteCourse(fd: FormData) {
 }
 
 export async function addModule(fd: FormData) {
-  const { supabase } = await requireUserId();
+  const { supabase, userId } = await requireUserId();
   const courseId = str(fd, "courseId");
   const title = str(fd, "title");
-  if (!title) return;
+  if (!title || (await words(userId, title))) return;
   const { count } = await supabase
     .from("course_modules")
     .select("id", { count: "exact", head: true })
@@ -145,10 +156,10 @@ export async function deleteModule(fd: FormData) {
 }
 
 export async function addLesson(fd: FormData) {
-  const { supabase } = await requireUserId();
+  const { supabase, userId } = await requireUserId();
   const moduleId = str(fd, "moduleId");
   const title = str(fd, "title");
-  if (!title) return;
+  if (!title || (await words(userId, title))) return;
   const { count } = await supabase
     .from("lessons")
     .select("id", { count: "exact", head: true })
@@ -161,9 +172,11 @@ export async function addLesson(fd: FormData) {
 }
 
 export async function updateLesson(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { supabase } = await requireUserId();
+  const { supabase, userId } = await requireUserId();
   const title = str(fd, "title");
   if (!title) return { error: "Lesson title is required." };
+  const banned = await words(userId, title, str(fd, "content").replace(/<[^>]+>/g, " "));
+  if (banned) return { error: banned };
   const videoInput = str(fd, "video_url");
   const video = safeUrl(videoInput);
   if (videoInput && !video) return { error: "Video must be a full http(s) URL." };

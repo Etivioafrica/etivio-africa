@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { sessionUser } from "@/lib/supabase/session";
 import { grantProduct } from "@/lib/data/grants";
+import { moderate } from "@/lib/moderation";
 
 async function signedIn(next: string) {
   const user = await sessionUser(await createClient());
@@ -45,10 +46,15 @@ export async function submitProductReview(productId: string, rating: number, bod
   if (!p || p.status !== "published") return { error: "This product is no longer available." };
   if (!access || p.creator_id === user.id) return { error: "Only people who own this product can review it." };
   const text = body.trim().slice(0, 2000);
-  const { error } = await db
+  const check = await moderate("product_review", user.id, [text]);
+  if (check.error) return { error: check.error };
+  const { data, error } = await db
     .from("product_reviews")
-    .upsert({ product_id: productId, user_id: user.id, rating, body: text || null, approved: false }, { onConflict: "product_id,user_id" });
+    .upsert({ product_id: productId, user_id: user.id, rating, body: text || null, approved: false }, { onConflict: "product_id,user_id" })
+    .select("id")
+    .single();
   if (error) return { error: "Couldn't save your review. Try again." };
+  await check.record(data?.id);
   refresh();
   return { ok: "Thanks! Your review shows on the product once the team has checked it." };
 }
