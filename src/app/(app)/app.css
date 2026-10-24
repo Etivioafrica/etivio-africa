@@ -789,6 +789,22 @@ a.et-course:hover{border-color:var(--accent)}
 .et-ob-body h2{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
 .et-ob-sub{font-size:13.5px;line-height:1.55;color:var(--a-muted)}
 .et-ob-options{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+/* Welcome guide: username step */
+.et-ob-username{display:flex;flex-direction:column;gap:6px}
+.et-ob-handle{display:flex;align-items:center;gap:8px;height:54px;margin-top:16px;padding:0 6px 0 16px;border:2px solid var(--a-border);border-radius:14px;background:var(--a-input);color:var(--a-faint);transition:border-color .15s}
+.et-ob-handle:focus-within{border-color:var(--accent)}
+.et-ob-handle input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;color:var(--a-fg);font:inherit;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.et-ob-handle i{display:grid;place-items:center;width:36px;font-style:normal}
+.et-ob-handle.is-available,.et-ob-handle.is-current{border-color:#16a34a}
+.et-ob-handle.is-available i,.et-ob-handle.is-current i{color:#16a34a}
+.et-ob-handle.is-taken,.et-ob-handle.is-invalid{border-color:#dc2626}
+.et-ob-handle.is-taken i,.et-ob-handle.is-invalid i{color:#dc2626}
+.et-ob-handle-msg{min-height:20px;margin:2px 2px 0;font-size:13px;color:var(--a-muted)}
+.et-ob-handle-msg.is-available,.et-ob-handle-msg.is-current{color:#16a34a}
+.et-ob-handle-msg.is-taken,.et-ob-handle-msg.is-invalid{color:#dc2626}
+.et-ob-handle-ideas{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px;color:var(--a-faint)}
+.et-ob-username-foot{display:flex;justify-content:flex-end;margin-top:18px}
+.et-ob-username-foot .et-btn{min-width:140px;justify-content:center}
 .et-ob-option{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;border:1px solid var(--a-border);background:var(--a-panel);cursor:pointer;transition:border-color .15s,background .15s}
 .et-ob-option:hover{background:var(--a-hover)}
 .et-ob-option.is-on{border-color:var(--accent);background:var(--a-panel-2);box-shadow:0 0 0 1px var(--accent)}

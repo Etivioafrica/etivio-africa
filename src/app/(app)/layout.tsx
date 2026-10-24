@@ -41,6 +41,7 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
         showTeach: showsTeach(user.roles, user.tutorApplication),
       }}
       needsOnboarding={user.needsOnboarding}
+      needsUsername={!user.username}
       lastSide={jar.get("et-side")?.value === "teach" ? "teach" : "learn"}
       features={features}
       unseenBadges={(unseen ?? []).map((b) => b.badge_id).join(",")}

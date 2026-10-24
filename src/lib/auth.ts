@@ -17,6 +17,8 @@ export type CurrentUser = {
   providers: string[];
   // Latest tutor application, so the Teach area can appear once someone has applied.
   tutorApplication: "pending" | "approved" | "rejected" | null;
+  // Public handle (etivio.co/@username); null until they pick one in the welcome guide or Settings.
+  username: string | null;
   // True until the welcome guide has been finished or skipped.
   needsOnboarding: boolean;
 };
@@ -37,7 +39,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   await requireFullSession(supabase, "/learn");
 
   const [{ data: profile }, priv, { data: roles }, { data: application }] = await Promise.all([
-    supabase.from("profiles").select("full_name, avatar_url, bio").eq("id", user.id).single(),
+    supabase.from("profiles").select("full_name, avatar_url, bio, username").eq("id", user.id).single(),
     getMyPrivateProfile(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
     supabase
@@ -57,6 +59,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     name: profile?.full_name ?? "",
     avatarUrl: profile?.avatar_url ?? null,
     bio: profile?.bio ?? null,
+    username: profile?.username ?? null,
     roles: roles?.length ? roles.map((r) => r.role) : ["student"],
     providers: user.providers,
     tutorApplication: application?.status ?? null,

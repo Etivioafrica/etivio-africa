@@ -270,6 +270,7 @@ export default function Shell({
   badges = {},
   unseenBadges = "",
   needsOnboarding = false,
+  needsUsername = false,
   lastSide = "learn",
   features = {},
   children,
@@ -281,6 +282,8 @@ export default function Shell({
   unseenBadges?: string;
   // Show the welcome guide (new learners, until finished or skipped).
   needsOnboarding?: boolean;
+  // No username yet: the guide opens on "Choose your username" (on its own for people who already did the guide).
+  needsUsername?: boolean;
   // Learn or Teach, whichever the person used last (cookie). Shared pages like Settings keep that sidebar.
   lastSide?: "learn" | "teach";
   // Features this person can use (Settings → Features). Anything missing counts as on.
@@ -292,7 +295,8 @@ export default function Shell({
   const { light } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   // Captured once: stays open through the guide's final screen even after the server marks it done.
-  const [guideOpen, setGuideOpen] = useState(needsOnboarding);
+  const [guide] = useState({ questions: needsOnboarding, username: needsUsername });
+  const [guideOpen, setGuideOpen] = useState(needsOnboarding || needsUsername);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -479,7 +483,7 @@ export default function Shell({
         {!admin && <MobileTabBar pathname={pathname} tabs={tabs} />}
         <TipLayer />
         {!admin && features.ai_assistant !== false && <AiWidget name={display} />}
-        {!admin && guideOpen && <Onboarding name={user.name || user.email} onClosed={() => setGuideOpen(false)} />}
+        {!admin && guideOpen && <Onboarding name={user.name || user.email} askUsername={guide.username} askQuestions={guide.questions} onClosed={() => setGuideOpen(false)} />}
         {/* Badge celebrations wait until the welcome guide is out of the way. */}
         {!admin && !guideOpen && <BadgeCelebration trigger={unseenBadges} />}
       </div>
