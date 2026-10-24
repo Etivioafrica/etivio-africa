@@ -63,13 +63,27 @@ export default async function LearnDashboard() {
   const streak = profile?.heatmap.currentStreak ?? 0;
   const tip = prefs.goal ? GOAL_TIPS[prefs.goal] : null;
   const others = active.slice(current ? 1 : 0, 7);
+  // Overall progress across every enrolled course, for the banner.
+  const totalLessons = mine.reduce((n, c) => n + c.lessonCount, 0);
+  const overall = totalLessons ? Math.round((lessonsDone / totalLessons) * 100) : 0;
   const now = new Date().toISOString();
   const upcoming = sessions.filter((s) => s.status === "confirmed" && s.endsAt > now).reverse();
 
   return (
     <div className="et-page et-home">
       {platform.announcement && <AnnouncementBar text={platform.announcement.text} link={platform.announcement.link} />}
-      <WelcomeHero name={(user.name || "there").split(" ")[0]} date={today} message={hero.message} cta={hero.cta} background={platform.heroBgUrl} />
+      <WelcomeHero name={(user.name || "there").split(" ")[0]} date={today} message={hero.message} cta={hero.cta} background={platform.heroBgUrl}
+        side={
+          mine.length ? (
+            <>
+              <Ring value={overall} max={100} size={84}>
+                <b>{overall}%</b>
+              </Ring>
+              <small>Overall progress</small>
+            </>
+          ) : null
+        }
+      />
       <PhoneHome
         current={current ?? null}
         upNext={upNext && player ? { id: upNext.id, title: upNext.title, index: player.lessons.indexOf(upNext) + 1 } : null}

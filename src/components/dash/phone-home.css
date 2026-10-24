@@ -1,9 +1,26 @@
 /* Phone home (learner, under 860px). The desktop dashboard blocks are hidden there and this shows instead. */
 .et-ph{display:none}
 
+/* Overall progress on the right of the Hello banner (all sizes) */
+.et-hero-side{position:relative;z-index:1;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px}
+.et-hero-side small{font-size:11.5px;font-weight:600;color:#bfdbfe;white-space:nowrap}
+.et-hero-side .et-ring > span{position:absolute;inset:0;display:grid;place-items:center}
+.et-hero-side .et-ring b{font-size:17px;font-weight:800;color:#fff}
+.et-hero-side .et-ring circle:first-child{stroke:#1e3a8a}
+.et-hero-side .et-ring circle + circle{stroke:#fff}
+
 @media(max-width:860px){
   .et-app.is-phone-app .et-home > :is(.et-dash-top,.et-dash-section.is-desk){display:none}
   .et-app.is-phone-app .et-ph{display:flex;flex-direction:column;gap:16px}
+
+  /* Compact banner: greeting and button, overall progress on the right, no subtext */
+  .et-app.is-phone-app .et-home .et-hero{gap:14px;padding:20px 18px 20px 20px;border-radius:24px}
+  .et-app.is-phone-app .et-home .et-hero-text{gap:6px}
+  .et-app.is-phone-app .et-home .et-hero h1{font-size:24px}
+  .et-app.is-phone-app .et-home .et-hero p{display:none}
+  .et-app.is-phone-app .et-home .et-hero-btn{height:38px;margin-top:8px;padding:0 16px;border-radius:999px;font-size:13px}
+  .et-app.is-phone-app .et-home .et-hero-side .et-ring{width:72px !important;height:72px !important}
+  .et-app.is-phone-app .et-home .et-hero-side svg{width:72px;height:72px}
 
   /* The course to continue, with the weekly goal card tucked underneath it */
   .et-ph-stack{display:flex;flex-direction:column}

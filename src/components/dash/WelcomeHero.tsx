@@ -10,6 +10,7 @@ export function WelcomeHero({
   message,
   cta,
   background,
+  side,
 }: {
   name: string;
   date: string;
@@ -17,6 +18,8 @@ export function WelcomeHero({
   cta: { label: string; href: string };
   // Set by a super admin in Admin > Settings; falls back to the built-in image.
   background?: string | null;
+  // Optional block on the right, e.g. the learner's overall progress.
+  side?: React.ReactNode;
 }) {
   return (
     <section className="et-hero" style={{ backgroundImage: `url("${background || DEFAULT_HERO_BG}")` }}>
@@ -28,6 +31,7 @@ export function WelcomeHero({
           {cta.label} <ArrowRight size={16} />
         </Link>
       </div>
+      {side && <div className="et-hero-side">{side}</div>}
     </section>
   );
 }
