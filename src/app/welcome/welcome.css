@@ -35,7 +35,6 @@ html:has(.et-intro),html:has(.et-intro) body{background:#2563eb}
 .et-welcome-legal a{color:#6b7280;text-decoration:underline}
 /* Installed on the home screen, iOS can stop fixed full-screen layers above the home bar; fill the whole screen so
    the buttons sit just above it. */
-@media(display-mode:standalone){.et-welcome{bottom:auto;height:100lvh}}
 /* Wider screens (desktop browsers) see it as a phone-sized column. */
 @media(min-width:640px){.et-welcome{max-width:430px;margin:0 auto;box-shadow:0 0 60px #0000001f}}
 @media(max-height:680px){.et-welcome-cards{transform:scale(.85);margin-bottom:20px}.et-welcome-slide h1{font-size:28px}}

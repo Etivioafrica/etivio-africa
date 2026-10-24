@@ -27,8 +27,9 @@ export const metadata: Metadata = {
   openGraph: { siteName: "Etivio", locale: "en_NG", type: "website" },
   twitter: { card: "summary_large_image" },
   manifest: "/manifest.webmanifest",
-  // Added to the iPhone home screen, Etivio opens full screen like an app.
-  appleWebApp: { capable: true, title: "Etivio", statusBarStyle: "black-translucent" },
+  // Added to the iPhone home screen, Etivio opens like an app. A solid black status bar (as in ZARN): with the
+  // translucent one, iOS shortens the page by the status bar height and leaves an empty band under the tab bar.
+  appleWebApp: { capable: true, title: "Etivio", statusBarStyle: "black" },
   icons: {
     icon: [
       { url: "/favicon.ico" },

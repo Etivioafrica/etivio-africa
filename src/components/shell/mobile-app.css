@@ -42,9 +42,6 @@
   .et-mtabs a:active{transform:scale(.94)}
   .et-app.is-phone-app .et-main.has-bottom-nav{padding-bottom:24px}
   .et-app.is-phone-app .et-aw{bottom:calc(84px + max(8px,env(safe-area-inset-bottom) - 26px))}
-  /* Installed on the home screen, iOS stops a fixed full-screen layer short of the home bar and leaves an empty band
-     under the dock. The large viewport height reaches the real bottom edge. */
-  @media(display-mode:standalone){.et-app.is-phone-app{bottom:auto;height:100lvh}}
   /* App feel: no pinch-zoom layout jumps when a field is tapped. */
   .et-app.is-phone-app :is(input,select,textarea){font-size:16px}
 }

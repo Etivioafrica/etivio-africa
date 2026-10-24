@@ -109,4 +109,3 @@
 }
 @media(max-width:600px) and (prefers-reduced-motion:reduce){.et-auth-faces img{animation:none}}
 /* Installed on the home screen: fill to the very bottom of the screen. */
-@media(display-mode:standalone){.et-auth{min-height:100lvh}}
