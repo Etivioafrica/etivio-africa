@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Compass, Flame, Video } from "lucide-react";
+import { BookOpen, Compass, Flame, Sparkles, Video } from "lucide-react";
 import { Ring } from "@/components/dash/ui";
 import type { MyCourse } from "@/lib/data/learn";
 import type { SessionRow } from "@/lib/data/coaching";
@@ -33,6 +33,7 @@ export function PhoneHome({
   goal,
   streak,
   sessions,
+  interests,
 }: {
   current: MyCourse | null;
   upNext: { id: string; title: string; index: number } | null;
@@ -42,6 +43,7 @@ export function PhoneHome({
   goal: number | null;
   streak: number;
   sessions: SessionRow[];
+  interests: string[];
 }) {
   const left = goal ? Math.max(0, goal - thisWeek) : 0;
   return (
@@ -69,19 +71,32 @@ export function PhoneHome({
             </div>
           </div>
         ) : (
-          <div className="et-ph-now">
-            <div className="et-ph-now-top">
-              <span className="et-ph-now-tile">
-                <Compass size={20} />
-              </span>
-              <div>
-                <b>{courses.length ? "Ready for your next course?" : "Start your first course"}</b>
-                <small>Courses from creators across Africa</small>
-              </div>
+          <div className="et-ph-now is-start">
+            <Compass className="et-ph-start-art" size={150} strokeWidth={1.2} aria-hidden="true" />
+            <span className="et-ph-start-tag">
+              <Sparkles size={13} /> {courses.length ? "What's next" : "Start here"}
+            </span>
+            <div className="et-ph-start-copy">
+              <b>{courses.length ? "Ready for your next course?" : "Start your first course"}</b>
+              <small>
+                {courses.length
+                  ? "You finished everything you started. Pick a new skill and keep your streak going."
+                  : "Practical courses from creators across Africa. Learn at your pace and earn a certificate."}
+              </small>
             </div>
-            <div className="et-ph-now-foot is-end">
+            <div className="et-ph-start-chips">
+              {(interests.length ? interests : ["Design", "Tech", "Business", "Marketing"]).slice(0, 4).map((t) => (
+                <Link key={t} href={`/learn/explore?q=${encodeURIComponent(t)}`}>
+                  {t}
+                </Link>
+              ))}
+            </div>
+            <div className="et-ph-start-btns">
               <Link href="/learn/browse" className="et-ph-go">
-                Browse courses
+                <BookOpen size={15} /> Browse courses
+              </Link>
+              <Link href="/learn/explore" className="et-ph-go is-ghost">
+                Explore
               </Link>
             </div>
           </div>
@@ -171,11 +186,6 @@ export function PhoneHome({
         </section>
       )}
 
-      {!courses.length && (
-        <Link href="/learn/explore" className="et-ph-explore">
-          Explore the marketplace <ArrowRight size={15} />
-        </Link>
-      )}
     </div>
   );
 }

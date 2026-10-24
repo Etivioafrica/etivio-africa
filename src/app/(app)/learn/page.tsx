@@ -93,6 +93,7 @@ export default async function LearnDashboard() {
         goal={prefs.weeklyGoal || null}
         streak={streak}
         sessions={upcoming}
+        interests={prefs.interests}
       />
 
       <div className="et-dash-top">
