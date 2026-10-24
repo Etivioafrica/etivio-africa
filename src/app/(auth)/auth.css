@@ -70,35 +70,41 @@
 @media(max-width:1023px){.et-auth-mlogo{display:block;margin-right:auto}.et-auth-mlogo img{display:block;height:24px;width:auto}.et-auth-top{gap:12px}}
 @media(max-width:600px){.et-auth-switch{font-size:13px}}
 
-/* Phones, sign-in and sign-up: a blue hero with a tall headline on top, the form underneath (Google last). */
-.et-auth-mhero,.et-auth-malt,.et-auth-or-short{display:none}
+/* Phones, sign-in and sign-up: one screen like an app. Logo and floating faces on top, then the form, "or" and
+   Google, and the switch link, with no scrolling, zooming or rubber-banding. */
+.et-auth-mtop,.et-auth-malt,.et-auth-or-short{display:none}
 @media(max-width:600px){
-  .et-auth.has-mhero .et-auth-top,.et-auth.has-mhero .et-auth-foot{display:none}
-  .et-auth-mhero{position:relative;display:flex;flex-direction:column;min-height:min(46dvh,400px);padding:calc(env(safe-area-inset-top) + 20px) 24px 0;overflow:hidden;border-radius:0 0 28px 28px;background:var(--accent);color:#fff}
-  .et-auth-mhero::after{content:"";position:absolute;right:-22%;top:-8%;width:70%;aspect-ratio:1;background:#1d4ed8;-webkit-mask:url(/etivio-mark.svg) center/contain no-repeat;mask:url(/etivio-mark.svg) center/contain no-repeat;pointer-events:none}
-  .et-auth-mhero>*{position:relative;z-index:1}
-  .et-auth-mhero-logo{display:block;height:20px;width:auto;filter:brightness(0) invert(1)}
-  .et-auth-mhero h2{margin-top:22px;font-family:var(--font-auth-display),var(--font-geist-sans),sans-serif;font-size:54px;font-weight:400;line-height:.92;letter-spacing:.01em;text-transform:uppercase}
-  .et-auth-mhero h2 span{display:block}
-  .et-auth-mhero p{max-width:30ch;margin-top:12px;font-size:13.5px;line-height:1.55;color:#dbe6ff}
-  .et-auth-mcards{position:relative;flex:1;min-height:96px;margin-top:18px}
-  .et-auth-mcards span{position:absolute;bottom:-8px;display:flex;align-items:flex-end;justify-content:center;width:86px;height:112px;overflow:hidden;border-radius:18px}
-  .et-auth-mcards img{width:80%;margin-bottom:-12%}
-  .et-auth-mcards .is-0{right:142px;background:#dbe4f0;transform:rotate(-9deg)}
-  .et-auth-mcards .is-1{right:62px;z-index:1;width:100px;height:132px;bottom:-12px;background:#0f1115}
-  .et-auth-mcards .is-2{right:-4px;background:#ffd75e;transform:rotate(9deg)}
+  html:has(.et-auth.is-compact),html:has(.et-auth.is-compact) body{height:100%;overflow:hidden;overscroll-behavior:none;background:#0c1220}
+  html:has(.et-auth.is-compact.is-light),html:has(.et-auth.is-compact.is-light) body{background:#fafbfd}
+  .et-auth.is-compact{position:fixed;inset:0;min-height:0;overflow-y:auto;overscroll-behavior:none;-webkit-overflow-scrolling:touch}
+  .et-auth.is-compact .et-auth-panel{min-height:100%}
+  .et-auth.is-compact .et-auth-top,.et-auth.is-compact .et-auth-foot{display:none}
+  .et-auth-mtop{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 24px 0}
+  .et-auth-mtop-logo{display:block;height:22px;width:auto}
+  .et-auth:not(.is-light) .et-auth-mtop-logo{filter:brightness(0) invert(1)}
+  .et-auth-faces{position:relative;width:132px;height:64px}
+  .et-auth-faces img{position:absolute;border-radius:999px;border:3px solid var(--a-bg);animation:et-face-float 3.6s ease-in-out infinite}
+  .et-auth-faces .is-0{left:0;top:18px;width:40px;height:40px;animation-delay:-.4s}
+  .et-auth-faces .is-1{left:28px;top:2px;width:52px;height:52px;z-index:2;animation-delay:-1.6s}
+  .et-auth-faces .is-2{left:68px;top:20px;width:38px;height:38px;z-index:1;animation-delay:-2.4s}
+  .et-auth-faces .is-3{left:96px;top:4px;width:34px;height:34px;animation-delay:-.9s}
+  @keyframes et-face-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(4deg)}}
 
-  .et-auth.has-mhero .et-auth-main{flex:0 0 auto;align-items:flex-start;padding:26px 24px 8px}
-  .et-auth.has-mhero .et-auth-box{display:flex;flex-direction:column}
-  .et-auth.has-mhero .et-auth-box>h1,.et-auth.has-mhero .et-auth-box>.et-auth-sub{display:none}
-  .et-auth.has-mhero .et-auth-box form{order:1;gap:16px}
-  .et-auth.has-mhero .et-auth-or{order:2;margin:20px 0}
-  .et-auth.has-mhero .et-auth-or-long{display:none}
-  .et-auth.has-mhero .et-auth-or-short{display:inline}
-  .et-auth.has-mhero .et-auth-google{order:3}
-  .et-auth.has-mhero .et-auth-box input{height:50px;border-radius:14px}
-  .et-auth.has-mhero .et-auth-submit{height:52px;margin-top:4px;border-radius:999px;background:var(--a-fg);color:var(--a-bg)}
-  .et-auth.has-mhero .et-auth-google{border-radius:999px}
-  .et-auth-malt{display:block;padding:8px 24px calc(env(safe-area-inset-bottom) + 24px);text-align:center;font-size:14px;color:var(--a-muted)}
+  .et-auth.is-compact .et-auth-main{flex:0 0 auto;align-items:flex-start;padding:22px 24px 4px}
+  .et-auth.is-compact .et-auth-box{display:flex;flex-direction:column}
+  .et-auth.is-compact .et-auth-box>h1{font-size:26px;margin-bottom:4px}
+  .et-auth.is-compact .et-auth-sub{margin-bottom:20px}
+  .et-auth.is-compact .et-auth-box form{order:1;gap:14px}
+  .et-auth.is-compact .et-auth-box label{gap:6px}
+  .et-auth.is-compact .et-auth-or{order:2;margin:16px 0}
+  .et-auth.is-compact .et-auth-or-long{display:none}
+  .et-auth.is-compact .et-auth-or-short{display:inline}
+  .et-auth.is-compact .et-auth-google{order:3;height:50px;border-radius:999px}
+  /* 16px stops iOS zooming in when a field is tapped. */
+  .et-auth.is-compact .et-auth-box input{height:50px;border-radius:14px;font-size:16px}
+  .et-auth.is-compact .et-auth-submit{height:50px;margin-top:2px;border-radius:999px;background:var(--a-fg);color:var(--a-bg)}
+  .et-auth.is-compact .et-auth-link{margin-top:-2px}
+  .et-auth-malt{display:block;margin-top:auto;padding:10px 24px calc(env(safe-area-inset-bottom) + 18px);text-align:center;font-size:14px;color:var(--a-muted)}
   .et-auth-malt a{color:var(--accent);font-weight:600}
 }
+@media(max-width:600px) and (prefers-reduced-motion:reduce){.et-auth-faces img{animation:none}}

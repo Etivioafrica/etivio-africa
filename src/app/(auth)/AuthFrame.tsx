@@ -4,12 +4,9 @@ import { usePathname } from "next/navigation";
 import { Moon, Sun } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 
-// Phones get a blue hero on top of sign-in and sign-up, with the form underneath.
-const PHONE_HERO: Record<string, { lines: string[]; body: string }> = {
-  "/login": { lines: ["Welcome", "back."], body: "Pick up where you left off. Your courses, streaks and certificates are waiting." },
-  "/signup": { lines: ["Learn.", "Grow.", "Earn."], body: "Practical courses from people who do the work, across Africa. Free to join." },
-};
-const CARDS = ["/avatars/02.svg", "/avatars/08.svg", "/avatars/04.svg"];
+// Phones: sign-in and sign-up fit on one screen, with the logo and a few floating faces on top (no big hero).
+const COMPACT = ["/login", "/signup"];
+const FACES = ["/avatars/02.svg", "/avatars/08.svg", "/avatars/05.svg", "/avatars/04.svg"];
 
 export function AuthFrame({
   children,
@@ -24,9 +21,9 @@ export function AuthFrame({
 }) {
   const { light } = useTheme();
   const pathname = usePathname();
-  const hero = PHONE_HERO[pathname];
+  const compact = COMPACT.includes(pathname);
   return (
-    <div className={`et-auth${light ? " is-light" : ""}${hero ? " has-mhero" : ""}`}>
+    <div className={`et-auth${light ? " is-light" : ""}${compact ? " is-compact" : ""}`}>
       <aside className="et-auth-hero">
         <div className="et-auth-photo">
           <img src="/etiviologo.svg" alt="Etivio" className="et-auth-logo" />
@@ -37,22 +34,14 @@ export function AuthFrame({
         </div>
       </aside>
       <section className="et-auth-panel">
-        {hero && (
-          <div className="et-auth-mhero">
+        {compact && (
+          <div className="et-auth-mtop">
             <Link href="/welcome" aria-label="Etivio">
-              <img src="/etiviologo.svg" alt="Etivio" className="et-auth-mhero-logo" />
+              <img src="/etiviologo.svg" alt="Etivio" className="et-auth-mtop-logo" />
             </Link>
-            <h2>
-              {hero.lines.map((l) => (
-                <span key={l}>{l}</span>
-              ))}
-            </h2>
-            <p>{hero.body}</p>
-            <div className="et-auth-mcards" aria-hidden="true">
-              {CARDS.map((src, i) => (
-                <span key={src} className={`is-${i}`}>
-                  <img src={src} alt="" />
-                </span>
+            <div className="et-auth-faces" aria-hidden="true">
+              {FACES.map((src, i) => (
+                <img key={src} src={src} alt="" className={`is-${i}`} />
               ))}
             </div>
           </div>
@@ -88,7 +77,7 @@ export function AuthFrame({
           )}
         </header>
         <div className="et-auth-main">{children}</div>
-        {hero && (
+        {compact && (
           <p className="et-auth-malt">
             {pathname === "/login" ? (
               <>

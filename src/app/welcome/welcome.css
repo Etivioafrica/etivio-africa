@@ -1,6 +1,6 @@
 /* iOS tints the status bar area and fills any gap with the page background, so it matches this screen (blue while
    the logo shows, then light) instead of the dark-mode background behind it. */
-html:has(.et-welcome),html:has(.et-welcome) body{background:#f4f5f7}
+html:has(.et-welcome),html:has(.et-welcome) body{background:#f4f5f7;overflow:hidden;overscroll-behavior:none}
 html:has(.et-intro),html:has(.et-intro) body{background:#2563eb}
 
 /* App start screen (/welcome): character cards, a line per slide, Get started and log in. Light, solid colours. */

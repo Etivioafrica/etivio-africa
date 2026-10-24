@@ -1,14 +1,17 @@
-import { Bebas_Neue } from "next/font/google";
+import type { Viewport } from "next";
 import { AuthFrame } from "./AuthFrame";
 import "./auth.css";
 
-// Tall condensed type for the phone sign-in and sign-up headline.
-const display = Bebas_Neue({ weight: "400", subsets: ["latin"], variable: "--font-auth-display" });
+// Sign-in screens behave like an app on phones: no pinch zoom (inputs are 16px, so iOS doesn't zoom on focus either).
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className={display.variable}>
-      <AuthFrame>{children}</AuthFrame>
-    </div>
-  );
+  return <AuthFrame>{children}</AuthFrame>;
 }
