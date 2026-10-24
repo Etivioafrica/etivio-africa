@@ -178,7 +178,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
                 {mode === "signup" ? "Sign up with Google" : "Continue with Google"}
               </button>
               <div className="et-auth-or">
-                <span>or with email</span>
+                <span className="et-auth-or-long">or with email</span>
+                <span className="et-auth-or-short">or</span>
               </div>
             </>
           )}
