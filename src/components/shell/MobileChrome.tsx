@@ -79,6 +79,7 @@ export function mobileTabs({ teach, canTeach, coach, features }: { teach: boolea
 
 export function MobileTabBar({ pathname, tabs }: { pathname: string; tabs: Tab[] }) {
   return (
+    <div className="et-mdock">
     <nav className="et-mtabs" aria-label="Main" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
       {tabs.map(({ label, href, icon: Icon, match }) => {
         const on = match(pathname);
@@ -90,6 +91,7 @@ export function MobileTabBar({ pathname, tabs }: { pathname: string; tabs: Tab[]
         );
       })}
     </nav>
+    </div>
   );
 }
 
