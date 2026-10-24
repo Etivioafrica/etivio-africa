@@ -24,3 +24,14 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* iOS shows the page background in the status bar area and below the page (an installed app can stop layouts short
+   of the home bar). It follows the screen's own theme, not the phone's, so no white or black strips show. */
+html:has(.et-app),html:has(.et-app) body{background:#070b14}
+html:has(.et-app.is-light),html:has(.et-app.is-light) body{background:#f2f5fa}
+html:has(.et-auth),html:has(.et-auth) body{background:#05080f}
+html:has(.et-auth.is-light),html:has(.et-auth.is-light) body{background:#e9eef6}
+@media(max-width:600px){
+  html:has(.et-auth),html:has(.et-auth) body{background:#0c1220}
+  html:has(.et-auth.is-light),html:has(.et-auth.is-light) body{background:#fafbfd}
+}
