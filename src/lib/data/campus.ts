@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { featureOn } from "@/lib/data/features";
 import type { AppRole } from "@/lib/roles";
+import type { CampusJob, CampusLink } from "@/app/(app)/campus/job";
 
 // Campus (migration 0051): the shared feed for every learner, after the old app's In-House feed. Reads go through the
 // service role with the viewer passed in, so held posts and comments only show to whoever wrote them (and staff).
@@ -39,12 +40,18 @@ export type CampusPost = {
   quoted: CampusQuote | null;
   // The post this one quoted was deleted.
   quoteGone: boolean;
+  link: CampusLink | null;
+  job: CampusJob | null;
+  reposts: number;
+  reposted: boolean;
+  // A plain repost: the original post, shown whole.
+  repostOf: CampusPost | null;
 };
 export type CampusComment = { id: string; parentId: string | null; body: string; createdAt: string; hidden: boolean; author: CampusAuthor };
 
 export type Viewer = { id: string; staff: boolean };
 
-const POST_FIELDS = "id, author_id, kind, body, image_url, video_url, quoted_post_id, hashtags, poll_multiple, poll_ends_at, like_count, comment_count, quote_count, hidden, created_at";
+const POST_FIELDS = "id, author_id, kind, body, image_url, video_url, quoted_post_id, hashtags, poll_multiple, poll_ends_at, like_count, comment_count, quote_count, hidden, created_at, link, job, repost_of, repost_count";
 type PostRow = {
   id: string;
   author_id: string;
@@ -61,6 +68,10 @@ type PostRow = {
   quote_count: number;
   hidden: boolean;
   created_at: string;
+  link: unknown;
+  job: unknown;
+  repost_of: string | null;
+  repost_count: number;
 };
 
 export const campusOn = () => featureOn("campus");
@@ -84,21 +95,31 @@ async function authors(ids: string[]): Promise<Map<string, CampusAuthor>> {
 
 const nobody = (id: string): CampusAuthor => ({ id, name: "Etivio learner", username: null, avatar: null, badge: null });
 
+const visible = (r: PostRow, viewer: Viewer) => !r.hidden || r.author_id === viewer.id || viewer.staff;
+
 // Turns rows into posts for this viewer: authors, likes, saves, polls and quoted posts in a few queries.
-async function hydrate(rows: PostRow[], viewer: Viewer): Promise<CampusPost[]> {
+// Plain reposts carry the whole original (one level deep), and are dropped if the original can't be seen.
+async function hydrate(rows: PostRow[], viewer: Viewer, nested = false): Promise<CampusPost[]> {
   if (!rows.length) return [];
   const db = createAdminClient();
+  const originalIds = nested ? [] : [...new Set(rows.map((r) => r.repost_of).filter(Boolean))] as string[];
+  const { data: originalRows } = originalIds.length ? await db.from("campus_posts").select(POST_FIELDS).in("id", originalIds) : { data: [] };
+  const originals = new Map((await hydrate(((originalRows ?? []) as PostRow[]).filter((r) => visible(r, viewer)), viewer, true)).map((p) => [p.id, p]));
+  rows = rows.filter((r) => !r.repost_of || originals.has(r.repost_of));
+  if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
   const quotedIds = [...new Set(rows.map((r) => r.quoted_post_id).filter(Boolean))] as string[];
   const pollIds = rows.filter((r) => r.kind === "poll").map((r) => r.id);
-  const [{ data: liked }, { data: saved }, { data: options }, { data: votes }, { data: quoted }] = await Promise.all([
+  const [{ data: liked }, { data: saved }, { data: options }, { data: votes }, { data: quoted }, { data: reposted }] = await Promise.all([
     db.from("campus_likes").select("post_id").eq("user_id", viewer.id).in("post_id", ids),
     db.from("campus_saves").select("post_id").eq("user_id", viewer.id).in("post_id", ids),
     pollIds.length ? db.from("campus_poll_options").select("id, post_id, position, label, vote_count").in("post_id", pollIds).order("position") : Promise.resolve({ data: [] }),
     pollIds.length ? db.from("campus_poll_votes").select("option_id, post_id").eq("user_id", viewer.id).in("post_id", pollIds) : Promise.resolve({ data: [] }),
     quotedIds.length ? db.from("campus_posts").select(POST_FIELDS).in("id", quotedIds) : Promise.resolve({ data: [] }),
+    db.from("campus_posts").select("repost_of").eq("author_id", viewer.id).in("repost_of", ids),
   ]);
-  const quotedRows = ((quoted ?? []) as PostRow[]).filter((q) => !q.hidden || q.author_id === viewer.id || viewer.staff);
+  const quotedRows = ((quoted ?? []) as PostRow[]).filter((q) => visible(q, viewer));
+  const repostedSet = new Set((reposted ?? []).map((r) => r.repost_of));
   const people = await authors([...rows.map((r) => r.author_id), ...quotedRows.map((q) => q.author_id)]);
   const likedSet = new Set((liked ?? []).map((l) => l.post_id));
   const savedSet = new Set((saved ?? []).map((s) => s.post_id));
@@ -135,6 +156,11 @@ async function hydrate(rows: PostRow[], viewer: Viewer): Promise<CampusPost[]> {
           : null,
       quoted: q ? { id: q.id, kind: q.kind as CampusKind, body: q.body, imageUrl: q.image_url, createdAt: q.created_at, author: people.get(q.author_id) ?? nobody(q.author_id) } : null,
       quoteGone: !!r.quoted_post_id && !q,
+      link: (r.link as CampusLink | null) ?? null,
+      job: (r.job as CampusJob | null) ?? null,
+      reposts: r.repost_count,
+      reposted: repostedSet.has(r.id),
+      repostOf: r.repost_of ? (originals.get(r.repost_of) ?? null) : null,
     };
   });
 }
@@ -180,7 +206,7 @@ export async function campusFeed(viewer: Viewer, q: FeedQuery = {}): Promise<{ p
 export async function campusPost(id: string, viewer: Viewer) {
   const { data } = await createAdminClient().from("campus_posts").select(POST_FIELDS).eq("id", id).maybeSingle();
   const row = data as PostRow | null;
-  if (!row || (row.hidden && row.author_id !== viewer.id && !viewer.staff)) return null;
+  if (!row || !visible(row, viewer)) return null;
   return (await hydrate([row], viewer))[0];
 }
 

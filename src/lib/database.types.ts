@@ -748,12 +748,16 @@ export type Database = {
           hidden: boolean
           id: string
           image_url: string | null
+          job: Json | null
           kind: string
           like_count: number
+          link: Json | null
           poll_ends_at: string | null
           poll_multiple: boolean
           quote_count: number
           quoted_post_id: string | null
+          repost_count: number
+          repost_of: string | null
           video_url: string | null
         }
         Insert: {
@@ -766,12 +770,16 @@ export type Database = {
           hidden?: boolean
           id?: string
           image_url?: string | null
+          job?: Json | null
           kind?: string
           like_count?: number
+          link?: Json | null
           poll_ends_at?: string | null
           poll_multiple?: boolean
           quote_count?: number
           quoted_post_id?: string | null
+          repost_count?: number
+          repost_of?: string | null
           video_url?: string | null
         }
         Update: {
@@ -784,12 +792,16 @@ export type Database = {
           hidden?: boolean
           id?: string
           image_url?: string | null
+          job?: Json | null
           kind?: string
           like_count?: number
+          link?: Json | null
           poll_ends_at?: string | null
           poll_multiple?: boolean
           quote_count?: number
           quoted_post_id?: string | null
+          repost_count?: number
+          repost_of?: string | null
           video_url?: string | null
         }
         Relationships: [
@@ -803,6 +815,13 @@ export type Database = {
           {
             foreignKeyName: "campus_posts_quoted_post_id_fkey"
             columns: ["quoted_post_id"]
+            isOneToOne: false
+            referencedRelation: "campus_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_posts_repost_of_fkey"
+            columns: ["repost_of"]
             isOneToOne: false
             referencedRelation: "campus_posts"
             referencedColumns: ["id"]

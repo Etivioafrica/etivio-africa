@@ -5,7 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { isStaff } from "@/lib/roles";
 import { moderate } from "@/lib/moderation";
+import { fetchLinkMeta } from "@/lib/link-meta";
 import { CAMPUS_KINDS, campusComments, campusFeed, campusOn, type CampusKind, type FeedQuery } from "@/lib/data/campus";
+import { JOB_PAY, JOB_TYPE, type CampusJob, type CampusLink } from "./job";
 
 type Result = { ok?: string; error?: string };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -29,7 +31,50 @@ export type NewPost = {
   videoUrl?: string;
   quotedId?: string;
   poll?: { options: string[]; multiple: boolean; days: number };
+  job?: CampusJob;
+  // The web link to show as a card (one that's in the text), or null when the card was removed.
+  linkUrl?: string | null;
 };
+
+// Link cards fetched while someone types are kept for a while, so posting doesn't fetch the page again.
+const linkCache = new Map<string, { at: number; link: CampusLink | null }>();
+
+async function linkCard(url: string): Promise<CampusLink | null> {
+  const hit = linkCache.get(url);
+  if (hit && Date.now() - hit.at < 15 * 60_000) return hit.link;
+  const meta = await fetchLinkMeta(url);
+  const link = meta.error || !meta.title ? null : { url, title: meta.title.slice(0, 200), description: meta.description.slice(0, 300), image: meta.image.slice(0, 500), site: meta.siteName };
+  if (linkCache.size > 500) linkCache.clear();
+  linkCache.set(url, { at: Date.now(), link });
+  return link;
+}
+
+export async function previewCampusLink(url: string) {
+  await member();
+  if (!/^https?:\/\/\S+$/.test(url) || url.length > 500) return null;
+  return linkCard(url);
+}
+
+const clip = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
+
+// Opportunity details, cleaned. Returns an error for a bad email or link.
+function cleanJob(input: CampusJob | undefined): { job?: CampusJob; error?: string } {
+  if (!input) return {};
+  const job: CampusJob = {
+    pay: JOB_PAY.some((p) => p.value === input.pay) ? input.pay : "paid",
+    title: clip(input.title, 100),
+    company: clip(input.company, 100),
+    salary: clip(input.salary, 80),
+    location: clip(input.location, 80),
+    remote: !!input.remote,
+    type: JOB_TYPE.some((t) => t.value === input.type) ? input.type : "",
+    email: clip(input.email, 120).toLowerCase(),
+    url: clip(input.url, 300),
+  };
+  if (job.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(job.email)) return { error: "Check the contact email." };
+  if (job.url && !/^https?:\/\/[^\s.]+\.\S+$/.test(job.url)) return { error: "The application link should start with https://" };
+  return { job };
+}
 
 export async function createCampusPost(input: NewPost): Promise<Result & { id?: string }> {
   const { user, db } = await member();
@@ -43,6 +88,8 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
   if (kind === "poll" && (options.length < 2 || options.length > 4)) return { error: "A poll needs 2 to 4 options." };
   if (kind === "poll" && !body) return { error: "Ask the poll question." };
   if (!body && !image && !video && !quotedId) return { error: "Write something first." };
+  const { job, error: jobError } = kind === "opportunity" ? cleanJob(input.job) : {};
+  if (jobError) return { error: jobError };
 
   const { count } = await db.from("campus_posts").select("id", { count: "exact", head: true }).eq("author_id", user.id).gte("created_at", new Date(Date.now() - 3_600_000).toISOString());
   if ((count ?? 0) >= HOURLY_POSTS) return { error: "You've posted a lot in the last hour. Take a break and try again later." };
@@ -51,7 +98,9 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
     if (!q || q.hidden) return { error: "The post you're quoting is no longer there." };
   }
 
-  const check = await moderate("campus_post", user.id, [body, ...options]);
+  const linkUrl = input.linkUrl && body.includes(input.linkUrl) && !image && !video && !quotedId ? input.linkUrl : null;
+  const link = linkUrl ? await linkCard(linkUrl) : null;
+  const check = await moderate("campus_post", user.id, [body, ...options, ...(job ? [job.title, job.company, job.salary, job.location] : []), link?.title ?? ""]);
   if (check.error) return { error: check.error };
   const days = Math.min(14, Math.max(1, Math.round(Number(input.poll?.days) || 3)));
   const { data, error } = await db
@@ -67,6 +116,8 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
       poll_multiple: kind === "poll" && !!input.poll?.multiple,
       poll_ends_at: kind === "poll" ? new Date(Date.now() + days * 86_400_000).toISOString() : null,
       hidden: check.hold,
+      link,
+      job: job ?? null,
     })
     .select("id")
     .single();
@@ -85,6 +136,22 @@ export async function deleteCampusPost(id: string): Promise<Result> {
   if (post.image_url) await deleteObject(keyFromUrl(post.image_url)).catch(() => {});
   refresh();
   return { ok: "Post deleted." };
+}
+
+// Reposts a post as it is, or takes the repost back.
+export async function toggleCampusRepost(postId: string): Promise<{ reposted?: boolean; error?: string }> {
+  const { user, viewer, db } = await member();
+  if (!UUID.test(postId)) return { error: "That post is no longer there." };
+  const { data: had } = await db.from("campus_posts").select("id").eq("author_id", user.id).eq("repost_of", postId).maybeSingle();
+  if (had) {
+    await db.from("campus_posts").delete().eq("id", had.id);
+    return { reposted: false };
+  }
+  const { data: post } = await db.from("campus_posts").select("kind, hidden, author_id, repost_of").eq("id", postId).maybeSingle();
+  if (!post || post.repost_of || (post.hidden && post.author_id !== user.id && !viewer.staff)) return { error: "That post is no longer there." };
+  const { error } = await db.from("campus_posts").insert({ author_id: user.id, kind: post.kind, body: "", repost_of: postId });
+  if (error) return { error: "Couldn't repost. Try again." };
+  return { reposted: true };
 }
 
 export async function toggleCampusLike(postId: string): Promise<{ liked?: boolean; error?: string }> {
@@ -170,3 +237,28 @@ export async function findCampusPeople(term: string) {
   const { data } = await db.from("profiles").select("username, full_name, avatar_url").eq("status", "active").not("username", "is", null).ilike("username", `${q}%`).limit(6);
   return (data ?? []).map((p) => ({ username: p.username!, name: p.full_name || p.username!, avatar: p.avatar_url }));
 }
+
+// The little profile shown when hovering over someone's name.
+export async function campusProfileCard(id: string) {
+  const { db } = await member();
+  if (!UUID.test(id)) return null;
+  const [{ data: p }, { count: posts }, { data: roles }] = await Promise.all([
+    db.from("profiles").select("full_name, username, avatar_url, headline, bio, location, created_at, profile_public").eq("id", id).maybeSingle(),
+    db.from("campus_posts").select("id", { count: "exact", head: true }).eq("author_id", id).eq("hidden", false).is("repost_of", null),
+    db.from("user_roles").select("role").eq("user_id", id),
+  ]);
+  if (!p) return null;
+  const rs = (roles ?? []).map((r) => r.role as string);
+  return {
+    name: p.full_name || p.username || "Etivio learner",
+    username: p.username,
+    avatar: p.avatar_url,
+    headline: p.headline,
+    bio: p.profile_public ? (p.bio?.slice(0, 200) ?? null) : null,
+    location: p.profile_public ? p.location : null,
+    joined: p.created_at,
+    posts: posts ?? 0,
+    badge: rs.includes("super_admin") ? "Etivio team" : rs.includes("tutor") ? "Tutor" : rs.includes("coach") ? "Coach" : null,
+  };
+}
+export type ProfileCard = NonNullable<Awaited<ReturnType<typeof campusProfileCard>>>;

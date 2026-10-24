@@ -3,12 +3,13 @@ import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { Bookmark, BarChart3, Briefcase, Heart, HelpCircle, Megaphone, MessageCircle, Repeat2, Send, Share2, Trash2, Trophy, X, type LucideIcon } from "lucide-react";
+import { Bookmark, BarChart3, Briefcase, CalendarDays, ExternalLink, Heart, HelpCircle, Mail, MapPin, Megaphone, MessageCircle, PenLine, Repeat2, Send, Share2, Trash2, Trophy, X, type LucideIcon } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { alertDialog, confirmDialog } from "@/components/dash/dialogs";
 import { ReportButton } from "@/components/moderation/ReportButton";
 import type { CampusAuthor, CampusComment, CampusKind, CampusPoll, CampusPost, CampusQuote } from "@/lib/data/campus";
-import { addCampusComment, createCampusPost, deleteCampusComment, deleteCampusPost, loadCampusComments, toggleCampusLike, toggleCampusSave, voteCampusPoll } from "./actions";
+import { addCampusComment, campusProfileCard, createCampusPost, deleteCampusComment, deleteCampusPost, loadCampusComments, toggleCampusLike, toggleCampusRepost, toggleCampusSave, voteCampusPoll, type ProfileCard } from "./actions";
+import { JOB_PAY, JOB_TYPE, type CampusJob, type CampusLink } from "./job";
 
 export const KIND_STYLE: Record<CampusKind, { label: string; icon: LucideIcon; className: string }> = {
   update: { label: "Update", icon: Megaphone, className: "is-update" },
@@ -70,17 +71,86 @@ export function CampusText({ text, clamp }: { text: string; clamp?: number }) {
   );
 }
 
+// Profiles already looked up this visit, so hovering again is instant.
+const profiles = new Map<string, Promise<ProfileCard | null>>();
+
+// A mini profile when the mouse rests on someone's name or photo (computers only; on a phone a tap opens the profile).
+function HoverProfile({ author, children }: { author: CampusAuthor; children: React.ReactNode }) {
+  const [card, setCard] = useState<ProfileCard | null>(null);
+  const [show, setShow] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  function enter(e: React.PointerEvent) {
+    if (e.pointerType !== "mouse") return;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      if (!profiles.has(author.id)) profiles.set(author.id, campusProfileCard(author.id).catch(() => null));
+      profiles.get(author.id)!.then((c) => {
+        setCard(c);
+        setShow(!!c);
+      });
+    }, 450);
+  }
+  function leave() {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setShow(false), 200);
+  }
+  return (
+    <span className="et-cps-hover" onPointerEnter={enter} onPointerLeave={leave}>
+      {children}
+      {show && card && (
+        <span className="et-cps-pcard" role="dialog" aria-label={card.name}>
+          <span className="et-cps-pcard-top">
+            <Avatar src={card.avatar} initial={card.name.charAt(0).toUpperCase()} seed={card.name} className="et-cps-face is-lg" />
+            {card.username && (
+              <Link href={`/u/${card.username}`} className="et-cps-pcard-btn">
+                View profile
+              </Link>
+            )}
+          </span>
+          <b>
+            {card.name} {card.badge && <span className="et-cps-badge">{card.badge}</span>}
+          </b>
+          {card.username && <small>@{card.username}</small>}
+          {card.headline && <span className="et-cps-pcard-line">{card.headline}</span>}
+          {card.bio && <span className="et-cps-pcard-bio">{card.bio}</span>}
+          <span className="et-cps-pcard-meta">
+            {card.location && (
+              <span>
+                <MapPin size={13} /> {card.location}
+              </span>
+            )}
+            <span>
+              <CalendarDays size={13} /> Joined {new Date(card.joined).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
+            </span>
+          </span>
+          <span className="et-cps-pcard-stat">
+            <b>{card.posts}</b> {card.posts === 1 ? "post" : "posts"} on Campus
+          </span>
+        </span>
+      )}
+    </span>
+  );
+}
+
 // `plain` drops the profile links (inside a quoted post, which is itself a link).
 function Who({ author, at, kind, plain }: { author: CampusAuthor; at: string; kind?: CampusKind; plain?: boolean }) {
   const k = kind ? KIND_STYLE[kind] : null;
   const linked = !!author.username && !plain;
-  const name = linked ? <Link href={`/u/${author.username}`}>{author.name}</Link> : <span>{author.name}</span>;
+  const name = linked ? (
+    <HoverProfile author={author}>
+      <Link href={`/u/${author.username}`}>{author.name}</Link>
+    </HoverProfile>
+  ) : (
+    <span>{author.name}</span>
+  );
   return (
     <div className="et-cps-who">
       {linked ? (
-        <Link href={`/u/${author.username}`} className="et-cps-face-link">
-          <Avatar src={author.avatar} initial={author.name.charAt(0).toUpperCase()} seed={author.name} className="et-cps-face" />
-        </Link>
+        <HoverProfile author={author}>
+          <Link href={`/u/${author.username}`} className="et-cps-face-link">
+            <Avatar src={author.avatar} initial={author.name.charAt(0).toUpperCase()} seed={author.name} className="et-cps-face" />
+          </Link>
+        </HoverProfile>
       ) : (
         <Avatar src={author.avatar} initial={author.name.charAt(0).toUpperCase()} seed={author.name} className="et-cps-face" />
       )}
@@ -115,6 +185,60 @@ function QuoteCard({ quote }: { quote: CampusQuote }) {
         <img src={quote.imageUrl} alt="" className="et-cps-quote-img" loading="lazy" />
       )}
     </Link>
+  );
+}
+
+function LinkCard({ link }: { link: CampusLink }) {
+  return (
+    <a href={link.url} target="_blank" rel="noopener noreferrer nofollow ugc" className={`et-cps-linkcard${link.image ? "" : " is-text"}`}>
+      {link.image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={link.image} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => e.currentTarget.remove()} />
+      )}
+      <span>
+        <small>{link.site}</small>
+        <b>{link.title}</b>
+        {link.description && <em>{link.description}</em>}
+      </span>
+    </a>
+  );
+}
+
+function JobCard({ job }: { job: CampusJob }) {
+  const pay = JOB_PAY.find((p) => p.value === job.pay) ?? JOB_PAY[0];
+  const type = JOB_TYPE.find((t) => t.value === job.type)?.label;
+  const where = [job.location, job.remote ? "Remote" : ""].filter(Boolean).join(" · ");
+  const apply = job.url || (job.email ? `mailto:${job.email}` : "");
+  return (
+    <div className="et-cps-jobcard">
+      <div className="et-cps-jobcard-top">
+        <span className="et-cps-jobcard-pay" style={{ background: pay.color }}>
+          {pay.label}
+        </span>
+        {type && <span className="et-cps-jobcard-type">{type}</span>}
+      </div>
+      {(job.title || job.company) && (
+        <b className="et-cps-jobcard-title">
+          {job.title || "Opportunity"}
+          {job.company && <span> at {job.company}</span>}
+        </b>
+      )}
+      {(job.salary || where) && (
+        <div className="et-cps-jobcard-meta">
+          {job.salary && <span>{job.salary}</span>}
+          {where && (
+            <span>
+              <MapPin size={13} /> {where}
+            </span>
+          )}
+        </div>
+      )}
+      {apply && (
+        <a href={apply} target="_blank" rel="noopener noreferrer nofollow ugc" className="et-cps-apply">
+          {job.url ? <ExternalLink size={14} /> : <Mail size={14} />} Apply
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -309,7 +433,7 @@ function QuoteModal({ post, onClose }: { post: CampusPost; onClose: () => void }
     <dialog
       ref={dialog}
       className="et-modal et-cps-quote-modal"
-      aria-label="Repost"
+      aria-label="Quote"
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -318,15 +442,15 @@ function QuoteModal({ post, onClose }: { post: CampusPost; onClose: () => void }
     >
       <div className="et-modal-head">
         <div>
-          <h2>Repost to Campus</h2>
-          <p>Add your thoughts, or repost it as it is.</p>
+          <h2>Quote</h2>
+          <p>Add your thoughts. The post shows under them.</p>
         </div>
         <button type="button" className="et-icon-btn" onClick={onClose} aria-label="Close">
           <X size={16} />
         </button>
       </div>
       <div className="et-modal-body">
-        <textarea className="et-input" rows={3} maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} placeholder="Say something about this… (optional)" autoFocus />
+        <textarea className="et-input" rows={3} maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a comment…" autoFocus />
         <QuoteCard quote={quote} />
         {error && <p className="et-flash et-flash-err">{error}</p>}
         {done && <p className="et-flash et-flash-ok">{done}</p>}
@@ -335,8 +459,8 @@ function QuoteModal({ post, onClose }: { post: CampusPost; onClose: () => void }
         <button type="button" className="et-btn et-btn-ghost" onClick={onClose}>
           Cancel
         </button>
-        <button type="button" className="et-btn et-btn-primary" onClick={submit} disabled={pending || !!done}>
-          <Repeat2 size={15} /> {pending ? "Posting…" : text.trim() ? "Post" : "Repost"}
+        <button type="button" className="et-btn et-btn-primary" onClick={submit} disabled={pending || !!done || !text.trim()}>
+          <PenLine size={15} /> {pending ? "Posting…" : "Post"}
         </button>
       </div>
     </dialog>,
@@ -344,13 +468,25 @@ function QuoteModal({ post, onClose }: { post: CampusPost; onClose: () => void }
   );
 }
 
-export function PostCard({ post, viewer, open: startOpen, clamp = 420, initialComments, onDeleted }: { post: CampusPost; viewer: CampusViewer; open?: boolean; clamp?: number; initialComments?: CampusComment[]; onDeleted?: () => void }) {
+type CardProps = { post: CampusPost; viewer: CampusViewer; open?: boolean; clamp?: number; initialComments?: CampusComment[]; onDeleted?: () => void };
+
+// A plain repost shows the original post whole, under "Name reposted".
+export function PostCard(props: CardProps) {
+  const { post, viewer, onDeleted } = props;
+  if (post.repostOf) return <Card {...props} post={post.repostOf} repostedBy={post.author.id === viewer.id ? "You" : post.author.name} onUnreposted={post.author.id === viewer.id ? onDeleted : undefined} />;
+  return <Card {...props} />;
+}
+
+function Card({ post, viewer, open: startOpen, clamp = 420, initialComments, onDeleted, repostedBy, onUnreposted }: CardProps & { repostedBy?: string; onUnreposted?: () => void }) {
   const [liked, setLiked] = useState(post.liked);
   const [likes, setLikes] = useState(post.likes);
   const [saved, setSaved] = useState(post.saved);
   const [comments, setComments] = useState(post.comments);
   const [open, setOpen] = useState(!!startOpen);
   const [quoting, setQuoting] = useState(false);
+  const [repostMenu, setRepostMenu] = useState(false);
+  const [reposted, setReposted] = useState(post.reposted);
+  const [reposts, setReposts] = useState(post.reposts + post.quotes);
   const [copied, setCopied] = useState(false);
   const [, start] = useTransition();
   const router = useRouter();
@@ -368,6 +504,26 @@ export function PostCard({ post, viewer, open: startOpen, clamp = 420, initialCo
       }
     });
   }
+  function repost() {
+    setRepostMenu(false);
+    const next = !reposted;
+    setReposted(next);
+    setReposts((n) => n + (next ? 1 : -1));
+    start(async () => {
+      const res = await toggleCampusRepost(post.id);
+      if (res.error) {
+        setReposted(post.reposted);
+        setReposts(post.reposts + post.quotes);
+        await alertDialog({ title: "Couldn't repost", body: res.error });
+      } else if (!next) onUnreposted?.();
+    });
+  }
+  useEffect(() => {
+    if (!repostMenu) return;
+    const off = (e: MouseEvent) => !(e.target as HTMLElement).closest(".et-cps-repost") && setRepostMenu(false);
+    document.addEventListener("mousedown", off);
+    return () => document.removeEventListener("mousedown", off);
+  }, [repostMenu]);
   function save() {
     setSaved(!saved);
     start(async () => {
@@ -396,6 +552,11 @@ export function PostCard({ post, viewer, open: startOpen, clamp = 420, initialCo
 
   return (
     <article className="et-card et-cps-post">
+      {repostedBy && (
+        <p className="et-cps-reposted">
+          <Repeat2 size={14} /> {repostedBy} reposted
+        </p>
+      )}
       <header>
         <Who author={post.author} at={post.createdAt} kind={post.kind} />
         <span className="et-cps-tools">
@@ -424,9 +585,11 @@ export function PostCard({ post, viewer, open: startOpen, clamp = 420, initialCo
           <iframe src={`https://www.youtube-nocookie.com/embed/${yt}`} title="YouTube video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
         </div>
       )}
+      {post.link && !post.imageUrl && !yt && <LinkCard link={post.link} />}
+      {post.job && <JobCard job={post.job} />}
       {post.quoted && <QuoteCard quote={post.quoted} />}
       {post.quoteGone && <p className="et-cps-gone">The original post was deleted.</p>}
-      {(likes > 0 || comments > 0 || post.quotes > 0) && (
+      {(likes > 0 || comments > 0 || reposts > 0) && (
         <div className="et-cps-stats">
           {likes > 0 && (
             <span className="et-cps-stats-likes">
@@ -442,9 +605,9 @@ export function PostCard({ post, viewer, open: startOpen, clamp = 420, initialCo
                 {comments} {comments === 1 ? "comment" : "comments"}
               </button>
             )}
-            {post.quotes > 0 && (
+            {reposts > 0 && (
               <span>
-                {post.quotes} {post.quotes === 1 ? "repost" : "reposts"}
+                {reposts} {reposts === 1 ? "repost" : "reposts"}
               </span>
             )}
           </span>
@@ -457,9 +620,28 @@ export function PostCard({ post, viewer, open: startOpen, clamp = 420, initialCo
         <button type="button" className={`et-cps-act${open ? " is-on" : ""}`} onClick={() => setOpen(!open)}>
           <MessageCircle size={18} /> <span>Comment</span>
         </button>
-        <button type="button" className="et-cps-act" onClick={() => setQuoting(true)}>
-          <Repeat2 size={19} /> <span>Repost</span>
-        </button>
+        <div className="et-cps-repost">
+          <button type="button" className={`et-cps-act${reposted ? " is-reposted" : ""}`} onClick={() => setRepostMenu(!repostMenu)} aria-expanded={repostMenu} aria-haspopup="menu">
+            <Repeat2 size={19} /> <span>{reposted ? "Reposted" : "Repost"}</span>
+          </button>
+          {repostMenu && (
+            <div className="et-cps-repost-menu" role="menu">
+              <button type="button" role="menuitem" onClick={repost}>
+                <Repeat2 size={17} /> {reposted ? "Undo repost" : "Repost"}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setRepostMenu(false);
+                  setQuoting(true);
+                }}
+              >
+                <PenLine size={17} /> Quote
+              </button>
+            </div>
+          )}
+        </div>
         <button type="button" className="et-cps-act" onClick={share}>
           <Share2 size={18} /> <span>{copied ? "Copied" : "Share"}</span>
         </button>

@@ -5,9 +5,11 @@ import { Bookmark, ChevronDown, Clock, Flame, Hash, MessagesSquare, Newspaper, T
 import { Avatar } from "@/components/dash/Avatar";
 import { getCurrentUser } from "@/lib/auth";
 import { featureOn } from "@/lib/data/features";
+import { listCommunities } from "@/lib/data/communities";
 import { isStaff } from "@/lib/roles";
 import { CAMPUS_KINDS, campusFeed, campusOn, campusSidebar, type CampusKind, type CampusSort, type FeedQuery } from "@/lib/data/campus";
 import { Composer, FeedList, NewPosts, StarterPrompts } from "./CampusFeed";
+import { JoinCommunity, OnlineNow } from "./CampusSide";
 import "./campus.css";
 
 export const metadata = { title: "Campus" };
@@ -39,7 +41,11 @@ async function Campus({ searchParams }: Props) {
   const saved = sp.saved === "1";
   const query: FeedQuery = { kind, tag, sort, saved };
   const viewer = { id: user.id, staff: isStaff(user.roles), name: user.name || user.email, avatar: user.avatarUrl };
-  const [{ posts, more }, side, communities] = await Promise.all([campusFeed(viewer, query), campusSidebar(), featureOn("communities")]);
+  const [{ posts, more }, side, communitiesOn] = await Promise.all([campusFeed(viewer, query), campusSidebar(), featureOn("communities")]);
+  // Communities to join (open ones first), or the ones they're in once they've joined them all.
+  const groups = communitiesOn ? await listCommunities(user.id) : null;
+  const suggested = groups ? [...groups.discover].sort((a, b) => Number(b.joinMode === "open") - Number(a.joinMode === "open") || b.members - a.members).slice(0, 4) : [];
+  const joined = groups && !suggested.length ? groups.joined.slice(0, 4) : [];
 
   // Filter links keep the other filters.
   const href = (next: Partial<{ kind: string; sort: string; tag: string; saved: string }>) => {
@@ -66,6 +72,7 @@ async function Campus({ searchParams }: Props) {
           <small>
             <Users size={13} /> {side.members.toLocaleString()} learners
           </small>
+          <OnlineNow viewerId={user.id} />
         </div>
       </div>
 
@@ -169,14 +176,37 @@ async function Campus({ searchParams }: Props) {
               </ul>
             </section>
           )}
-          {communities && (
-            <Link href="/communities" className="et-card et-card-pad et-cps-side-link">
-              <Users size={16} />
-              <span>
-                <b>Communities</b>
-                <small>Smaller spaces for a course or topic</small>
-              </span>
-            </Link>
+          {groups && (
+            <section className="et-card et-card-pad">
+              <h2 className="et-cps-side-title">
+                <Users size={15} /> {suggested.length ? "Communities to join" : "Your communities"}
+              </h2>
+              <ul className="et-cps-groups">
+                {[...suggested, ...joined].map((c) => (
+                  <li key={c.id}>
+                    <Link href={`/communities/${c.slug}`} className="et-cps-group">
+                      {c.coverUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.coverUrl} alt="" />
+                      ) : (
+                        <span className="et-cps-group-mark">{c.name.charAt(0).toUpperCase()}</span>
+                      )}
+                      <span>
+                        <b>{c.name}</b>
+                        <small>
+                          {c.members.toLocaleString()} {c.members === 1 ? "member" : "members"}
+                          {c.mine?.status === "pending" ? " · Requested" : ""}
+                        </small>
+                      </span>
+                    </Link>
+                    {c.joinMode === "open" && !c.mine && <JoinCommunity slug={c.slug} />}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/communities" className="et-cps-side-more">
+                {suggested.length || joined.length ? "See all communities" : "Find a community"}
+              </Link>
+            </section>
           )}
           <section className="et-card et-card-pad et-cps-rules">
             <h2 className="et-cps-side-title">Campus rules</h2>
