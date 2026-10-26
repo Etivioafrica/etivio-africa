@@ -62,7 +62,7 @@ async function Content({ searchParams }: Props) {
               </span>
             </span>
           </div>
-          <Link href="/explore" className="et-wl-spend">
+          <Link href="/learn/explore" className="et-wl-spend">
             {balance > 0 ? "Find a course to spend it on" : "Browse courses"} <ArrowRight size={14} />
           </Link>
         </section>

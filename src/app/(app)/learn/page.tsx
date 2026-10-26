@@ -139,7 +139,7 @@ export default async function LearnDashboard() {
               <Link href="/learn/browse" className="et-btn et-btn-primary">
                 <BookOpen size={15} /> Browse courses
               </Link>
-              <Link href="/explore" className="et-btn et-btn-ghost">
+              <Link href="/learn/explore" className="et-btn et-btn-ghost">
                 <Store size={15} /> Explore the marketplace
               </Link>
             </div>

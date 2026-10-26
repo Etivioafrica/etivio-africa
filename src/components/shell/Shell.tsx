@@ -185,7 +185,7 @@ const learnNav: Group[] = [
       { label: "Browse courses", href: "/learn/browse", icon: Compass },
       { label: "Library", href: "/learn/library", icon: FolderDown },
       { label: "Saved", href: "/profile/saved", icon: Heart },
-      { label: "Marketplace", href: "/explore", icon: Store },
+      { label: "Marketplace", href: "/learn/explore", icon: Store },
       { label: "Wallet", href: "/learn/wallet", icon: Wallet, feature: "wallet" },
       { label: "Messages", href: "/learn/messages", icon: MessagesSquare, feature: "messages" },
       { label: "Communities", href: "/communities", icon: Users, feature: "communities" },
@@ -218,7 +218,7 @@ const teachNav = (canTeach: boolean, coach: boolean): Group[] => [
               children: [
                 { label: "My products", href: "/teach/products" },
                 { label: "New product", href: "/teach/products/new" },
-                { label: "View marketplace", href: "/explore" },
+                { label: "View marketplace", href: "/learn/explore" },
               ],
             },
             { label: "Students", href: "/teach/students", icon: Users },

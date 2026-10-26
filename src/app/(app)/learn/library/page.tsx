@@ -52,7 +52,7 @@ export default async function Library({ searchParams }: { searchParams: Promise<
         </div>
       ) : (
         <section className="et-card">
-          <Empty title="Nothing in your library yet" action={{ href: "/explore", label: "Explore the marketplace" }}>
+          <Empty title="Nothing in your library yet" action={{ href: "/learn/explore", label: "Explore the marketplace" }}>
             Templates, e-books and resource packs you get will appear here.
           </Empty>
         </section>
