@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp, Hand, Loader2, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { CampusKind, CampusPost, FeedQuery } from "@/lib/data/campus";
 import { loadMoreCampus } from "./actions";
 import { OPEN_EVENT } from "./Composer";
+import { KIND_STYLE } from "./kinds";
 import { PostCard, type CampusViewer } from "./PostCard";
 
 export { Composer } from "./Composer";
@@ -16,16 +17,17 @@ export function openCampusComposer(kind: CampusKind, text = "") {
 }
 
 export function StarterPrompts() {
-  const prompts: { kind: CampusKind; label: string; text: string }[] = [
-    { kind: "update", label: "👋 Introduce yourself", text: "Hi Campus! I'm learning " },
-    { kind: "question", label: "🙋 Ask a question", text: "" },
-    { kind: "win", label: "🏆 Share a win", text: "" },
-    { kind: "poll", label: "📊 Start a poll", text: "" },
+  const prompts: { kind: CampusKind; icon: LucideIcon; label: string; text: string }[] = [
+    { kind: "update", icon: Hand, label: "Introduce yourself", text: "Hi Campus! I'm learning " },
+    { kind: "question", icon: KIND_STYLE.question.icon, label: "Ask a question", text: "" },
+    { kind: "win", icon: KIND_STYLE.win.icon, label: "Share a win", text: "" },
+    { kind: "poll", icon: KIND_STYLE.poll.icon, label: "Start a poll", text: "" },
   ];
   return (
     <div className="et-cps-starters">
       {prompts.map((p) => (
         <button key={p.label} type="button" onClick={() => openCampusComposer(p.kind, p.text)}>
+          <p.icon size={15} style={{ color: `var(--cps-${p.kind})` }} />
           {p.label}
         </button>
       ))}
@@ -90,9 +92,11 @@ export function FeedList({ initial, more: initialMore, viewer, query, empty }: {
   if (!posts.length) return <>{empty}</>;
   return (
     <>
-      {posts.map((p) => (
-        <PostCard key={p.id} post={p} viewer={viewer} onDeleted={() => setGone((g) => new Set(g).add(p.id))} />
-      ))}
+      <div className="et-cps-list">
+        {posts.map((p) => (
+          <PostCard key={p.id} post={p} viewer={viewer} onDeleted={() => setGone((g) => new Set(g).add(p.id))} />
+        ))}
+      </div>
       {more && (
         <button type="button" className="et-btn et-btn-ghost et-cps-loadmore" onClick={loadMore} disabled={pending}>
           {pending ? "Loading…" : "Load more"}

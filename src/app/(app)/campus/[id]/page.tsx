@@ -36,5 +36,9 @@ async function Post({ params }: Props) {
   const post = await campusPost(id, viewer);
   if (!post) notFound();
   const comments = await campusComments(id, viewer);
-  return <PostCard post={post} viewer={viewer} open clamp={0} initialComments={comments} />;
+  return (
+    <div className="et-cps-list">
+      <PostCard post={post} viewer={viewer} open clamp={0} initialComments={comments} />
+    </div>
+  );
 }

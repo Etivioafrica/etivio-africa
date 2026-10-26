@@ -3,21 +3,17 @@ import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { Bookmark, BarChart3, Briefcase, CalendarDays, ExternalLink, Heart, HelpCircle, Mail, MapPin, Megaphone, MessageCircle, PenLine, Repeat2, Send, Share2, Trash2, Trophy, X, type LucideIcon } from "lucide-react";
+import { Bookmark, CalendarDays, ExternalLink, Heart, Link2, Mail, MapPin, MessageCircle, MoreHorizontal, PenLine, Repeat2, Share2, Trash2, X } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { alertDialog, confirmDialog } from "@/components/dash/dialogs";
 import { ReportButton } from "@/components/moderation/ReportButton";
 import type { CampusAuthor, CampusComment, CampusKind, CampusPoll, CampusPost, CampusQuote } from "@/lib/data/campus";
 import { addCampusComment, campusProfileCard, createCampusPost, deleteCampusComment, deleteCampusPost, loadCampusComments, toggleCampusLike, toggleCampusRepost, toggleCampusSave, voteCampusPoll, type ProfileCard } from "./actions";
 import { JOB_PAY, JOB_TYPE, type CampusJob, type CampusLink } from "./job";
+import { KIND_STYLE } from "./kinds";
 
-export const KIND_STYLE: Record<CampusKind, { label: string; icon: LucideIcon; className: string }> = {
-  update: { label: "Update", icon: Megaphone, className: "is-update" },
-  question: { label: "Question", icon: HelpCircle, className: "is-question" },
-  win: { label: "Win", icon: Trophy, className: "is-win" },
-  poll: { label: "Poll", icon: BarChart3, className: "is-poll" },
-  opportunity: { label: "Opportunity", icon: Briefcase, className: "is-opportunity" },
-};
+
+const CAMPUS_PLURAL: Record<CampusKind, string> = { update: "Updates", question: "Questions", win: "Wins", poll: "Polls", opportunity: "Opportunities" };
 
 export type CampusViewer = { id: string; staff: boolean; name: string; avatar: string | null };
 
@@ -132,53 +128,73 @@ function HoverProfile({ author, children }: { author: CampusAuthor; children: Re
   );
 }
 
-// `plain` drops the profile links (inside a quoted post, which is itself a link).
-function Who({ author, at, kind, plain }: { author: CampusAuthor; at: string; kind?: CampusKind; plain?: boolean }) {
-  const k = kind ? KIND_STYLE[kind] : null;
+// One line like X: name, badge, @username · time. `plain` drops the profile links (inside a quoted post, which is itself a link).
+function Who({ author, at, plain }: { author: CampusAuthor; at: string; plain?: boolean }) {
   const linked = !!author.username && !plain;
-  const name = linked ? (
-    <HoverProfile author={author}>
-      <Link href={`/u/${author.username}`}>{author.name}</Link>
-    </HoverProfile>
-  ) : (
-    <span>{author.name}</span>
-  );
   return (
     <div className="et-cps-who">
       {linked ? (
         <HoverProfile author={author}>
-          <Link href={`/u/${author.username}`} className="et-cps-face-link">
-            <Avatar src={author.avatar} initial={author.name.charAt(0).toUpperCase()} seed={author.name} className="et-cps-face" />
+          <Link href={`/u/${author.username}`} className="et-cps-name">
+            {author.name}
           </Link>
         </HoverProfile>
       ) : (
-        <Avatar src={author.avatar} initial={author.name.charAt(0).toUpperCase()} seed={author.name} className="et-cps-face" />
+        <span className="et-cps-name">{author.name}</span>
       )}
-      <div className="et-cps-who-text">
-        <div className="et-cps-name">
-          <b>{name}</b>
-          {author.badge && <span className="et-cps-badge">{author.badge}</span>}
-        </div>
-        <small>
-          {author.username && <>@{author.username} · </>}
-          <time dateTime={at} suppressHydrationWarning>
-            {ago(at)}
-          </time>
-          {k && kind !== "update" && (
-            <span className={`et-cps-kind ${k.className}`}>
-              <k.icon size={11} /> {k.label}
-            </span>
-          )}
-        </small>
-      </div>
+      {author.badge && <span className="et-cps-badge">{author.badge}</span>}
+      <span className="et-cps-meta">
+        {author.username && <>@{author.username} · </>}
+        <time dateTime={at} suppressHydrationWarning>
+          {ago(at)}
+        </time>
+      </span>
     </div>
+  );
+}
+
+function Face({ author, plain, small }: { author: CampusAuthor; plain?: boolean; small?: boolean }) {
+  const face = <Avatar src={author.avatar} initial={author.name.charAt(0).toUpperCase()} seed={author.name} className={`et-cps-face${small ? " is-sm" : ""}`} />;
+  if (!author.username || plain) return face;
+  return (
+    <HoverProfile author={author}>
+      <Link href={`/u/${author.username}`} className="et-cps-face-link">
+        {face}
+      </Link>
+    </HoverProfile>
+  );
+}
+
+// The posts after the first in a thread, joined by a line. The feed shows the next one; the post page shows them all.
+function Thread({ post, full }: { post: CampusPost; full: boolean }) {
+  const shown = full ? post.thread : post.thread.slice(0, 1);
+  return (
+    <ol className="et-cps-thread">
+      {shown.map((text, i) => (
+        <li key={i}>
+          <Face author={post.author} small />
+          <div>
+            <Who author={post.author} at={post.createdAt} />
+            <CampusText text={text} clamp={full ? undefined : 280} />
+          </div>
+        </li>
+      ))}
+      {!full && post.thread.length > 1 && (
+        <li className="et-cps-thread-more">
+          <Link href={`/campus/${post.id}`}>Show this thread ({post.thread.length + 1} posts)</Link>
+        </li>
+      )}
+    </ol>
   );
 }
 
 function QuoteCard({ quote }: { quote: CampusQuote }) {
   return (
     <Link href={`/campus/${quote.id}`} className="et-cps-quote">
-      <Who author={quote.author} at={quote.createdAt} plain />
+      <span className="et-cps-quote-head">
+        <Avatar src={quote.author.avatar} initial={quote.author.name.charAt(0).toUpperCase()} seed={quote.author.name} className="et-cps-face is-xs" />
+        <Who author={quote.author} at={quote.createdAt} plain />
+      </span>
       {quote.body && <p className="et-cps-text">{quote.body.length > 280 ? `${quote.body.slice(0, 280)}…` : quote.body}</p>}
       {quote.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -331,17 +347,11 @@ export function Comments({ postId, viewer, initial, onCount }: { postId: string;
   const replies = (id: string) => (list ?? []).filter((c) => c.parentId === id);
   const one = (c: CampusComment, isReply: boolean) => (
     <div key={c.id} className={`et-cps-comment${isReply ? " is-reply" : ""}`}>
-      <Avatar src={c.author.avatar} initial={c.author.name.charAt(0).toUpperCase()} seed={c.author.name} className="et-cps-face is-sm" />
-      <div>
-        <div className="et-cps-comment-bubble">
-          <b>{c.author.username ? <Link href={`/u/${c.author.username}`}>{c.author.name}</Link> : c.author.name}</b>
-          {c.author.badge && <span className="et-cps-badge">{c.author.badge}</span>}
-          <CampusText text={c.body} />
-        </div>
+      <Face author={c.author} small />
+      <div className="et-cps-comment-main">
+        <Who author={c.author} at={c.createdAt} />
+        <CampusText text={c.body} />
         <div className="et-cps-comment-acts">
-          <time dateTime={c.createdAt} suppressHydrationWarning>
-            {ago(c.createdAt)}
-          </time>
           {c.hidden && <span>Waiting for a check</span>}
           <button
             type="button"
@@ -390,7 +400,7 @@ export function Comments({ postId, viewer, initial, onCount }: { postId: string;
           value={draft}
           maxLength={2000}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={replyTo ? `Reply to ${replyTo.author.name}…` : "Write a comment…"}
+          placeholder={replyTo ? `Reply to ${replyTo.author.name}` : "Post your reply"}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -398,8 +408,8 @@ export function Comments({ postId, viewer, initial, onCount }: { postId: string;
             }
           }}
         />
-        <button type="button" className="et-btn et-btn-primary et-btn-sm" onClick={send} disabled={pending || !draft.trim()} aria-label="Send comment">
-          <Send size={13} />
+        <button type="button" className="et-cps-reply-btn" onClick={send} disabled={pending || !draft.trim()}>
+          Reply
         </button>
       </div>
       {note && <p className="et-cps-note">{note}</p>}
@@ -542,6 +552,13 @@ function Card({ post, viewer, open: startOpen, clamp = 420, initialComments, onD
       }
     } catch {}
   }
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/campus/${post.id}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {}
+  }
   async function remove() {
     if (!(await confirmDialog({ title: "Delete this post?", body: "It's removed for everyone, with its comments.", confirmLabel: "Delete", danger: true }))) return;
     const res = await deleteCampusPost(post.id);
@@ -550,26 +567,32 @@ function Card({ post, viewer, open: startOpen, clamp = 420, initialComments, onD
     else router.push("/campus");
   }
 
+  const k = KIND_STYLE[post.kind];
+  const count = (n: number) => (n > 0 ? <span>{n.toLocaleString()}</span> : null);
+
   return (
-    <article className="et-card et-cps-post">
+    <article className="et-cps-post">
       {repostedBy && (
-        <p className="et-cps-reposted">
+        <p className="et-cps-context">
           <Repeat2 size={14} /> {repostedBy} reposted
         </p>
       )}
       <header>
-        <Who author={post.author} at={post.createdAt} kind={post.kind} />
-        <span className="et-cps-tools">
-          <button type="button" className={`et-icon-btn${saved ? " is-saved" : ""}`} onClick={save} aria-pressed={saved} aria-label={saved ? "Saved" : "Save"} title={saved ? "Saved" : "Save"}>
-            <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
-          </button>
-          {(mine || viewer.staff) && (
-            <button type="button" className="et-icon-btn" onClick={remove} aria-label="Delete post" title="Delete post">
-              <Trash2 size={14} />
-            </button>
-          )}
-          {!mine && <ReportButton type="campus_post" id={post.id} />}
-        </span>
+        <Face author={post.author} />
+        <div className="et-cps-head-text">
+          <Who author={post.author} at={post.createdAt} />
+          <span className="et-cps-tags">
+            <span className={`et-cps-kind ${k.className}`}>
+              <k.icon size={13} /> {CAMPUS_PLURAL[post.kind]}
+            </span>
+            {post.hashtags.slice(0, 2).map((t) => (
+              <Link key={t} href={`/campus?tag=${t}`} className="et-cps-tag">
+                {t}
+              </Link>
+            ))}
+          </span>
+        </div>
+        <PostMenu mine={mine} staff={viewer.staff} postId={post.id} saved={saved} onSave={save} onDelete={remove} onCopy={copyLink} />
       </header>
       {post.hidden && <p className="et-cps-held">Only you can see this until the Etivio team has checked it.</p>}
       {post.body && <CampusText text={post.body} clamp={clamp} />}
@@ -589,40 +612,16 @@ function Card({ post, viewer, open: startOpen, clamp = 420, initialComments, onD
       {post.job && <JobCard job={post.job} />}
       {post.quoted && <QuoteCard quote={post.quoted} />}
       {post.quoteGone && <p className="et-cps-gone">The original post was deleted.</p>}
-      {(likes > 0 || comments > 0 || reposts > 0) && (
-        <div className="et-cps-stats">
-          {likes > 0 && (
-            <span className="et-cps-stats-likes">
-              <span className="et-cps-heart">
-                <Heart size={10} fill="currentColor" />
-              </span>
-              {likes}
-            </span>
-          )}
-          <span className="et-cps-stats-right">
-            {comments > 0 && (
-              <button type="button" onClick={() => setOpen(!open)}>
-                {comments} {comments === 1 ? "comment" : "comments"}
-              </button>
-            )}
-            {reposts > 0 && (
-              <span>
-                {reposts} {reposts === 1 ? "repost" : "reposts"}
-              </span>
-            )}
-          </span>
-        </div>
-      )}
+      {post.thread.length > 0 && <Thread post={post} full={!!startOpen} />}
       <footer>
-        <button type="button" className={`et-cps-act${liked ? " is-liked" : ""}`} onClick={like} aria-pressed={liked}>
-          <Heart size={18} fill={liked ? "currentColor" : "none"} /> <span>Like</span>
-        </button>
-        <button type="button" className={`et-cps-act${open ? " is-on" : ""}`} onClick={() => setOpen(!open)}>
-          <MessageCircle size={18} /> <span>Comment</span>
+        <button type="button" className={`et-cps-act is-like${liked ? " is-on" : ""}`} onClick={like} aria-pressed={liked} aria-label={`Like, ${likes}`}>
+          <Heart size={18} fill={liked ? "currentColor" : "none"} />
+          {count(likes)}
         </button>
         <div className="et-cps-repost">
-          <button type="button" className={`et-cps-act${reposted ? " is-reposted" : ""}`} onClick={() => setRepostMenu(!repostMenu)} aria-expanded={repostMenu} aria-haspopup="menu">
-            <Repeat2 size={19} /> <span>{reposted ? "Reposted" : "Repost"}</span>
+          <button type="button" className={`et-cps-act is-rt${reposted ? " is-on" : ""}`} onClick={() => setRepostMenu(!repostMenu)} aria-expanded={repostMenu} aria-haspopup="menu" aria-label={`Repost, ${reposts}`}>
+            <Repeat2 size={19} />
+            {count(reposts)}
           </button>
           {repostMenu && (
             <div className="et-cps-repost-menu" role="menu">
@@ -642,12 +641,60 @@ function Card({ post, viewer, open: startOpen, clamp = 420, initialComments, onD
             </div>
           )}
         </div>
-        <button type="button" className="et-cps-act" onClick={share}>
-          <Share2 size={18} /> <span>{copied ? "Copied" : "Share"}</span>
+        <button type="button" className={`et-cps-act is-reply${open ? " is-on" : ""}`} onClick={() => setOpen(!open)} aria-label={`Reply, ${comments}`}>
+          <MessageCircle size={18} />
+          {count(comments)}
+        </button>
+        <button type="button" className="et-cps-act is-share" onClick={share} aria-label="Share">
+          <Share2 size={18} />
+          {copied && <span>Copied</span>}
+        </button>
+        <button type="button" className={`et-cps-act is-save${saved ? " is-on" : ""}`} onClick={save} aria-pressed={saved} aria-label={saved ? "Saved" : "Save"}>
+          <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
         </button>
       </footer>
       {open && <Comments postId={post.id} viewer={viewer} initial={initialComments} onCount={setComments} />}
       {quoting && <QuoteModal post={post} onClose={() => setQuoting(false)} />}
     </article>
+  );
+}
+
+// The ··· menu on a post. It stays mounted while closed so a report form opened from it survives.
+function PostMenu({ mine, staff, postId, saved, onSave, onDelete, onCopy }: { mine: boolean; staff: boolean; postId: string; saved: boolean; onSave: () => void; onDelete: () => void; onCopy: () => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const off = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!box.current?.contains(t) && !t.closest(".et-report")) setOpen(false);
+    };
+    document.addEventListener("mousedown", off);
+    return () => document.removeEventListener("mousedown", off);
+  }, [open]);
+  const pick = (fn: () => void) => () => {
+    setOpen(false);
+    fn();
+  };
+  return (
+    <div className="et-cps-menu" ref={box}>
+      <button type="button" className="et-cps-menu-btn" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu" aria-label="More">
+        <MoreHorizontal size={18} />
+      </button>
+      <div className={`et-cps-menu-list${open ? " is-open" : ""}`} role="menu" onClick={(e) => (e.target as HTMLElement).closest(".et-report-btn") && setOpen(false)}>
+        <button type="button" role="menuitem" onClick={pick(onSave)}>
+          <Bookmark size={17} /> {saved ? "Remove from saved" : "Save post"}
+        </button>
+        <button type="button" role="menuitem" onClick={pick(onCopy)}>
+          <Link2 size={17} /> Copy link
+        </button>
+        {(mine || staff) && (
+          <button type="button" role="menuitem" className="is-danger" onClick={pick(onDelete)}>
+            <Trash2 size={17} /> Delete post
+          </button>
+        )}
+        {!mine && <ReportButton type="campus_post" id={postId} label="Report post" />}
+      </div>
+    </div>
   );
 }

@@ -2,12 +2,13 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { BarChart3, Briefcase, Check, ChevronDown, Globe, ImagePlus, Link2, Loader2, Minus, Play, Plus, Smile, Video, X } from "lucide-react";
+import { Globe, ImagePlus, Link2, ListPlus, Loader2, Minus, Play, Plus, Smile, Video, X } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { uploadFile } from "@/lib/upload-client";
 import type { CampusKind } from "@/lib/data/campus";
 import { createCampusPost, findCampusPeople, previewCampusLink } from "./actions";
-import { KIND_STYLE, type CampusViewer } from "./PostCard";
+import { KIND_STYLE } from "./kinds";
+import type { CampusViewer } from "./PostCard";
 import { EMPTY_JOB, JOB_PAY, JOB_TYPE, firstLink, type CampusJob, type CampusLink } from "./job";
 
 const DRAFT_KEY = "et-campus-draft";
@@ -20,6 +21,12 @@ const PLACEHOLDER: Record<CampusKind, string> = {
   poll: "Ask your poll question…",
   opportunity: "Share a job, gig, scholarship or internship…",
 };
+const QUICK: [CampusKind, string][] = [
+  ["question", "Ask"],
+  ["win", "Win"],
+  ["poll", "Poll"],
+  ["opportunity", "Opportunity"],
+];
 const EMOJIS = ["😀", "😂", "🥹", "😍", "🤩", "😎", "🤔", "😅", "😭", "🙌", "👏", "🙏", "💪", "🤝", "👀", "🔥", "✨", "🎉", "🏆", "🚀", "💡", "📚", "✍️", "💻", "🎯", "✅", "💯", "❤️", "🌍", "🇳🇬"];
 
 type Person = { username: string; name: string; avatar: string | null };
@@ -34,6 +41,8 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   const [sheet, setSheet] = useState(false);
   const [kind, setKind] = useState<CampusKind>("update");
   const [body, setBody] = useState("");
+  // The posts after the first one, when it's a thread.
+  const [parts, setParts] = useState<string[]>([]);
   const [image, setImage] = useState<string | null>(null);
   // The picked photo shows straight away from the device while it uploads.
   const [photo, setPhoto] = useState<{ local: string; percent: number; checking: boolean } | null>(null);
@@ -46,7 +55,6 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   const [job, setJob] = useState<CampusJob>(EMPTY_JOB);
   const [link, setLink] = useState<CampusLink | null>(null);
   const [linkOff, setLinkOff] = useState<string | null>(null);
-  const [typeOpen, setTypeOpen] = useState(false);
   const [emoji, setEmoji] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
@@ -125,15 +133,14 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
 
   // Menus close on a click anywhere else.
   useEffect(() => {
-    if (!emoji && !typeOpen) return;
+    if (!emoji) return;
     const off = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
       if (!el.closest(".et-cps-emoji")) setEmoji(false);
-      if (!el.closest(".et-cps-type")) setTypeOpen(false);
     };
     document.addEventListener("mousedown", off);
     return () => document.removeEventListener("mousedown", off);
-  }, [emoji, typeOpen]);
+  }, [emoji]);
 
   // @mention suggestions for the word being typed.
   useEffect(() => {
@@ -262,6 +269,7 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
     setBody("");
+    setParts([]);
     removePhoto();
     setVideo("");
     setVideoOpen(false);
@@ -284,6 +292,7 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
         poll: kind === "poll" ? { options, multiple, days } : undefined,
         job: kind === "opportunity" ? job : undefined,
         linkUrl: card?.url ?? null,
+        thread: threads ? parts : undefined,
       });
       if (res.error) return setError(res.error);
       clear();
@@ -296,9 +305,28 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   }
 
   const left = LIMIT - body.length;
-  const ready = !uploading && left >= 0 && (kind === "poll" ? body.trim() && options.filter((o) => o.trim()).length >= 2 : body.trim() || image || video.trim());
+  const threads = kind !== "poll" && kind !== "opportunity";
+  function addPart() {
+    if (parts.length >= 24) return;
+    setParts([...parts, ""]);
+    // Focus the new box once it's on screen.
+    setTimeout(() => document.querySelector<HTMLTextAreaElement>(".et-cps-part:last-of-type textarea")?.focus());
+  }
+  const ready = !uploading && left >= 0 && (!threads || parts.every((p) => p.length <= LIMIT)) && (kind === "poll" ? body.trim() && options.filter((o) => o.trim()).length >= 2 : body.trim() || image || video.trim());
   const face = <Avatar src={viewer.avatar} initial={viewer.name.charAt(0).toUpperCase()} seed={viewer.name} className="et-cps-face" />;
-  const K = KIND_STYLE[kind];
+  // Shortcuts under the closed box, like the old In-House feed: each opens the composer as that type.
+  const quick = (
+    <div className="et-cps-quick">
+      {QUICK.map(([k, label]) => {
+        const Q = KIND_STYLE[k];
+        return (
+          <button key={k} type="button" onClick={() => openComposer(k)}>
+            <Q.icon size={17} className={Q.className} /> {label}
+          </button>
+        );
+      })}
+    </div>
+  );
   const yt = video.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? null;
   const target = typeof document === "undefined" ? null : (document.querySelector<HTMLElement>(".et-app") ?? document.body);
   const setJ = <F extends keyof CampusJob>(field: F, value: CampusJob[F]) => setJob((j) => ({ ...j, [field]: value }));
@@ -328,12 +356,11 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
         <button type="button" className={videoOpen ? "is-on" : ""} onClick={toggleVideo} aria-label="Add a YouTube video" title="YouTube video">
           <Video size={19} />
         </button>
-        <button type="button" className={kind === "poll" ? "is-on" : ""} onClick={togglePoll} aria-label="Make it a poll" title="Poll">
-          <BarChart3 size={19} />
-        </button>
-        <button type="button" className={kind === "opportunity" ? "is-on" : ""} onClick={() => setKind(kind === "opportunity" ? "update" : "opportunity")} aria-label="Share an opportunity" title="Opportunity">
-          <Briefcase size={19} />
-        </button>
+        {threads && (
+          <button type="button" className={parts.length ? "is-on" : ""} onClick={addPart} disabled={parts.length >= 24} aria-label="Add another post to make a thread" title="Thread">
+            <ListPlus size={19} />
+          </button>
+        )}
         <div className="et-cps-emoji">
           <button type="button" className={emoji ? "is-on" : ""} onClick={() => setEmoji(!emoji)} aria-label="Add an emoji" aria-expanded={emoji} title="Emoji">
             <Smile size={19} />
@@ -365,7 +392,7 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   );
 
   const editor = (full: boolean) => {
-    const open = full || active || !!body;
+    const open = full || active || !!body || parts.length > 0;
     return (
       <div
         ref={full ? undefined : box}
@@ -392,40 +419,41 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
           </div>
         )}
         <div className="et-cps-box-main">
-          {face}
+          {open ? (
+            <div className="et-cps-who-row">
+              {face}
+              <span>
+                <b>{viewer.name}</b>
+                <small>
+                  <Globe size={12} /> Everyone on Campus can see and reply
+                </small>
+              </span>
+            </div>
+          ) : (
+            face
+          )}
           <div className="et-cps-box-col">
             {open && (
-              <div className="et-cps-type">
-                <button type="button" className={`et-cps-kind-select ${K.className}`} onClick={() => setTypeOpen(!typeOpen)} aria-haspopup="listbox" aria-expanded={typeOpen}>
-                  <K.icon size={13} /> {K.label} <ChevronDown size={13} />
-                </button>
-                {typeOpen && (
-                  <ul className="et-cps-type-menu" role="listbox" aria-label="Post type">
-                    {(Object.keys(KIND_STYLE) as CampusKind[]).map((k) => {
-                      const T = KIND_STYLE[k];
-                      return (
-                        <li key={k}>
-                          <button
-                            type="button"
-                            role="option"
-                            aria-selected={kind === k}
-                            onClick={() => {
-                              if (k === "poll") togglePoll();
-                              else setKind(k);
-                              setTypeOpen(false);
-                            }}
-                          >
-                            <span className={`et-cps-type-dot ${T.className}`}>
-                              <T.icon size={13} />
-                            </span>
-                            {T.label}
-                            {kind === k && <Check size={15} />}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+              <div className="et-cps-types" role="radiogroup" aria-label="Post type">
+                {(Object.keys(KIND_STYLE) as CampusKind[]).map((k) => {
+                  const T = KIND_STYLE[k];
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      role="radio"
+                      aria-checked={kind === k}
+                      className={`${T.className}${kind === k ? " is-on" : ""}`}
+                      onClick={() => {
+                        if (k === kind) return;
+                        if (k === "poll") togglePoll();
+                        else setKind(k);
+                      }}
+                    >
+                      <T.icon size={15} /> {T.label}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -608,15 +636,48 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
                 </button>
               </div>
             )}
-            {error && <p className="et-flash et-flash-err">{error}</p>}
-            {open && (
-              <p className="et-cps-reach">
-                <Globe size={14} /> Everyone on Campus can see and reply
-              </p>
+            {threads && parts.length > 0 && (
+              <ol className="et-cps-parts" aria-label="Thread">
+                {parts.map((p, i) => (
+                  <li key={i} className="et-cps-part">
+                    {face}
+                    <div>
+                      <textarea
+                        rows={2}
+                        maxLength={LIMIT + 200}
+                        value={p}
+                        aria-label={`Post ${i + 2} of the thread`}
+                        placeholder="Add another post"
+                        onChange={(e) => setParts(parts.map((x, j) => (j === i ? e.target.value : x)))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && ready) submit();
+                          if (e.key === "Backspace" && !p) {
+                            e.preventDefault();
+                            setParts(parts.filter((_, j) => j !== i));
+                          }
+                        }}
+                      />
+                      {p.length > LIMIT - 100 && <small className={p.length > LIMIT ? "is-over" : ""}>{LIMIT - p.length}</small>}
+                    </div>
+                    <button type="button" className="et-icon-btn" onClick={() => setParts(parts.filter((_, j) => j !== i))} aria-label={`Remove post ${i + 2}`}>
+                      <X size={15} />
+                    </button>
+                  </li>
+                ))}
+                {parts.length < 24 && (
+                  <li>
+                    <button type="button" className="et-cps-part-add" onClick={addPart}>
+                      <Plus size={15} /> Add another post
+                    </button>
+                  </li>
+                )}
+              </ol>
             )}
-            {!full && toolbar(false)}
+            {error && <p className="et-flash et-flash-err">{error}</p>}
+            {!full && open && toolbar(false)}
           </div>
         </div>
+        {!full && !open && quick}
         {full && toolbar(true)}
         {dragging && (
           <div className="et-cps-drop">
@@ -633,14 +694,17 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
       <div className="et-cps-compose">
         {!sheet && editor(false)}
         {/* Phone: a tap target that opens the full screen composer. */}
-        <div className="et-cps-mtrigger">
-          {face}
-          <button type="button" className="et-cps-mtrigger-text" onClick={() => openComposer()}>
-            {body ? body.slice(0, 60) : "What are you learning today?"}
-          </button>
-          <button type="button" className="et-cps-mtrigger-photo" onClick={() => openComposer(undefined, "", true)} aria-label="Post a photo">
-            <ImagePlus size={20} />
-          </button>
+        <div className="et-cps-mcard">
+          <div className="et-cps-mtrigger">
+            {face}
+            <button type="button" className="et-cps-mtrigger-text" onClick={() => openComposer()}>
+              {body ? body.slice(0, 60) : "What are you learning today?"}
+            </button>
+            <button type="button" className="et-cps-mtrigger-photo" onClick={() => openComposer(undefined, "", true)} aria-label="Post a photo">
+              <ImagePlus size={20} />
+            </button>
+          </div>
+          {quick}
         </div>
         {note && <p className="et-cps-note">{note}</p>}
       </div>

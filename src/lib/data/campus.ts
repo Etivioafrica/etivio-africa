@@ -46,12 +46,14 @@ export type CampusPost = {
   reposted: boolean;
   // A plain repost: the original post, shown whole.
   repostOf: CampusPost | null;
+  // The posts that follow this one in a thread, in order.
+  thread: string[];
 };
 export type CampusComment = { id: string; parentId: string | null; body: string; createdAt: string; hidden: boolean; author: CampusAuthor };
 
 export type Viewer = { id: string; staff: boolean };
 
-const POST_FIELDS = "id, author_id, kind, body, image_url, video_url, quoted_post_id, hashtags, poll_multiple, poll_ends_at, like_count, comment_count, quote_count, hidden, created_at, link, job, repost_of, repost_count";
+const POST_FIELDS = "id, author_id, kind, body, image_url, video_url, quoted_post_id, hashtags, poll_multiple, poll_ends_at, like_count, comment_count, quote_count, hidden, created_at, link, job, repost_of, repost_count, thread";
 type PostRow = {
   id: string;
   author_id: string;
@@ -72,6 +74,7 @@ type PostRow = {
   job: unknown;
   repost_of: string | null;
   repost_count: number;
+  thread: string[] | null;
 };
 
 export const campusOn = () => featureOn("campus");
@@ -158,6 +161,7 @@ async function hydrate(rows: PostRow[], viewer: Viewer, nested = false): Promise
       quoteGone: !!r.quoted_post_id && !q,
       link: (r.link as CampusLink | null) ?? null,
       job: (r.job as CampusJob | null) ?? null,
+      thread: r.thread ?? [],
       reposts: r.repost_count,
       reposted: repostedSet.has(r.id),
       repostOf: r.repost_of ? (originals.get(r.repost_of) ?? null) : null,
@@ -165,7 +169,7 @@ async function hydrate(rows: PostRow[], viewer: Viewer, nested = false): Promise
   });
 }
 
-export type FeedQuery = { kind?: CampusKind; tag?: string; sort?: CampusSort; saved?: boolean; authorId?: string; before?: string };
+export type FeedQuery = { kind?: CampusKind; tag?: string; search?: string; sort?: CampusSort; saved?: boolean; authorId?: string; before?: string };
 export const FEED_PAGE = 20;
 
 // One page of the feed. Latest pages by time (`before`); Hot and Top rank the last few weeks.
@@ -183,6 +187,7 @@ export async function campusFeed(viewer: Viewer, q: FeedQuery = {}): Promise<{ p
   if (q.kind) query = query.eq("kind", q.kind);
   if (q.tag) query = query.contains("hashtags", [q.tag.toLowerCase()]);
   if (q.authorId) query = query.eq("author_id", q.authorId);
+  if (q.search) query = query.ilike("body", `%${q.search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
   if (!viewer.staff) query = query.or(`hidden.eq.false,author_id.eq.${viewer.id}`);
 
   if (sort === "latest") {
@@ -231,4 +236,22 @@ export async function campusSidebar() {
   for (const p of recent ?? []) for (const t of p.hashtags) counts.set(t, (counts.get(t) ?? 0) + 1);
   const trending = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([tag, posts]) => ({ tag, posts }));
   return { trending, blog: blog ?? [], members: members ?? 0, faces: (faces ?? []).map((f) => ({ name: f.full_name ?? "", avatar: f.avatar_url })) };
+}
+
+// Sidebar extras: questions nobody has answered yet and the newest opportunities.
+export async function campusSideFeeds() {
+  const db = createAdminClient();
+  const fortnight = new Date(Date.now() - 14 * 86_400_000).toISOString();
+  const [{ data: asks }, { data: opps }] = await Promise.all([
+    db.from("campus_posts").select("id, author_id, body, created_at").eq("kind", "question").eq("hidden", false).eq("comment_count", 0).is("repost_of", null).gte("created_at", fortnight).order("created_at", { ascending: false }).limit(4),
+    db.from("campus_posts").select("id, author_id, body, job, created_at").eq("kind", "opportunity").eq("hidden", false).is("repost_of", null).order("created_at", { ascending: false }).limit(4),
+  ]);
+  const ids = [...new Set([...(asks ?? []), ...(opps ?? [])].map((p) => p.author_id))];
+  const { data: people } = ids.length ? await db.from("profiles").select("id, full_name, avatar_url").in("id", ids) : { data: [] };
+  const who = new Map((people ?? []).map((p) => [p.id, { name: p.full_name ?? "", avatar: p.avatar_url }]));
+  const author = (id: string) => who.get(id) ?? { name: "", avatar: null };
+  return {
+    unanswered: (asks ?? []).map((p) => ({ id: p.id, body: p.body, createdAt: p.created_at, author: author(p.author_id) })),
+    opportunities: (opps ?? []).map((p) => ({ id: p.id, body: p.body, job: (p.job as CampusJob | null) ?? null, createdAt: p.created_at, author: author(p.author_id) })),
+  };
 }

@@ -34,6 +34,8 @@ export type NewPost = {
   job?: CampusJob;
   // The web link to show as a card (one that's in the text), or null when the card was removed.
   linkUrl?: string | null;
+  // The posts that follow this one, for a thread.
+  thread?: string[];
 };
 
 // Link cards fetched while someone types are kept for a while, so posting doesn't fetch the page again.
@@ -80,6 +82,7 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
   const { user, db } = await member();
   const kind = CAMPUS_KINDS.some((k) => k.value === input.kind) ? input.kind : "update";
   const body = String(input.body ?? "").trim().slice(0, 5000);
+  const thread = kind === "poll" || kind === "opportunity" ? [] : (input.thread ?? []).map((t) => String(t ?? "").trim().slice(0, 5000)).filter(Boolean).slice(0, 24);
   const image = input.imageUrl && keyFromUrl(input.imageUrl)?.startsWith("posts/") ? input.imageUrl : null;
   const video = input.videoUrl?.trim() || null;
   if (video && !YOUTUBE.test(video)) return { error: "Videos are YouTube links (youtube.com or youtu.be)." };
@@ -88,6 +91,7 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
   if (kind === "poll" && (options.length < 2 || options.length > 4)) return { error: "A poll needs 2 to 4 options." };
   if (kind === "poll" && !body) return { error: "Ask the poll question." };
   if (!body && !image && !video && !quotedId) return { error: "Write something first." };
+  if (thread.length && !body) return { error: "Write the first post of the thread." };
   const { job, error: jobError } = kind === "opportunity" ? cleanJob(input.job) : {};
   if (jobError) return { error: jobError };
 
@@ -100,7 +104,7 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
 
   const linkUrl = input.linkUrl && body.includes(input.linkUrl) && !image && !video && !quotedId ? input.linkUrl : null;
   const link = linkUrl ? await linkCard(linkUrl) : null;
-  const check = await moderate("campus_post", user.id, [body, ...options, ...(job ? [job.title, job.company, job.salary, job.location] : []), link?.title ?? ""]);
+  const check = await moderate("campus_post", user.id, [body, ...thread, ...options, ...(job ? [job.title, job.company, job.salary, job.location] : []), link?.title ?? ""]);
   if (check.error) return { error: check.error };
   const days = Math.min(14, Math.max(1, Math.round(Number(input.poll?.days) || 3)));
   const { data, error } = await db
@@ -112,7 +116,8 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
       image_url: image,
       video_url: video,
       quoted_post_id: quotedId,
-      hashtags: tagsIn(body),
+      hashtags: tagsIn([body, ...thread].join("\n")),
+      thread,
       poll_multiple: kind === "poll" && !!input.poll?.multiple,
       poll_ends_at: kind === "poll" ? new Date(Date.now() + days * 86_400_000).toISOString() : null,
       hidden: check.hold,

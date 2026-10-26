@@ -757,6 +757,7 @@ export type Database = {
           quote_count: number
           quoted_post_id: string | null
           repost_count: number
+          thread: string[]
           repost_of: string | null
           video_url: string | null
         }
@@ -779,6 +780,7 @@ export type Database = {
           quote_count?: number
           quoted_post_id?: string | null
           repost_count?: number
+          thread?: string[]
           repost_of?: string | null
           video_url?: string | null
         }
@@ -801,6 +803,7 @@ export type Database = {
           quote_count?: number
           quoted_post_id?: string | null
           repost_count?: number
+          thread?: string[]
           repost_of?: string | null
           video_url?: string | null
         }
