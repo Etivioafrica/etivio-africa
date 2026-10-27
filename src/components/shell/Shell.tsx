@@ -43,6 +43,7 @@ import {
   ToggleRight,
   TrendingUp,
   UsersRound,
+  Target,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -55,7 +56,8 @@ import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
 import { GuideTour } from "@/components/dash/GuideTour";
 import { PageTip } from "@/components/dash/PageTip";
-import { startTour, type GuideState } from "@/lib/guide";
+import { OPEN_LEARNING_PREFS, openLearningPrefs, startTour, type GuideState } from "@/lib/guide";
+import { loadOnboarding, type OnboardingAnswers } from "@/app/(app)/actions";
 import { ROLE_LABELS, canAccess, canTeach, isCoach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
 import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
 import { CartButton } from "@/components/market/CartButton";
@@ -314,6 +316,13 @@ export default function Shell({
   // Captured once: stays open through the guide's final screen even after the server marks it done.
   const [guide] = useState({ questions: needsOnboarding, username: needsUsername });
   const [guideOpen, setGuideOpen] = useState(needsOnboarding || needsUsername);
+  // Reopened later to change goals, topics, level or time: holds their current answers.
+  const [prefs, setPrefs] = useState<OnboardingAnswers | null>(null);
+  useEffect(() => {
+    const open = () => loadOnboarding().then(setPrefs, () => undefined);
+    window.addEventListener(OPEN_LEARNING_PREFS, open);
+    return () => window.removeEventListener(OPEN_LEARNING_PREFS, open);
+  }, []);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -502,6 +511,7 @@ export default function Shell({
         <TipLayer />
         {!admin && features.ai_assistant !== false && <AiWidget name={display} />}
         {!admin && guideOpen && <Onboarding name={user.name || user.email} askUsername={guide.username} askQuestions={guide.questions} onClosed={() => setGuideOpen(false)} />}
+        {!admin && !guideOpen && prefs && <Onboarding name={user.name || user.email} askUsername={false} askQuestions initial={prefs} onClosed={() => setPrefs(null)} />}
         {/* Badge celebrations wait until the welcome guide is out of the way. */}
         {!admin && !guideOpen && <BadgeCelebration trigger={unseenBadges} />}
         {/* The tour starts once the welcome guide is closed, the first time only; replays come from the account menu. */}
@@ -588,6 +598,19 @@ function MenuBody({ user, initial, admin, close }: { user: ShellUser; initial: s
         >
           <Compass size={16} />
           Take the tour
+        </button>
+      )}
+      {!admin && (
+        <button
+          type="button"
+          className="et-menu-item"
+          onClick={() => {
+            close();
+            openLearningPrefs();
+          }}
+        >
+          <Target size={16} />
+          Update learning goals
         </button>
       )}
       <Link href={admin ? "/admin/settings" : "/settings"} onClick={close} className="et-menu-item">

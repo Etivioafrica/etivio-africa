@@ -4,6 +4,7 @@ import { AvatarEditor } from "@/components/dash/AvatarEditor";
 import { getCurrentUser } from "@/lib/auth";
 import { getProfileDetails } from "@/lib/data/profile";
 import { updateProfile } from "./actions";
+import { LearningPrefsButton } from "./LearningPrefsButton";
 import { SetRow } from "./SetRow";
 import { UsernamePicker } from "./UsernamePicker";
 
@@ -63,6 +64,13 @@ export default async function ProfileSettings() {
           <label htmlFor="interests">Interests</label>
           <input id="interests" name="interests" defaultValue={p.interests.join(", ")} placeholder="Design, Data, Marketing" />
           <small>Separate with commas, up to 12.</small>
+        </div>
+        <div className="et-field">
+          <label>Learning goals</label>
+          <small>Change your goals, topics, level and how much time you have. We use them for course suggestions and your weekly goal.</small>
+          <div>
+            <LearningPrefsButton />
+          </div>
         </div>
       </SetRow>
 

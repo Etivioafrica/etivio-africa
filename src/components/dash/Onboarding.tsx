@@ -38,13 +38,27 @@ const QUESTIONS: StepKey[] = ["goal", "topics", "level", "hours"];
 // Welcome guide for new learners: their username first, then four quick questions, shown once (finishing or
 // skipping the questions marks it done). People who did the questions before usernames existed only get the
 // username step. The username can't be skipped: Campus, mentions and profile links need it.
-export function Onboarding({ name, askUsername, askQuestions, onClosed }: { name: string; askUsername: boolean; askQuestions: boolean; onClosed: () => void }) {
+// `initial` reopens the questions later (from the account menu or Settings) with the learner's current answers.
+export function Onboarding({
+  name,
+  askUsername,
+  askQuestions,
+  initial,
+  onClosed,
+}: {
+  name: string;
+  askUsername: boolean;
+  askQuestions: boolean;
+  initial?: OnboardingAnswers;
+  onClosed: () => void;
+}) {
+  const updating = Boolean(initial);
   const dialog = useRef<HTMLDialogElement>(null);
   const router = useRouter();
   const steps: StepKey[] = [...(askUsername ? (["username"] as StepKey[]) : []), ...(askQuestions ? QUESTIONS : [])];
   const STEPS = steps.length;
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<OnboardingAnswers>({ interests: [] });
+  const [answers, setAnswers] = useState<OnboardingAnswers>(initial ?? { interests: [] });
   const [handle, setHandle] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const first = name.split(" ")[0];
@@ -61,12 +75,12 @@ export function Onboarding({ name, askUsername, askQuestions, onClosed }: { name
   function skip() {
     if (onUsername) return;
     dialog.current?.close();
-    if (askQuestions) startSaving(() => saveOnboarding(null));
+    if (askQuestions && !updating) startSaving(() => saveOnboarding(null));
   }
 
   function finish() {
     startSaving(async () => {
-      if (askQuestions) await saveOnboarding(answers);
+      if (askQuestions) await saveOnboarding(answers, updating);
       setStep(STEPS);
     });
   }
@@ -137,7 +151,7 @@ export function Onboarding({ name, askUsername, askQuestions, onClosed }: { name
         )}
         {key === "goal" && (
           <>
-            {!askUsername && <p className="et-ob-kicker">Welcome to Etivio, {first}</p>}
+            {!askUsername && <p className="et-ob-kicker">{updating ? "Update your learning goals" : `Welcome to Etivio, ${first}`}</p>}
             <h2 id="ob-title">What brings you to Etivio?</h2>
             <p className="et-ob-sub">Pick all that apply. We&apos;ll use them to personalise your learning.</p>
             <div className="et-ob-options" role="group" aria-label="Your goals">
@@ -201,9 +215,9 @@ export function Onboarding({ name, askUsername, askQuestions, onClosed }: { name
             <span className="et-cta-icon">
               <PartyPopper size={24} />
             </span>
-            <h2 id="ob-title">You&apos;re all set, {first}!</h2>
+            <h2 id="ob-title">{updating ? "Saved" : <>You&apos;re all set, {first}!</>}</h2>
             <p className="et-ob-sub">
-              {askQuestions ? "Your weekly goal is ready. Pick your first course and start learning." : "Your profile link is ready. Say hello on Campus."}
+              {updating ? "Your course suggestions and weekly goal now follow your new answers." : askQuestions ? "Your weekly goal is ready. Pick your first course and start learning." : "Your profile link is ready. Say hello on Campus."}
               {handle && (
                 <>
                   {" "}
@@ -218,7 +232,7 @@ export function Onboarding({ name, askUsername, askQuestions, onClosed }: { name
       <div className="et-modal-foot" hidden={onUsername}>
         {key === "goal" && (
           <button type="button" className="et-btn et-btn-ghost" onClick={skip} disabled={saving} style={{ marginRight: "auto" }}>
-            Skip for now
+            {updating ? "Cancel" : "Skip for now"}
           </button>
         )}
         {step > 0 && step < STEPS && steps[step - 1] !== "username" && (
@@ -233,7 +247,7 @@ export function Onboarding({ name, askUsername, askQuestions, onClosed }: { name
         )}
         {!onUsername && step === STEPS - 1 && (
           <button type="button" className="et-btn et-btn-primary" onClick={finish} disabled={!canContinue || saving}>
-            {saving ? "Saving…" : "Finish"}
+            {saving ? "Saving…" : updating ? "Save" : "Finish"}
           </button>
         )}
         {step === STEPS && (

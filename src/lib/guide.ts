@@ -14,6 +14,10 @@ export const readGuide = (raw: unknown): GuideState => (raw && typeof raw === "o
 export const START_TOUR = "et:start-tour";
 export const startTour = () => window.dispatchEvent(new Event(START_TOUR));
 
+// Fired on window to reopen the welcome questions (goals, topics, level, time) with the current answers.
+export const OPEN_LEARNING_PREFS = "et:open-learning-prefs";
+export const openLearningPrefs = () => window.dispatchEvent(new Event(OPEN_LEARNING_PREFS));
+
 // One tip per main learner page, shown the first time they open it. Keyed by exact path.
 export const PAGE_TIPS: Record<string, { title: string; body: string }> = {
   "/learn/browse": { title: "Find your next course", body: "Courses from instructors across Africa. Use the level filters, or For you to see the best matches for your goals." },
