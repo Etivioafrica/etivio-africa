@@ -55,6 +55,7 @@ import type { FeatureKey, FeatureMap } from "@/lib/features";
 import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
 import { GuideTour } from "@/components/dash/GuideTour";
+import { HeaderInbox, INBOX_COUNTS } from "./HeaderInbox";
 import { PageTip } from "@/components/dash/PageTip";
 import { OPEN_LEARNING_PREFS, openLearningPrefs, startTour, type GuideState } from "@/lib/guide";
 import { loadOnboarding, type OnboardingAnswers } from "@/app/(app)/actions";
@@ -324,6 +325,12 @@ export default function Shell({
     return () => window.removeEventListener(OPEN_LEARNING_PREFS, open);
   }, []);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  useEffect(() => {
+    const on = (e: Event) => setUnreadMessages((e as CustomEvent<{ messages: number }>).detail.messages);
+    window.addEventListener(INBOX_COUNTS, on);
+    return () => window.removeEventListener(INBOX_COUNTS, on);
+  }, []);
   const [search, setSearch] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -368,7 +375,13 @@ export default function Shell({
   }, [routeSide]);
   const teachMode = routeSide === "teach" || (!routeSide && side === "teach" && !!user.showTeach);
   const groups = (admin ? adminNav(user.roles, badges) : teachMode ? teachNav(canTeach(user.roles), isCoach(user.roles)) : learnNav)
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.feature || features[i.feature] !== false) }))
+    .map((g) => ({
+      ...g,
+      items: g.items
+        .filter((i) => !i.feature || features[i.feature] !== false)
+        // Unread conversations, kept live by the header's messages menu.
+        .map((i) => (!admin && unreadMessages && (i.href === "/learn/messages" || i.href === "/teach/messages") ? { ...i, badge: unreadMessages } : i)),
+    }))
     .filter((g) => g.items.length);
   const matches = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
   const flat = groups.flatMap((g) => g.items);
@@ -480,6 +493,7 @@ export default function Shell({
           </div>
           <div className="et-header-right">
             {!admin && <CartButton />}
+            {!admin && <HeaderInbox userId={user.id} messagesOn={features.messages !== false} />}
             <button
               className="et-icon-btn"
               onClick={() => writeTheme(!light)}
