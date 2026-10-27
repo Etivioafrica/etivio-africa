@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { AiButton } from "./AiWidget";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, BookOpen, ChevronLeft, Compass, House, Inbox, LayoutDashboard, Library, School, UserRound, Users, Wallet, type LucideIcon } from "lucide-react";
@@ -171,6 +172,7 @@ export function MobileTopBar({
       <div className="et-mtop-side is-right">
         {home && (
           <>
+            {features.ai_assistant !== false && <AiButton compact />}
             <Link href={tabs.find((t) => t.label === "Inbox")?.href ?? "/learn/announcements"} className="et-mtop-icon" aria-label="Inbox">
               <Bell size={21} />
             </Link>

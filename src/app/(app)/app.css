@@ -2061,13 +2061,6 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 .et-cm-requests small{font-size:12px;color:var(--a-muted)}
 @media (max-width:900px){.et-cm-layout{grid-template-columns:1fr}}
 .et-pe-labelrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.et-aw{position:fixed;z-index:70;right:24px;bottom:24px;display:flex;flex-direction:column;align-items:flex-end;gap:14px}
-.et-aw-launch{display:grid;place-items:center;width:56px;height:56px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 28px rgba(15,23,42,.28);cursor:pointer;transition:transform .15s}
-.et-aw-launch:hover{transform:translateY(-2px)}
-.et-aw-launch .et-aia{display:block}
-.et-aw-launch.is-open{background:var(--a-fg);color:var(--a-bg)}
-.et-aw-panel{display:flex;flex-direction:column;width:min(380px,calc(100vw - 32px));height:min(600px,calc(100dvh - 120px));border:1px solid var(--a-border);border-radius:20px;background:var(--a-panel);box-shadow:0 24px 60px rgba(15,23,42,.28);overflow:hidden;animation:et-aw-in .18s ease-out}
-@keyframes et-aw-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
 .et-aw-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--a-border)}
 .et-aw-head>div{display:flex;flex-direction:column;flex:1;min-width:0}
 .et-aw-head b{font-size:14.5px}
@@ -2110,7 +2103,6 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 .et-aw-tabs button.is-on{color:var(--a-fg);font-weight:600}
 .et-aw-foot{padding:9px;border-top:1px solid var(--a-border);background:var(--a-panel-2);text-align:center;font-size:12px;color:var(--a-muted)}
 .et-aw-foot b{color:var(--a-fg)}
-@media (max-width:900px){.et-aw{right:16px;bottom:calc(80px + env(safe-area-inset-bottom))}.et-aw-panel{height:min(560px,calc(100dvh - 190px))}}
 .et-mk{display:flex;flex-direction:column;gap:32px;width:100%;max-width:1240px;margin:0 auto}
 .et-mk-hero{width:100vw;margin:0 calc(50% - 50vw);padding:22px 24px;background:#0b0d12;color:#f8fafc}
 body:has(.et-mk-hero){overflow-x:clip}
@@ -3388,3 +3380,15 @@ button.et-pl-box:hover{border-color:var(--accent)}
 .et-sup-active .et-btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .et-sup-active small{font-size:12px;color:var(--a-faint)}
 .et-sup-active-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--accent);color:#fff}
+
+/* Etivio AI: header button and right-side panel */
+.et-ai-btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px 0 6px;margin-right:4px;border:1px solid var(--a-border);border-radius:999px;background:var(--a-panel);font:inherit;font-size:13px;font-weight:600;color:var(--a-fg);cursor:pointer;transition:border-color .15s,background .15s}
+.et-ai-btn:hover{border-color:var(--accent);background:var(--a-panel-2)}
+.et-ai-btn-icon{border:0;background:none;padding:0;cursor:pointer}
+.et-aw-scrim{position:fixed;inset:0;z-index:80;background:#05080f8c;animation:et-aw-fade .2s ease-out}
+.et-aw-panel{position:fixed;z-index:81;top:0;right:0;bottom:0;display:flex;flex-direction:column;width:min(420px,100vw);border-left:1px solid var(--a-border);background:var(--a-panel);box-shadow:-24px 0 60px rgba(15,23,42,.25);animation:et-aw-slide .25s cubic-bezier(.2,.8,.2,1)}
+.et-aw-panel .et-aw-head{padding-top:max(16px,env(safe-area-inset-top))}
+.et-aw-panel .et-aw-foot{padding-bottom:max(9px,env(safe-area-inset-bottom))}
+@keyframes et-aw-slide{from{transform:translateX(100%)}to{transform:none}}
+@keyframes et-aw-fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.et-aw-panel,.et-aw-scrim{animation:none}}

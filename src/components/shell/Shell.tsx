@@ -50,7 +50,7 @@ import { signOut } from "@/app/(app)/actions";
 import { adminSignOut } from "@/app/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import TipLayer from "./TipLayer";
-import { AiWidget } from "./AiWidget";
+import { AiButton, AiWidget } from "./AiWidget";
 import type { FeatureKey, FeatureMap } from "@/lib/features";
 import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
@@ -497,6 +497,7 @@ export default function Shell({
           </div>
           <div className="et-header-right">
             {!admin && <CartButton />}
+            {!admin && features.ai_assistant !== false && <AiButton />}
             {!admin && <HeaderInbox userId={user.id} messagesOn={features.messages !== false} />}
             <button
               className="et-icon-btn"
