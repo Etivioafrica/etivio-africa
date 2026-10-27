@@ -36,15 +36,10 @@ export function LessonCompleteButton({
 
   if (locked)
     return (
-      <div className="et-pl-lock" title="Watch the video to unlock">
-        <button type="button" className="et-btn et-btn-primary" disabled>
-          <Lock size={14} /> Watch to complete
-        </button>
-        <span className="et-pl-lock-bar" aria-label={`${pct}% watched`}>
-          <span style={{ width: `${Math.min(100, (pct / 90) * 100)}%` }} />
-        </span>
-        <small>{pct}% watched · 90% needed</small>
-      </div>
+      <button type="button" className="et-btn et-pl-lock" disabled aria-label={`Watch 90% of the video to complete. ${pct}% watched.`}>
+        <Lock size={14} /> Watch to complete <span className="et-pl-lock-pct">{pct}%</span>
+        <span className="et-pl-lock-fill" style={{ width: `${Math.min(100, (pct / 90) * 100)}%` }} aria-hidden />
+      </button>
     );
 
   return (
