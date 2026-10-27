@@ -23,6 +23,17 @@ async function guardTarget(targetId: string) {
   return { ...ctx, target };
 }
 
+// Courses need an owner who can teach: their students message the instructor. Taking the last teaching role
+// (Tutor or Super admin) from someone who still owns courses would leave those students writing to a plain learner,
+// so it's refused until the courses have a new instructor.
+async function stillTeaches(db: Awaited<ReturnType<typeof guardTarget>>["db"], userId: string, rolesAfter: Iterable<string>) {
+  const after = new Set(rolesAfter);
+  if (after.has("tutor") || after.has("super_admin")) return null;
+  const { count } = await db.from("courses").select("id", { count: "exact", head: true }).eq("instructor_id", userId);
+  if (!count) return null;
+  return `They still own ${count} ${count === 1 ? "course" : "courses"}. Give ${count === 1 ? "it" : "them"} a new instructor first (Courses → edit → Instructor), then remove this role.`;
+}
+
 export async function setUserRoles(_prev: FormState, fd: FormData): Promise<FormState> {
   try {
     const { admin, db, target } = await guardTarget(str(fd, "id"));
@@ -32,6 +43,8 @@ export async function setUserRoles(_prev: FormState, fd: FormData): Promise<Form
     const have = new Set((current ?? []).map((r) => r.role));
     const add = [...wanted].filter((r) => !have.has(r));
     const remove = [...have].filter((r) => !wanted.has(r));
+    const owns = remove.length ? await stillTeaches(db, target.id, wanted) : null;
+    if (owns) return { error: owns };
 
     if (add.length) await db.from("user_roles").insert(add.map((role) => ({ user_id: target.id, role, granted_by: admin.id })));
     if (remove.length) await db.from("user_roles").delete().eq("user_id", target.id).in("role", remove);
@@ -76,6 +89,13 @@ export async function toggleUserRole(id: string, role: AppRole, on: boolean, not
         .eq("status", "pending")
         .eq("role", role);
     } else {
+      const { data: current } = await db.from("user_roles").select("role").eq("user_id", target.id);
+      const owns = await stillTeaches(
+        db,
+        target.id,
+        (current ?? []).map((r) => r.role).filter((r) => r !== role),
+      );
+      if (owns) return { error: owns };
       const { error } = await db.from("user_roles").delete().eq("user_id", target.id).eq("role", role);
       if (error) return { error: error.message };
     }

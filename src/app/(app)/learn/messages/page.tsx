@@ -4,6 +4,7 @@ import { PageHead } from "@/components/dash/ui";
 import { ConversationList } from "@/components/chat/Inbox";
 import { getCurrentUser } from "@/lib/auth";
 import { listConversations } from "@/lib/data/messages";
+import { canTeach } from "@/lib/roles";
 
 export const metadata = { title: "Messages" };
 
@@ -22,7 +23,8 @@ export default function LearnMessages() {
 // their students. The sidebar and header counts cover the same set, so a badge always has something to open.
 async function List() {
   const user = await getCurrentUser();
-  const [asStudent, asTutor] = await Promise.all([listConversations(user.id, "student"), listConversations(user.id, "tutor")]);
+  // Only people who can teach answer students; anyone else only sees their own tutors.
+  const [asStudent, asTutor] = await Promise.all([listConversations(user.id, "student"), canTeach(user.roles) ? listConversations(user.id, "tutor") : Promise.resolve([])]);
   const empty = (
     <>
       <b>No messages yet</b>
