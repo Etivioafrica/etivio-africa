@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { parseGoals } from "@/lib/learner-prefs";
 import { after } from "next/server";
 import { emailWelcome } from "@/lib/email/notify";
 import { createClient } from "@/lib/supabase/server";
@@ -33,7 +34,7 @@ export async function markBadgesSeen(ids: BadgeId[]) {
 }
 
 export type OnboardingAnswers = {
-  goal?: "new_skill" | "career" | "creative" | "freelance" | "job";
+  goals?: ("new_skill" | "career" | "creative" | "freelance" | "job")[];
   interests?: string[];
   level?: "beginner" | "intermediate" | "advanced" | "expert";
   hours?: "under_3" | "3_to_6" | "over_6";
@@ -55,7 +56,8 @@ export async function saveOnboarding(answers: OnboardingAnswers | null) {
   if (before && !before.onboarded_at) after(() => emailWelcome(user.id));
   const update: Database["public"]["Tables"]["profiles"]["Update"] = { onboarded_at: new Date().toISOString() };
   if (answers) {
-    if (answers.goal) update.learning_goal = answers.goal;
+    const goals = parseGoals(answers.goals?.join(","));
+    if (goals.length) update.learning_goal = [...new Set(goals)].join(",");
     if (answers.level) update.skill_level = answers.level;
     if (answers.hours) {
       update.weekly_hours = answers.hours;

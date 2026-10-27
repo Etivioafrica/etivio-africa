@@ -6,7 +6,7 @@ import { BadgeSeal } from "@/components/dash/Badges";
 import type { Database } from "@/lib/database.types";
 import { BADGE_INFO, type BadgeId } from "@/lib/badges";
 import { readPrefs } from "@/lib/data/profile";
-import { GOAL_LABELS, HOURS_LABELS, LEVEL_LABELS, label } from "@/lib/learner-prefs";
+import { GOAL_LABELS, HOURS_LABELS, LEVEL_LABELS, label, parseGoals } from "@/lib/learner-prefs";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -46,7 +46,7 @@ export async function LearnerProfile({ db, id, profile }: { db: Db; id: string; 
           <dt>Welcome guide</dt>
           <dd>{profile.onboarded_at ? `Done ${formatDateTime(profile.onboarded_at)}` : "Not done yet"}</dd>
           <dt>Why they joined</dt>
-          <dd>{label(GOAL_LABELS, profile.learning_goal) ?? "Not answered"}</dd>
+          <dd>{parseGoals(profile.learning_goal).map((g) => GOAL_LABELS[g]).join(", ") || "Not answered"}</dd>
           <dt>Skill level</dt>
           <dd>{label(LEVEL_LABELS, profile.skill_level) ?? "Not answered"}</dd>
           <dt>Time per week</dt>

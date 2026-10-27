@@ -65,7 +65,7 @@ export default async function LearnDashboard() {
   const upNext = player?.lessons.find((l) => !l.done) ?? null;
   const week = profile?.heatmap.weeks.at(-1) ?? [];
   const streak = profile?.heatmap.currentStreak ?? 0;
-  const tip = prefs.goal ? GOAL_TIPS[prefs.goal] : null;
+  const tip = prefs.goals[0] ? GOAL_TIPS[prefs.goals[0]] : null;
   const others = active.slice(current ? 1 : 0, 7);
   // Overall progress across every enrolled course, for the banner.
   const totalLessons = mine.reduce((n, c) => n + c.lessonCount, 0);

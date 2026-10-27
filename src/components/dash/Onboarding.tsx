@@ -9,7 +9,7 @@ import { TOPICS } from "@/lib/learner-prefs";
 
 type Option<T extends string> = { value: T; label: string; hint?: string };
 
-const GOALS: Option<NonNullable<OnboardingAnswers["goal"]>>[] = [
+const GOALS: Option<NonNullable<OnboardingAnswers["goals"]>[number]>[] = [
   { value: "new_skill", label: "Learn a new skill" },
   { value: "career", label: "Grow in my career" },
   { value: "job", label: "Get a job or switch careers" },
@@ -73,7 +73,7 @@ export function Onboarding({ name, askUsername, askQuestions, onClosed }: { name
 
   const set = (patch: Partial<OnboardingAnswers>) => setAnswers((a) => ({ ...a, ...patch }));
   const canContinue =
-    key === "goal" ? Boolean(answers.goal) : key === "topics" ? (answers.interests?.length ?? 0) > 0 : key === "level" ? Boolean(answers.level) : key === "hours" ? Boolean(answers.hours) : true;
+    key === "goal" ? (answers.goals?.length ?? 0) > 0 : key === "topics" ? (answers.interests?.length ?? 0) > 0 : key === "level" ? Boolean(answers.level) : key === "hours" ? Boolean(answers.hours) : true;
 
   const radios = <T extends string>(options: Option<T>[], value: T | undefined, pick: (v: T) => void, name: string) => (
     <div className="et-ob-options" role="radiogroup">
@@ -139,8 +139,25 @@ export function Onboarding({ name, askUsername, askQuestions, onClosed }: { name
           <>
             {!askUsername && <p className="et-ob-kicker">Welcome to Etivio, {first}</p>}
             <h2 id="ob-title">What brings you to Etivio?</h2>
-            <p className="et-ob-sub">Help us understand your goals so we can personalise your learning.</p>
-            {radios(GOALS, answers.goal, (goal) => set({ goal }), "goal")}
+            <p className="et-ob-sub">Pick all that apply. We&apos;ll use them to personalise your learning.</p>
+            <div className="et-ob-options" role="group" aria-label="Your goals">
+              {GOALS.map((o) => {
+                const on = answers.goals?.includes(o.value) ?? false;
+                return (
+                  <label key={o.value} className={`et-ob-option${on ? " is-on" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => set({ goals: on ? answers.goals!.filter((g) => g !== o.value) : [...(answers.goals ?? []), o.value] })}
+                    />
+                    <span className="et-ob-radio et-ob-box">{on && <Check size={12} strokeWidth={3} />}</span>
+                    <span>
+                      <b>{o.label}</b>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </>
         )}
         {key === "topics" && (

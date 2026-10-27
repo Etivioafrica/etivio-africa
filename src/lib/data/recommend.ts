@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getMyPrivateProfile } from "@/lib/my-profile";
 import { getCatalog, getMyCourses, type CourseCard } from "@/lib/data/learn";
-import type { LearningGoal, SkillLevel } from "@/lib/learner-prefs";
+import { parseGoals, type LearningGoal, type SkillLevel } from "@/lib/learner-prefs";
 
-export type LearnerPrefs = { interests: string[]; level: SkillLevel | null; goal: LearningGoal | null; weeklyGoal: number | null };
+export type LearnerPrefs = { interests: string[]; level: SkillLevel | null; goals: LearningGoal[]; weeklyGoal: number | null };
 
 export const getLearnerPrefs = cache(async (): Promise<LearnerPrefs> => {
   const user = await getCurrentUser();
@@ -15,7 +15,7 @@ export const getLearnerPrefs = cache(async (): Promise<LearnerPrefs> => {
   return {
     interests: data?.interests ?? [],
     level: (priv?.skill_level as SkillLevel | null) ?? null,
-    goal: (priv?.learning_goal as LearningGoal | null) ?? null,
+    goals: parseGoals(priv?.learning_goal),
     weeklyGoal: priv?.weekly_goal ?? null,
   };
 });

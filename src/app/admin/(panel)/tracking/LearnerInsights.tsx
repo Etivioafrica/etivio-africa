@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Award, BadgeCheck, Compass, Globe } from "lucide-react";
 import { StatStrip } from "@/components/dash/ui";
 import type { Database } from "@/lib/database.types";
-import { GOAL_LABELS, HOURS_LABELS, LEVEL_LABELS, TOPICS } from "@/lib/learner-prefs";
+import { GOAL_LABELS, HOURS_LABELS, LEVEL_LABELS, TOPICS, parseGoals } from "@/lib/learner-prefs";
 
 type Row = { label: string; value: number };
 
@@ -102,7 +102,7 @@ export async function LearnerInsights({ db }: { db: SupabaseClient<Database> }) 
             <div className="et-card-head">
               <h2>Why they&apos;re here</h2>
             </div>
-            <Bars rows={tally(GOAL_LABELS, all.map((p) => p.learning_goal))} total={answered.length} />
+            <Bars rows={tally(GOAL_LABELS, all.flatMap((p) => parseGoals(p.learning_goal)))} total={answered.length} />
           </section>
           <section className="et-card">
             <div className="et-card-head">

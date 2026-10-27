@@ -41,4 +41,7 @@ export type LearningGoal = keyof typeof GOAL_LABELS;
 export type SkillLevel = keyof typeof LEVEL_LABELS;
 export type WeeklyHours = keyof typeof HOURS_LABELS;
 
+// learning_goal holds one or more goal keys, comma-separated.
+export const parseGoals = (raw: string | null | undefined): LearningGoal[] => (raw ?? "").split(",").filter((g): g is LearningGoal => g in GOAL_LABELS);
+
 export const label = <T extends Record<string, string>>(map: T, key: string | null | undefined) => (key && key in map ? map[key as keyof T] : null);
