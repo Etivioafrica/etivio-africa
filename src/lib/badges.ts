@@ -24,7 +24,7 @@ export type BadgeInput = {
 // Where a learner stands on one badge. `unit` labels the progress numbers ("lessons", "days").
 export type BadgeStatus = { badge: Badge; earned: boolean; current: number; target: number; unit: string };
 
-// Everyone who joins in the launch year is an early learner.
+// Everyone who signs up in the launch year is a pioneer.
 const EARLY_UNTIL = "2027-01-01";
 
 type Rule = { badge: Badge; progress: (i: BadgeInput) => { current: number; target: number; unit: string } };
@@ -65,7 +65,7 @@ const RULES: Rule[] = [
     progress: (i) => count(i.lessonsDone, 1, "lesson"),
   },
   {
-    badge: { id: "early", label: "Early learner", hint: "Joined Etivio in its launch year", how: "Join Etivio during its launch year, 2026." },
+    badge: { id: "early", label: "Pioneer", hint: "One of the first to join Etivio", how: "Sign up during Etivio's launch year, 2026." },
     progress: (i) => count(i.joinedAt < EARLY_UNTIL ? 1 : 0, 1, "join"),
   },
 ];
@@ -78,7 +78,7 @@ const statusOf = (r: Rule, i: BadgeInput): BadgeStatus => {
 export const earnedBadges = (i: BadgeInput) => RULES.map((r) => statusOf(r, i)).filter((s) => s.earned).map((s) => s.badge);
 
 // Every badge a learner can see: earned first (rarest first), then locked in the order they're usually reached.
-// Badges that can't be earned any more (early learner after launch) or don't apply (tutor, for learners) are left out.
+// Badges that can't be earned any more (pioneer after launch) or don't apply (tutor, for learners) are left out.
 export function allBadges(i: BadgeInput): BadgeStatus[] {
   const all = RULES.map((r) => statusOf(r, i)).filter((s) => s.earned || (s.badge.id !== "tutor" && s.badge.id !== "early"));
   const earned = all.filter((s) => s.earned);

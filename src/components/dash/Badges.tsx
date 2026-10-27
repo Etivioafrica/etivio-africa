@@ -7,7 +7,7 @@ type Look = { icon: LucideIcon; top: string; bottom: string; bg: string; ink: st
 
 // Solid palettes in the spirit of sticker-style course badges.
 const LOOK: Record<BadgeId, Look> = {
-  early: { icon: Sparkles, top: "Early learner", bottom: "Class of 2026", bg: "#1e1b5e", ink: "#f9c6d3", disc: "#c026d3", glyph: "#fde68a", star: "#5eead4" },
+  early: { icon: Sparkles, top: "Pioneer", bottom: "Etivio", bg: "#1e1b5e", ink: "#f9c6d3", disc: "#c026d3", glyph: "#fde68a", star: "#5eead4" },
   first_lesson: { icon: BookOpen, top: "First steps", bottom: "Unlocked", bg: "#0f766e", ink: "#fef3c7", disc: "#34d399", glyph: "#1e1b5e", star: "#fbbf24" },
   lessons_25: { icon: Target, top: "25 lessons", bottom: "Completed", bg: "#c026d3", ink: "#fdf4ff", disc: "#fbbf24", glyph: "#9a3412", star: "#fde68a" },
   finisher: { icon: Award, top: "Course", bottom: "Completed", bg: "#f59e0b", ink: "#7c2d12", disc: "#a855f7", glyph: "#fdf4ff", star: "#ea580c" },
