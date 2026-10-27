@@ -1,6 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { listConversations } from "@/lib/data/messages";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type InboxNote = { id: string; kind: string; title: string; body: string | null; href: string | null; read: boolean; at: string };
 export type InboxThread = { id: string; kind: "tutor" | "support"; title: string; sub: string; preview: string | null; avatar: string | null; at: string; unread: number; href: string };
@@ -11,8 +12,9 @@ export type Inbox = { notes: InboxNote[]; unreadNotes: number; threads: InboxThr
 const EMPTY: Inbox = { notes: [], unreadNotes: 0, threads: [], unreadMessages: 0, unreadTutor: 0, unreadAsTutor: 0, unreadSupport: 0 };
 
 // Everything the header's bell and messages menus show: the latest notifications, and the latest conversations
-// (course chats on both sides, plus support chats) with unread counts.
-export async function getInbox(): Promise<Inbox> {
+// (course chats on both sides, plus support chats) with unread counts. In the admin panel (`staff`), support means the
+// team's inbox: learners' open support chats, opening in Admin → Chats.
+export async function getInbox(staff = false): Promise<Inbox> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -25,10 +27,21 @@ export async function getInbox(): Promise<Inbox> {
     listConversations(user.id, "tutor"),
     supabase.from("support_threads").select("id, subject, last_message_at, user_unread").eq("user_id", user.id).order("last_message_at", { ascending: false }).limit(20),
   ]);
+  const { data: isStaff } = staff ? await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "super_admin").maybeSingle() : { data: null };
+  const { data: inbox } = isStaff
+    ? await createAdminClient()
+        .from("support_threads")
+        .select("id, subject, last_message_at, staff_unread, user:profiles!support_threads_user_id_fkey(full_name, avatar_url)")
+        .in("status", ["open", "pending"])
+        .order("last_message_at", { ascending: false })
+        .limit(15)
+    : { data: null };
   const threads: InboxThread[] = [
     ...asStudent.map((c) => ({ id: c.id, kind: "tutor" as const, title: c.otherName, sub: c.courseTitle, preview: c.lastMessage, avatar: c.otherAvatar, at: c.lastAt, unread: c.unread, href: `/learn/messages/${c.id}` })),
     ...asTutor.map((c) => ({ id: c.id, kind: "tutor" as const, title: c.otherName, sub: c.courseTitle, preview: c.lastMessage, avatar: c.otherAvatar, at: c.lastAt, unread: c.unread, href: `/teach/messages/${c.id}` })),
-    ...(support ?? []).map((t) => ({ id: t.id, kind: "support" as const, title: "Etivio support", sub: t.subject, preview: null, avatar: null, at: t.last_message_at, unread: t.user_unread ? 1 : 0, href: `/support/${t.id}` })),
+    ...(inbox
+      ? inbox.map((t) => ({ id: t.id, kind: "support" as const, title: t.user?.full_name || "Learner", sub: t.subject, preview: null, avatar: t.user?.avatar_url ?? null, at: t.last_message_at, unread: t.staff_unread ? 1 : 0, href: `/admin/chats/${t.id}` }))
+      : (support ?? []).map((t) => ({ id: t.id, kind: "support" as const, title: "Etivio support", sub: t.subject, preview: null, avatar: null, at: t.last_message_at, unread: t.user_unread ? 1 : 0, href: `/support/${t.id}` }))),
   ].sort((a, b) => b.at.localeCompare(a.at));
   return {
     // Until the notifications table exists these come back empty rather than failing.

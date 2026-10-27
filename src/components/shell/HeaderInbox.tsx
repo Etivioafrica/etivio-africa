@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Award, Bell, CheckCheck, GraduationCap, LifeBuoy, MessagesSquare, ScrollText, Users } from "lucide-react";
+import { AtSign, Award, Bell, MessageCircle, CheckCheck, GraduationCap, LifeBuoy, MessagesSquare, ScrollText, Users } from "lucide-react";
 import { getInbox, markNotesRead, type Inbox, type InboxNote } from "@/app/(app)/inbox-actions";
 import { listen } from "@/lib/supabase/realtime";
 import { Avatar } from "@/components/dash/Avatar";
@@ -10,7 +10,7 @@ import { Avatar } from "@/components/dash/Avatar";
 // Fired on window with unread tutor-chat and support counts, for the sidebar's Messages and Support links.
 export const INBOX_COUNTS = "et:inbox-counts";
 
-const NOTE_ICONS: Record<string, typeof Bell> = { support: LifeBuoy, message: MessagesSquare, badge: Award, certificate: ScrollText, community: Users, course: GraduationCap };
+const NOTE_ICONS: Record<string, typeof Bell> = { support: LifeBuoy, message: MessagesSquare, badge: Award, certificate: ScrollText, community: Users, course: GraduationCap, reply: MessageCircle, mention: AtSign };
 
 function ago(iso: string) {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -22,7 +22,8 @@ function ago(iso: string) {
 }
 
 // Bell (notifications) and messages menus in the header, next to the avatar. Both update live.
-export function HeaderInbox({ userId, messagesOn }: { userId: string; messagesOn: boolean }) {
+// `staff` is the admin panel: support chats are the team's inbox and the links go to the admin pages.
+export function HeaderInbox({ userId, messagesOn, staff = false }: { userId: string; messagesOn: boolean; staff?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const [inbox, setInbox] = useState<Inbox | null>(null);
@@ -33,12 +34,12 @@ export function HeaderInbox({ userId, messagesOn }: { userId: string; messagesOn
   const load = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      getInbox().then((next) => {
+      getInbox(staff).then((next) => {
         setInbox(next);
         window.dispatchEvent(new CustomEvent(INBOX_COUNTS, { detail: { messages: next.unreadTutor, teach: next.unreadAsTutor, support: next.unreadSupport } }));
       }, () => undefined);
     }, 250);
-  }, []);
+  }, [staff]);
 
   // Reload on every page change (opening a chat clears its unread count) and whenever something changes live.
   useEffect(load, [load, pathname]);
@@ -49,10 +50,10 @@ export function HeaderInbox({ userId, messagesOn }: { userId: string; messagesOn
           .channel(`inbox:${userId}`)
           .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, load)
           .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, load)
-          .on("postgres_changes", { event: "*", schema: "public", table: "support_threads", filter: `user_id=eq.${userId}` }, load)
+          .on("postgres_changes", staff ? { event: "*", schema: "public", table: "support_threads" } : { event: "*", schema: "public", table: "support_threads", filter: `user_id=eq.${userId}` }, load)
           .subscribe(),
       ),
-    [userId, load],
+    [userId, load, staff],
   );
 
   useEffect(() => {
@@ -110,7 +111,7 @@ export function HeaderInbox({ userId, messagesOn }: { userId: string; messagesOn
                   {threads.map((t) => (
                     <li key={`${t.kind}:${t.id}`}>
                       <Link href={t.href} className={t.unread ? "is-unread" : ""} onClick={() => setOpen(null)}>
-                        {t.kind === "support" ? (
+                        {t.kind === "support" && !staff ? (
                           <span className="et-hn-icon is-support">
                             <LifeBuoy size={16} />
                           </span>
@@ -134,11 +135,11 @@ export function HeaderInbox({ userId, messagesOn }: { userId: string; messagesOn
                 <p className="et-hn-empty">No messages yet. Message a tutor from any of your courses, or contact support.</p>
               )}
               <footer>
-                <Link href="/learn/messages" onClick={() => setOpen(null)}>
-                  All messages
+                <Link href={staff ? "/teach/messages" : "/learn/messages"} onClick={() => setOpen(null)}>
+                  {staff ? "Course messages" : "All messages"}
                 </Link>
-                <Link href="/support" onClick={() => setOpen(null)}>
-                  Support
+                <Link href={staff ? "/admin/chats" : "/support"} onClick={() => setOpen(null)}>
+                  {staff ? "Support inbox" : "Support"}
                 </Link>
               </footer>
             </div>

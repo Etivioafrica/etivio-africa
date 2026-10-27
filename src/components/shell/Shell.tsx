@@ -9,6 +9,7 @@ import {
   FileText,
   LifeBuoy,
   MessagesSquare,
+  MessageCircle,
   Newspaper,
   ShieldAlert,
   ShieldCheck,
@@ -152,6 +153,8 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         items: [
           { label: "Users", href: "/admin/users", icon: Users, area: "users", badge: badges.applications },
           { label: "Chats", href: "/admin/chats", icon: MessagesSquare, area: "chats", badge: badges.chats },
+          // Questions from students on courses this account teaches (answered on the Teach side).
+          { label: "Course messages", href: "/teach/messages", icon: MessageCircle, area: "chats" },
           {
             label: "Emails",
             href: "/admin/emails",
@@ -381,7 +384,7 @@ export default function Shell({
         .filter((i) => !i.feature || features[i.feature] !== false)
         // Unread tutor chats on Messages, unread support replies on Support; kept live by the header's messages menu.
         .map((i) => {
-          if (admin) return i;
+          if (admin) return i.href === "/teach/messages" && unread.teach ? { ...i, badge: unread.teach } : i;
           const n = i.href === "/learn/messages" ? unread.messages : i.href === "/teach/messages" ? unread.teach : i.href === "/support" ? unread.support : 0;
           return n ? { ...i, badge: n } : i;
         }),
@@ -498,7 +501,7 @@ export default function Shell({
           <div className="et-header-right">
             {!admin && <CartButton />}
             {!admin && features.ai_assistant !== false && <AiButton />}
-            {!admin && <HeaderInbox userId={user.id} messagesOn={features.messages !== false} />}
+            <HeaderInbox userId={user.id} messagesOn={admin || features.messages !== false} staff={admin} />
             <button
               className="et-icon-btn"
               onClick={() => writeTheme(!light)}
