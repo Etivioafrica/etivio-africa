@@ -49,7 +49,7 @@
 .et-auth .et-auth-back{display:inline-flex;align-items:center;gap:6px;color:var(--a-muted);font-size:13px;margin-bottom:24px}
 .et-auth-back:hover{color:var(--a-fg)}
 .et-auth-switch{font-size:14px;color:var(--a-muted)}
-.et-auth-switch a{color:var(--accent);font-weight:600}
+.et-auth-switch a{margin-left:6px;color:var(--accent);font-weight:600}
 .et-auth-switch a:hover{text-decoration:underline}
 .et-auth-alt{margin-top:28px;font-size:14px;color:var(--a-muted);text-align:center}
 .et-auth-alt a{color:var(--accent);font-weight:600}
@@ -105,7 +105,7 @@
   .et-auth.is-compact .et-auth-submit{height:50px;margin-top:2px;border-radius:999px;background:var(--a-fg);color:var(--a-bg)}
   .et-auth.is-compact .et-auth-link{margin-top:-2px}
   .et-auth-malt{display:block;margin-top:auto;padding:10px 24px calc(env(safe-area-inset-bottom) + 18px);text-align:center;font-size:14px;color:var(--a-muted)}
-  .et-auth-malt a{color:var(--accent);font-weight:600}
+  .et-auth-malt a{margin-left:6px;color:var(--accent);font-weight:600}
 }
 @media(max-width:600px) and (prefers-reduced-motion:reduce){.et-auth-faces img{animation:none}}
 /* Installed on the home screen: fill to the very bottom of the screen. */
