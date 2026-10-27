@@ -304,6 +304,9 @@ a.et-cps-name:hover{text-decoration:underline}
 .et-cps-reply{order:-1;display:flex;align-items:center;gap:10px;padding:10px 0}
 .et-cps-replying{order:-2}
 .et-cps-reply input{flex:1;min-width:0;height:36px;padding:0;border:0;background:none;color:var(--a-fg);font:inherit;font-size:15px;outline:0}
+.et-cps-reply-field{position:relative;flex:1;min-width:0;display:flex}
+.et-cps-reply-field input{width:100%}
+.et-cps-reply-field .et-cps-mentions{top:calc(100% + 6px)}
 .et-cps-reply-btn{height:32px;padding:0 16px;border:0;border-radius:999px;background:var(--a-fg);color:var(--a-bg);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .et-cps-reply-btn:disabled{opacity:.4;cursor:default}
 

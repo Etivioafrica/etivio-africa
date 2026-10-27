@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
@@ -19,6 +20,36 @@ async function member() {
   const user = await getCurrentUser();
   if (!(await campusOn())) throw new Error("Campus isn't available right now.");
   return { user, viewer: { id: user.id, staff: isStaff(user.roles) }, db: createAdminClient() };
+}
+
+// @usernames in a post or comment, lowercased, at most 10.
+const mentionsIn = (text: string) => [...new Set([...text.matchAll(/(?:^|[^\w@])@([a-z0-9_.]{2,30})/gi)].map((m) => m[1].toLowerCase().replace(/\.+$/, "")))].slice(0, 10);
+
+// Tells people about a Campus post or comment: whoever it replies to, and everyone @mentioned. One notification per
+// person (a reply beats a mention), never to the writer. Held posts (waiting for a moderation check) notify nobody.
+async function notifyCampus(
+  db: ReturnType<typeof createAdminClient>,
+  { from, fromName, postId, text, replyTo }: { from: string; fromName: string; postId: string; text: string; replyTo: { userId: string; title: string }[] },
+) {
+  const href = `/campus/${postId}`;
+  const body = text.slice(0, 200);
+  const sent = new Set([from]);
+  const rows: { user_id: string; kind: string; title: string; body: string; href: string }[] = [];
+  for (const r of replyTo) {
+    if (sent.has(r.userId)) continue;
+    sent.add(r.userId);
+    rows.push({ user_id: r.userId, kind: "reply", title: r.title, body, href });
+  }
+  const names = mentionsIn(text);
+  if (names.length) {
+    const { data: people } = await db.from("profiles").select("id, username").in("username", names).eq("status", "active");
+    for (const p of people ?? []) {
+      if (sent.has(p.id)) continue;
+      sent.add(p.id);
+      rows.push({ user_id: p.id, kind: "mention", title: `${fromName} mentioned you`, body, href });
+    }
+  }
+  if (rows.length) await db.from("notifications").insert(rows);
 }
 
 // #hashtags in a post, lowercased, at most 10.
@@ -129,6 +160,7 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
   if (error || !data) return { error: "Couldn't post. Try again." };
   if (options.length) await db.from("campus_poll_options").insert(options.map((label, position) => ({ post_id: data.id, position, label })));
   await check.record(data.id);
+  if (!check.hold) after(() => notifyCampus(db, { from: user.id, fromName: user.name || "Someone", postId: data.id, text: body, replyTo: [] }));
   refresh();
   return { id: data.id, ok: check.hold ? "Posted. Others will see it once the team has checked it." : "Posted." };
 }
@@ -204,15 +236,25 @@ export async function addCampusComment(postId: string, body: string, parentId: s
   if (!post || (post.hidden && post.author_id !== user.id && !viewer.staff)) return { error: "That post is no longer there." };
   // Replies are one level deep: a reply to a reply joins the same thread.
   let parent: string | null = null;
+  let parentAuthor: string | null = null;
   if (parentId && UUID.test(parentId)) {
-    const { data: p } = await db.from("campus_comments").select("id, parent_id").eq("id", parentId).eq("post_id", postId).maybeSingle();
+    const { data: p } = await db.from("campus_comments").select("id, parent_id, author_id").eq("id", parentId).eq("post_id", postId).maybeSingle();
     parent = p ? (p.parent_id ?? p.id) : null;
+    parentAuthor = p?.author_id ?? null;
   }
   const check = await moderate("campus_comment", user.id, [text], `/campus/${postId}`);
   if (check.error) return { error: check.error };
   const { data, error } = await db.from("campus_comments").insert({ post_id: postId, parent_id: parent, author_id: user.id, body: text, hidden: check.hold }).select("id").single();
   if (error || !data) return { error: "Couldn't comment. Try again." };
   await check.record(data.id);
+  if (!check.hold) {
+    const name = user.name || "Someone";
+    const replyTo = [
+      ...(parentAuthor ? [{ userId: parentAuthor, title: `${name} replied to your comment` }] : []),
+      ...(post.author_id ? [{ userId: post.author_id, title: `${name} replied to your post` }] : []),
+    ];
+    after(() => notifyCampus(db, { from: user.id, fromName: name, postId, text, replyTo }));
+  }
   return { comments: await campusComments(postId, viewer), held: check.hold };
 }
 
@@ -239,8 +281,21 @@ export async function findCampusPeople(term: string) {
   const { db } = await member();
   const q = term.toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 30);
   if (!q) return [];
-  const { data } = await db.from("profiles").select("username, full_name, avatar_url").eq("status", "active").not("username", "is", null).ilike("username", `${q}%`).limit(6);
-  return (data ?? []).map((p) => ({ username: p.username!, name: p.full_name || p.username!, avatar: p.avatar_url }));
+  // Username starting with what's typed, or any word of their name (so "@bukola" finds Oluwabukola Odunsi).
+  const name = q.replace(/[._]/g, " ").trim();
+  const { data } = await db
+    .from("profiles")
+    .select("username, full_name, avatar_url")
+    .eq("status", "active")
+    .not("username", "is", null)
+    .or(`username.ilike.${q}%,full_name.ilike.%${name}%`)
+    .limit(12);
+  // Exact and starts-with usernames first, then name matches.
+  const rank = (u: string, n: string) => (u === q ? 0 : u.startsWith(q) ? 1 : n.toLowerCase().startsWith(name) ? 2 : 3);
+  return (data ?? [])
+    .map((p) => ({ username: p.username!, name: p.full_name || p.username!, avatar: p.avatar_url }))
+    .sort((a, b) => rank(a.username, a.name) - rank(b.username, b.name))
+    .slice(0, 6);
 }
 
 // The little profile shown when hovering over someone's name.

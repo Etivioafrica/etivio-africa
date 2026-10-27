@@ -3,7 +3,6 @@ import { useEffect, useState, useTransition } from "react";
 import { listen } from "@/lib/supabase/realtime";
 import { useRouter } from "next/navigation";
 import { ArrowUp, Hand, Loader2, type LucideIcon } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import type { CampusKind, CampusPost, FeedQuery } from "@/lib/data/campus";
 import { loadMoreCampus } from "./actions";
 import { OPEN_EVENT } from "./Composer";

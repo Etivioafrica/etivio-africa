@@ -11,6 +11,7 @@ import type { CampusAuthor, CampusComment, CampusKind, CampusPoll, CampusPost, C
 import { addCampusComment, campusProfileCard, createCampusPost, deleteCampusComment, deleteCampusPost, loadCampusComments, toggleCampusLike, toggleCampusRepost, toggleCampusSave, voteCampusPoll, type ProfileCard } from "./actions";
 import { JOB_PAY, JOB_TYPE, type CampusJob, type CampusLink } from "./job";
 import { KIND_STYLE } from "./kinds";
+import { MentionList, useMentions } from "./Mentions";
 
 
 const CAMPUS_PLURAL: Record<CampusKind, string> = { update: "Updates", question: "Questions", win: "Wins", poll: "Polls", opportunity: "Opportunities" };
@@ -299,13 +300,34 @@ function Poll({ postId, poll }: { postId: string; poll: CampusPoll }) {
   );
 }
 
-export function Comments({ postId, viewer, initial, onCount }: { postId: string; viewer: CampusViewer; initial?: CampusComment[]; onCount?: (n: number) => void }) {
+export function Comments({
+  postId,
+  author,
+  viewer,
+  initial,
+  onCount,
+}: {
+  postId: string;
+  author?: CampusAuthor;
+  viewer: CampusViewer;
+  initial?: CampusComment[];
+  onCount?: (n: number) => void;
+}) {
   const [list, setList] = useState<CampusComment[] | null>(initial ?? null);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<CampusComment | null>(null);
   const [note, setNote] = useState("");
   const [pending, start] = useTransition();
   const input = useRef<HTMLInputElement>(null);
+  // People already in this conversation, offered first when tagging (not you).
+  const nearby = [
+    ...new Map(
+      [...(author ? [author] : []), ...(list ?? []).map((c) => c.author)]
+        .filter((a) => a.username && a.id !== viewer.id)
+        .map((a) => [a.username!, { username: a.username!, name: a.name, avatar: a.avatar }]),
+    ).values(),
+  ];
+  const tag = useMentions(draft, setDraft, input, nearby);
 
   useEffect(() => {
     if (initial) return;
@@ -357,7 +379,14 @@ export function Comments({ postId, viewer, initial, onCount }: { postId: string;
             type="button"
             onClick={() => {
               setReplyTo(c);
-              input.current?.focus();
+              // Like X: replying starts with the person's @name (unless it's you, or they're already tagged).
+              const handle = c.author.username && c.author.id !== viewer.id ? `@${c.author.username} ` : "";
+              if (handle && !draft.toLowerCase().includes(handle.trim().toLowerCase())) setDraft(handle + draft.trimStart());
+              requestAnimationFrame(() => {
+                const el = input.current;
+                el?.focus();
+                el?.setSelectionRange(el.value.length, el.value.length);
+              });
             }}
           >
             Reply
@@ -395,19 +424,23 @@ export function Comments({ postId, viewer, initial, onCount }: { postId: string;
       )}
       <div className="et-cps-reply">
         <Avatar src={viewer.avatar} initial={viewer.name.charAt(0).toUpperCase()} seed={viewer.name} className="et-cps-face is-sm" />
-        <input
-          ref={input}
-          value={draft}
-          maxLength={2000}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={replyTo ? `Reply to ${replyTo.author.name}` : "Post your reply"}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              send();
-            }
-          }}
-        />
+        <span className="et-cps-reply-field">
+          <input
+            ref={input}
+            value={draft}
+            maxLength={2000}
+            onChange={(e) => tag.onType(e.target.value, e.target.selectionStart)}
+            placeholder={replyTo ? `Reply to ${replyTo.author.name}` : "Post your reply. Type @ to tag someone"}
+            onKeyDown={(e) => {
+              if (tag.onKey(e)) return;
+              if (e.key === "Enter") {
+                e.preventDefault();
+                send();
+              }
+            }}
+          />
+          {tag.open && <MentionList people={tag.people} pick={tag.pick} />}
+        </span>
         <button type="button" className="et-cps-reply-btn" onClick={send} disabled={pending || !draft.trim()}>
           Reply
         </button>
@@ -653,7 +686,7 @@ function Card({ post, viewer, open: startOpen, clamp = 420, initialComments, onD
           <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
         </button>
       </footer>
-      {open && <Comments postId={post.id} viewer={viewer} initial={initialComments} onCount={setComments} />}
+      {open && <Comments postId={post.id} author={post.author} viewer={viewer} initial={initialComments} onCount={setComments} />}
       {quoting && <QuoteModal post={post} onClose={() => setQuoting(false)} />}
     </article>
   );
