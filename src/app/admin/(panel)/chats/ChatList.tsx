@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { formatDateTime } from "@/lib/format";
+import { ChatListLive } from "./ChatListLive";
 
 const FILTERS = ["open", "pending", "closed", "all"] as const;
 export type ChatFilter = (typeof FILTERS)[number];
@@ -14,13 +15,14 @@ export async function ChatList({ db, filter, activeId }: { db: SupabaseClient<Da
     .select("id, subject, status, staff_unread, last_message_at, user:profiles!support_threads_user_id_fkey(full_name)")
     .order("last_message_at", { ascending: false })
     .limit(100);
-  if (filter === "open") q = q.eq("status", "open");
+  if (filter === "open") q = q.in("status", ["open", "pending"]);
   else if (filter !== "all") q = q.eq("status", filter);
   const { data: threads } = await q;
   const qs = filter === "open" ? "" : `?status=${filter}`;
 
   return (
     <aside className="et-chat-list">
+      <ChatListLive />
       <div className="et-filters" style={{ padding: "10px 12px" }}>
         <div className="et-tabs">
           {FILTERS.map((f) => (
@@ -42,6 +44,7 @@ export async function ChatList({ db, filter, activeId }: { db: SupabaseClient<Da
               <span>{formatDateTime(t.last_message_at)}</span>
             </span>
             <b>{t.subject}</b>
+            {t.status === "pending" && filter !== "pending" && <small className="et-chat-item-tag">Awaiting user</small>}
           </Link>
         ))
       ) : (

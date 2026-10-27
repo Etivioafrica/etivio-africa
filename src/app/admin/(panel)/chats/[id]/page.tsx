@@ -49,7 +49,7 @@ export default async function AdminChat({ params, searchParams }: { params: Prom
               </p>
             </div>
             <div className="et-chat-actions">
-              <AssignSelect id={id} value={thread.assigned_to ?? ""} staff={staff} />
+              <AssignSelect key={thread.assigned_to ?? ""} id={id} value={thread.assigned_to ?? ""} staff={staff} />
               <form action={setThreadStatus}>
                 <input type="hidden" name="id" value={id} />
                 <input type="hidden" name="status" value={closed ? "open" : "closed"} />
