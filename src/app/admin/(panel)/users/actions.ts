@@ -60,6 +60,36 @@ export async function setUserRoles(_prev: FormState, fd: FormData): Promise<Form
   }
 }
 
+// One role on or off, from the users list (after the admin approves it in a dialog). Leaves trusted_tutor alone.
+export async function toggleUserRole(id: string, role: AppRole, on: boolean, note = ""): Promise<FormState> {
+  try {
+    const { admin, db, target } = await guardTarget(id);
+    if (!ALL_ROLES.includes(role) || role === "student") return { error: "Everyone stays a student." };
+    if (on) {
+      const { error } = await db.from("user_roles").upsert({ user_id: target.id, role, granted_by: admin.id }, { onConflict: "user_id,role", ignoreDuplicates: true });
+      if (error) return { error: error.message };
+      await db
+        .from("role_applications")
+        .update({ status: "approved", reviewed_by: admin.id, reviewed_at: new Date().toISOString() })
+        .eq("user_id", target.id)
+        .eq("status", "pending")
+        .eq("role", role);
+    } else {
+      const { error } = await db.from("user_roles").delete().eq("user_id", target.id).eq("role", role);
+      if (error) return { error: error.message };
+    }
+    await audit(admin.id, "user.roles", { type: "user", id: target.id }, {
+      added: on ? [role] : [],
+      removed: on ? [] : [role],
+      ...(note.trim() ? { note: note.trim().slice(0, 500) } : {}),
+    });
+    refresh();
+    return { ok: `${ROLE_LABELS[role]} role ${on ? "given to" : "removed from"} ${target.full_name || "user"}.` };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
 export async function setUserStatus(fd: FormData) {
   const { admin, db, target } = await guardTarget(str(fd, "id"));
   const status = str(fd, "status") === "suspended" ? "suspended" : "active";
