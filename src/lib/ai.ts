@@ -63,8 +63,10 @@ export async function aiStream(messages: ChatMessage[], { maxTokens = 900, onDon
       };
       try {
         read: for (;;) {
-          const { done: ended, value } = await reader.read();
-          if (ended) break;
+          // Stop waiting if the model goes quiet: 4s once text has arrived, 30s for the first words.
+          const next = await Promise.race([reader.read(), new Promise<null>((r) => setTimeout(() => r(null), full ? 4000 : 30000))]);
+          if (!next || next.done) break;
+          const { value } = next;
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
           buffer = lines.pop() ?? "";
@@ -79,8 +81,8 @@ export async function aiStream(messages: ChatMessage[], { maxTokens = 900, onDon
                 full += piece;
                 send(piece);
               }
-              // The last chunk says why it stopped; the connection doesn't always close promptly after it.
-              if (chunk.choices?.[0]?.finish_reason || chunk.usage) break read;
+              // The last text chunk says why it stopped; the connection doesn't always close promptly after it.
+              if (chunk.choices?.[0]?.finish_reason) break read;
             } catch {}
           }
         }
