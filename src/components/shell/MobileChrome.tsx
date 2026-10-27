@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { AiButton } from "./AiWidget";
+import { OPEN_AI } from "./AiWidget";
+import { AiAvatar } from "@/components/learn/AiAvatar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, BookOpen, ChevronLeft, Compass, House, Inbox, LayoutDashboard, Library, School, UserRound, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Bell, PenLine, Plus, BookOpen, ChevronLeft, Compass, House, Inbox, LayoutDashboard, Library, School, UserRound, Users, Wallet, type LucideIcon } from "lucide-react";
 import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
 import type { FeatureMap } from "@/lib/features";
 import "./mobile-app.css";
@@ -85,6 +86,66 @@ const rootPaths = ["/learn", "/teach", "/me", "/campus", "/learn/explore", "/lea
 export function mobileTabs({ teach, canTeach, coach, features }: { teach: boolean; canTeach: boolean; coach: boolean; features: Partial<FeatureMap> }) {
   const messages = features.messages !== false;
   return teach ? teachTabs(canTeach, coach, messages) : learnTabs(messages ? "/learn/messages" : "/learn/announcements", features.campus !== false);
+}
+
+// Campus listens for this to open its composer (see campus/Composer.tsx, OPEN_EVENT).
+const CAMPUS_COMPOSE = "et-campus-compose";
+
+// The phone's floating + button, above the tab bar like X's post button. Tapping it fans out the two things you
+// start from anywhere: a Campus post and a chat with Etivio AI.
+export function MobileFab({ pathname, features }: { pathname: string; features: Partial<FeatureMap> }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const ai = features.ai_assistant !== false;
+  const campus = features.campus !== false;
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [open]);
+  if (!ai && !campus) return null;
+
+  const post = () => {
+    setOpen(false);
+    if (pathname === "/campus") window.dispatchEvent(new CustomEvent(CAMPUS_COMPOSE, { detail: { text: "" } }));
+    else router.push("/campus?compose=1");
+  };
+  const askAi = () => {
+    setOpen(false);
+    window.dispatchEvent(new Event(OPEN_AI));
+  };
+
+  return (
+    <>
+      {open && <div className="et-mfab-scrim" onClick={() => setOpen(false)} aria-hidden />}
+      <div className={`et-mfab${open ? " is-open" : ""}`}>
+        {open && (
+          <div className="et-mfab-menu" role="menu">
+            {campus && (
+              <button type="button" role="menuitem" onClick={post}>
+                <span>New post</span>
+                <i className="is-post">
+                  <PenLine size={19} />
+                </i>
+              </button>
+            )}
+            {ai && (
+              <button type="button" role="menuitem" onClick={askAi}>
+                <span>Ask Etivio AI</span>
+                <i className="is-ai">
+                  <AiAvatar size={30} />
+                </i>
+              </button>
+            )}
+          </div>
+        )}
+        <button type="button" className="et-mfab-btn" onClick={() => setOpen(!open)} aria-label={open ? "Close" : "Create"} aria-expanded={open}>
+          <Plus size={26} strokeWidth={2.4} />
+        </button>
+      </div>
+    </>
+  );
 }
 
 export function MobileTabBar({ pathname, tabs }: { pathname: string; tabs: Tab[] }) {
@@ -172,7 +233,6 @@ export function MobileTopBar({
       <div className="et-mtop-side is-right">
         {home && (
           <>
-            {features.ai_assistant !== false && <AiButton compact />}
             <Link href={tabs.find((t) => t.label === "Inbox")?.href ?? "/learn/announcements"} className="et-mtop-icon" aria-label="Inbox">
               <Bell size={21} />
             </Link>

@@ -63,7 +63,7 @@ import { loadOnboarding, type OnboardingAnswers } from "@/app/(app)/actions";
 import { ROLE_LABELS, canAccess, canTeach, isCoach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
 import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
 import { CartButton } from "@/components/market/CartButton";
-import { MobileSection, MobileTabBar, MobileTopBar, mobileTabs } from "./MobileChrome";
+import { MobileSection, MobileFab, MobileTabBar, MobileTopBar, mobileTabs } from "./MobileChrome";
 
 export type ShellUser = { id: string; name: string; email: string; roles: AppRole[]; avatarUrl: string | null; showTeach?: boolean };
 type SubItem = { label: string; href: string; badge?: number };
@@ -530,6 +530,7 @@ export default function Shell({
           {children}
         </main>
         {!admin && <MobileTabBar pathname={pathname} tabs={tabs} />}
+        {!admin && <MobileFab pathname={pathname} features={features} />}
         <TipLayer />
         {!admin && features.ai_assistant !== false && <AiWidget name={display} />}
         {!admin && guideOpen && <Onboarding name={user.name || user.email} askUsername={guide.username} askQuestions={guide.questions} onClosed={() => setGuideOpen(false)} />}

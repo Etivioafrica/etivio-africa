@@ -34,17 +34,11 @@ export const OPEN_AI = "et:open-ai";
 const openAi = () => window.dispatchEvent(new Event(OPEN_AI));
 
 // The "Ask AI" button in the header.
-export function AiButton({ compact }: { compact?: boolean }) {
+export function AiButton() {
   return (
-    <button
-      type="button"
-      className={compact ? "et-mtop-icon et-ai-btn-icon" : "et-ai-btn"}
-      onClick={openAi}
-      aria-label="Ask Etivio AI"
-      data-tip={compact ? undefined : "Etivio AI"}
-    >
-      <AiAvatar size={compact ? 26 : 22} />
-      {!compact && <span>Ask AI</span>}
+    <button type="button" className="et-ai-btn" onClick={openAi} aria-label="Ask Etivio AI" data-tip="Etivio AI">
+      <AiAvatar size={22} />
+      <span>Ask AI</span>
     </button>
   );
 }

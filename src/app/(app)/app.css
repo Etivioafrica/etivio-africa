@@ -3386,7 +3386,6 @@ button.et-pl-box:hover{border-color:var(--accent)}
 /* Etivio AI: header button and right-side panel */
 .et-ai-btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px 0 6px;margin-right:4px;border:1px solid var(--a-border);border-radius:999px;background:var(--a-panel);font:inherit;font-size:13px;font-weight:600;color:var(--a-fg);cursor:pointer;transition:border-color .15s,background .15s}
 .et-ai-btn:hover{border-color:var(--accent);background:var(--a-panel-2)}
-.et-ai-btn-icon{border:0;background:none;padding:0;cursor:pointer}
 .et-aw-scrim{position:fixed;inset:0;z-index:80;background:#05080f8c;animation:et-aw-fade .2s ease-out}
 .et-aw-panel{position:fixed;z-index:81;top:0;right:0;bottom:0;display:flex;flex-direction:column;width:min(420px,100vw);border-left:1px solid var(--a-border);background:var(--a-panel);box-shadow:-24px 0 60px rgba(15,23,42,.25);animation:et-aw-slide .25s cubic-bezier(.2,.8,.2,1)}
 .et-aw-panel .et-aw-head{padding-top:max(16px,env(safe-area-inset-top))}
