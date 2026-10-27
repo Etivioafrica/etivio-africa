@@ -82,3 +82,29 @@ export async function reportLessonDuration(courseId: string, lessonId: string, s
   if (!lesson || lesson.durationSeconds || !/youtu\.?be/i.test(lesson.videoUrl ?? "")) return;
   await createAdminClient().from("lessons").update({ duration_seconds: Math.round(seconds) }).eq("id", lessonId).is("duration_seconds", null);
 }
+
+export type WatchState = { watched: number; duration: number | null; qualified: boolean };
+
+// Share of a video lesson that must be played before it can be marked complete.
+const WATCH_NEEDED = 0.9;
+
+// Adds newly played seconds of a lesson video. Each report is capped by the real time since the last one (allowing
+// 2x speed), so skipping ahead or calling this directly can't fill it faster than the video plays.
+export async function reportLessonWatch(courseId: string, lessonId: string, seconds: number, videoDuration: number): Promise<WatchState | null> {
+  const uid = await userId();
+  if (!uid || !Number.isFinite(seconds) || seconds <= 0) return null;
+  const player = await getCoursePlayer(courseId);
+  const lesson = player?.modules.flatMap((m) => m.lessons).find((l) => l.id === lessonId);
+  if (!lesson?.videoUrl) return null;
+  const duration = lesson.durationSeconds || (Number.isFinite(videoDuration) && videoDuration >= 5 ? Math.round(videoDuration) : null);
+
+  const db = createAdminClient();
+  const { data: row, error } = await db.from("lesson_watch").select("watched_seconds, updated_at").eq("user_id", uid).eq("lesson_id", lessonId).maybeSingle();
+  if (error) return null;
+  const elapsed = row ? (Date.now() - new Date(row.updated_at).getTime()) / 1000 : 30;
+  const added = Math.min(seconds, elapsed * 2.1 + 5);
+  const watched = Math.round(Math.min((row?.watched_seconds ?? 0) + added, duration ?? Infinity));
+  const qualified = !!duration && watched >= duration * WATCH_NEEDED;
+  await db.from("lesson_watch").upsert({ user_id: uid, lesson_id: lessonId, watched_seconds: watched, qualified, updated_at: new Date().toISOString() });
+  return { watched, duration, qualified };
+}

@@ -27,7 +27,7 @@ export default async function LearnDashboard() {
   const user = await getCurrentUser();
   // Sends any scheduled announcement whose time has passed (claimed once, so this is cheap when there's nothing due).
   after(sendDueAnnouncements);
-  // Landing page after sign-in, so it also catches badges earned outside a lesson (e.g. Early learner).
+  // Landing page after sign-in, so it also catches badges earned outside a lesson (e.g. Pioneer).
   const [mine, recommended, prefs, profile, savedIds, sessions] = await Promise.all([
     getMyCourses(),
     getRecommendations(3),

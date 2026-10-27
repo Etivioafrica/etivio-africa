@@ -2,7 +2,7 @@ import Link from "next/link";
 import { videoSource } from "@/lib/video";
 import { LessonVideo } from "@/components/learn/LessonVideo";
 import { notFound } from "next/navigation";
-import { BarChart3, BookOpen, Check, Pin, ChevronRight, Clock, Download, FileText, ListChecks, Lock, UserRound } from "lucide-react";
+import { BarChart3, BookOpen, Pin, ChevronRight, Clock, Download, FileText, ListChecks, Lock, UserRound } from "lucide-react";
 import { PlayerFrame } from "@/components/learn/PlayerFrame";
 import { buildOutline } from "@/lib/player";
 import { getCoursePlayer } from "@/lib/data/learn";
@@ -10,8 +10,8 @@ import { formatBytes, formatDateTime, formatDuration } from "@/lib/format";
 import { toHtml } from "@/lib/blog";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { createClient } from "@/lib/supabase/server";
-import { setLessonDone } from "@/app/(app)/learn/actions";
-import { reportLessonDuration } from "@/app/(app)/learn/course-actions";
+import { reportLessonDuration, reportLessonWatch, type WatchState } from "@/app/(app)/learn/course-actions";
+import { LessonCompleteButton } from "@/components/learn/LessonCompleteButton";
 import { LessonNotes } from "./LessonNotes";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { Status } from "@/components/dash/ui";
@@ -130,6 +130,10 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
     );
 
   const files = filesBy(current.id);
+  // Video lessons unlock "complete" after 90% has been watched. If the watch table can't be read (not set up yet), don't lock.
+  const watchRow = video && !data.isOwner && !current.done ? await supabase.from("lesson_watch").select("watched_seconds, qualified").eq("lesson_id", current.id).maybeSingle() : null;
+  const watch: WatchState | null =
+    watchRow && !watchRow.error ? { watched: watchRow.data?.watched_seconds ?? 0, duration: current.durationSeconds ?? null, qualified: watchRow.data?.qualified ?? false } : null;
   const totalSeconds = lessons.reduce((s, l) => s + (l.durationSeconds ?? 0), 0);
   const prev = prevLesson && !lockedIds.has(prevLesson.id) ? { href: `${base}?lesson=${prevLesson.id}`, label: "Previous lesson" } : null;
 
@@ -319,7 +323,14 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
       canRate={!data.isOwner && review.canReview && !review.mine}
       stage={
         video ? (
-          <LessonVideo source={video} title={current.title} next={next} onDuration={current.durationSeconds ? undefined : reportLessonDuration.bind(null, id, current.id)} />
+          <LessonVideo
+            source={video}
+            title={current.title}
+            next={next}
+            lessonId={current.id}
+            onDuration={current.durationSeconds ? undefined : reportLessonDuration.bind(null, id, current.id)}
+            onWatch={data.isOwner || current.done ? undefined : reportLessonWatch.bind(null, id, current.id)}
+          />
         ) : undefined
       }
       bar={
@@ -328,15 +339,13 @@ export default async function CoursePlayer({ params, searchParams }: { params: P
             <small>{currentModule?.title}</small>
             <b>{current.title}</b>
           </p>
-          <form action={setLessonDone}>
-            <input type="hidden" name="lessonId" value={current.id} />
-            <input type="hidden" name="done" value={current.done ? "0" : "1"} />
-            {next && <input type="hidden" name="next" value={next.href} />}
-            <button type="submit" className={`et-btn ${current.done ? "et-btn-success" : "et-btn-primary"}`} title={current.done ? "Click to mark as not done" : undefined}>
-              <Check size={15} />
-              {current.done ? "Completed" : quizNext ? "Complete and take the quiz" : next ? "Complete and continue" : "Mark complete"}
-            </button>
-          </form>
+          <LessonCompleteButton
+            lessonId={current.id}
+            done={current.done}
+            nextHref={next?.href}
+            watch={watch}
+            label={current.done ? "Completed" : quizNext ? "Complete and take the quiz" : next ? "Complete and continue" : "Mark complete"}
+          />
           {next && (
             <Link href={next.href} className="et-btn et-btn-ghost">
               {next.label} <ChevronRight size={15} />

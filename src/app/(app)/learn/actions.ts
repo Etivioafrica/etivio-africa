@@ -33,7 +33,9 @@ export async function setLessonDone(formData: FormData) {
   if (!lessonId) return;
   const { supabase, userId } = await requireUserId();
   if (done) {
-    await supabase.from("lesson_progress").upsert({ user_id: userId, lesson_id: lessonId }, { ignoreDuplicates: true });
+    // Refused by the database when a video lesson hasn't been watched enough yet (see lesson_watch).
+    const { error } = await supabase.from("lesson_progress").upsert({ user_id: userId, lesson_id: lessonId }, { ignoreDuplicates: true });
+    if (error) return refresh();
     // New badges are picked up by the shell's celebration on the next page.
     await Promise.all([syncBadges(userId), syncCertificates(userId)]);
   } else {

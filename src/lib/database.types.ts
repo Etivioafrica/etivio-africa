@@ -2254,6 +2254,38 @@ export type Database = {
           },
         ]
       }
+      lesson_watch: {
+        Row: {
+          lesson_id: string
+          qualified: boolean
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+        }
+        Insert: {
+          lesson_id: string
+          qualified?: boolean
+          updated_at?: string
+          user_id: string
+          watched_seconds?: number
+        }
+        Update: {
+          lesson_id?: string
+          qualified?: boolean
+          updated_at?: string
+          user_id?: string
+          watched_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_watch_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           content: string | null
