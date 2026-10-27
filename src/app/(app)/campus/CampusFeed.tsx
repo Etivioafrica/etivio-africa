@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
+import { listen } from "@/lib/supabase/realtime";
 import { useRouter } from "next/navigation";
 import { ArrowUp, Hand, Loader2, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -40,19 +41,19 @@ export function NewPosts({ viewerId }: { viewerId: string }) {
   const router = useRouter();
   const [count, setCount] = useState(0);
   const [pending, start] = useTransition();
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("campus-feed")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "campus_posts" }, (payload) => {
-        const row = payload.new as { author_id?: string; hidden?: boolean };
-        if (row.author_id !== viewerId && !row.hidden) setCount((n) => n + 1);
-      })
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [viewerId]);
+  useEffect(
+    () =>
+      listen((supabase) =>
+        supabase
+          .channel("campus-feed")
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "campus_posts" }, (payload) => {
+            const row = payload.new as { author_id?: string; hidden?: boolean };
+            if (row.author_id !== viewerId && !row.hidden) setCount((n) => n + 1);
+          })
+          .subscribe(),
+      ),
+    [viewerId],
+  );
   if (!count) return null;
   return (
     <button

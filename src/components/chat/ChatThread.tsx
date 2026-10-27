@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { listen } from "@/lib/supabase/realtime";
 import { Send } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { ReportButton } from "@/components/moderation/ReportButton";
 
 export type ChatMessage = { id: string; body: string; is_staff?: boolean; sender_id?: string | null; created_at: string; sender?: string; hidden?: boolean };
@@ -35,22 +35,22 @@ export function ChatThread({
   const isCourse = !!course;
   const add = (m: ChatMessage) => setMessages((list) => (list.some((x) => x.id === m.id) ? list : [...list, m]));
 
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`${isCourse ? "conversation" : "support"}:${threadId}`)
+  useEffect(
+    () =>
+      listen((supabase) =>
+        supabase
+          .channel(`${isCourse ? "conversation" : "support"}:${threadId}`)
       .on(
         "postgres_changes",
         isCourse
           ? { event: "INSERT", schema: "public", table: "conversation_messages", filter: `conversation_id=eq.${threadId}` }
           : { event: "INSERT", schema: "public", table: "support_messages", filter: `thread_id=eq.${threadId}` },
-        (payload) => add(payload.new as ChatMessage),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [threadId, isCourse]);
+            (payload) => add(payload.new as ChatMessage),
+          )
+          .subscribe(),
+      ),
+    [threadId, isCourse],
+  );
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
