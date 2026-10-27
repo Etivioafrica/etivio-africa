@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sessionUser } from "@/lib/supabase/session";
@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
         if (full.trim()) await db.from("ai_messages").insert({ user_id: user.id, course_id: course.id, lesson_id: lesson.id, feature: "lesson_chat", role: "assistant", content: full.slice(0, 12000) });
       },
     });
+    after(stream.done);
     return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Remaining": String(DAILY_LIMIT - (used ?? 0) - 1) } });
   } catch {
     return NextResponse.json({ error: "The study assistant couldn't answer just now. Try again in a moment." }, { status: 502 });

@@ -37,48 +37,74 @@ function textOf(chunk: { response?: unknown; choices?: { delta?: { content?: str
   return chunk.choices?.[0]?.delta?.content ?? chunk.choices?.[0]?.message?.content ?? "";
 }
 
-// Streams the reply as plain text. `onDone` gets the full text once it finishes (to save it).
+// Streams the reply as plain text. `onDone` gets the full text once it finishes (to save it). The model's reply is
+// read to the end on the server even if the browser stops listening (refresh, closed tab), so it's always saved;
+// `done` settles after that, for the route to hand to after() so the save isn't cut off.
 export async function aiStream(messages: ChatMessage[], { maxTokens = 900, onDone }: { maxTokens?: number; onDone?: (full: string) => Promise<void> | void } = {}) {
   const res = await run(AI_MODELS.chat, { messages, max_tokens: maxTokens, stream: true });
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
-  let buffer = "";
-  let full = "";
-  let finished = false;
-  // Ends the reply once, whether the model sent [DONE] or the connection closed (it doesn't always close promptly).
-  const finish = async (controller: ReadableStreamDefaultController<Uint8Array>) => {
-    if (finished) return;
-    finished = true;
-    reader.cancel().catch(() => {});
-    await onDone?.(full);
-    controller.close();
-  };
-  return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      if (finished) return;
-      const { done, value } = await reader.read();
-      if (done) return finish(controller);
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-      for (const line of lines) {
-        const data = line.startsWith("data: ") ? line.slice(6).trim() : "";
-        if (data === "[DONE]") return finish(controller);
-        if (!data) continue;
+  let listening = true;
+  let markDone: () => void = () => {};
+  const done = new Promise<void>((resolve) => (markDone = resolve));
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let buffer = "";
+      let full = "";
+      const send = (text: string) => {
+        if (!listening) return;
         try {
-          const piece = textOf(JSON.parse(data));
-          if (piece) {
-            full += piece;
-            controller.enqueue(encoder.encode(piece));
+          controller.enqueue(encoder.encode(text));
+        } catch {
+          listening = false;
+        }
+      };
+      try {
+        read: for (;;) {
+          const { done: ended, value } = await reader.read();
+          if (ended) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const data = line.startsWith("data: ") ? line.slice(6).trim() : "";
+            if (data === "[DONE]") break read;
+            if (!data) continue;
+            try {
+              const chunk = JSON.parse(data);
+              const piece = textOf(chunk);
+              if (piece) {
+                full += piece;
+                send(piece);
+              }
+              // The last chunk says why it stopped; the connection doesn't always close promptly after it.
+              if (chunk.choices?.[0]?.finish_reason || chunk.usage) break read;
+            } catch {}
           }
-        } catch {}
+        }
+      } catch {
+        // Connection dropped mid-reply: keep what arrived.
+      }
+      reader.cancel().catch(() => {});
+      try {
+        await onDone?.(full);
+      } finally {
+        if (listening) {
+          try {
+            controller.close();
+          } catch {}
+        }
+        markDone();
       }
     },
     cancel() {
-      return reader.cancel();
+      // The browser went away; the reply is still read to the end above and saved.
+      listening = false;
     },
   });
+  return Object.assign(stream, { done });
 }
 
 export async function aiText(messages: ChatMessage[], { model = AI_MODELS.write, maxTokens = 1500 }: { model?: string; maxTokens?: number } = {}) {
