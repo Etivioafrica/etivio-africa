@@ -7,7 +7,7 @@ import { getInbox, markNotesRead, type Inbox, type InboxNote } from "@/app/(app)
 import { listen } from "@/lib/supabase/realtime";
 import { Avatar } from "@/components/dash/Avatar";
 
-// Fired on window with the unread message count, so the sidebar's Messages link can show it too.
+// Fired on window with unread tutor-chat and support counts, for the sidebar's Messages and Support links.
 export const INBOX_COUNTS = "et:inbox-counts";
 
 const NOTE_ICONS: Record<string, typeof Bell> = { support: LifeBuoy, message: MessagesSquare, badge: Award, certificate: ScrollText, community: Users, course: GraduationCap };
@@ -35,7 +35,7 @@ export function HeaderInbox({ userId, messagesOn }: { userId: string; messagesOn
     timer.current = setTimeout(() => {
       getInbox().then((next) => {
         setInbox(next);
-        window.dispatchEvent(new CustomEvent(INBOX_COUNTS, { detail: { messages: next.unreadMessages } }));
+        window.dispatchEvent(new CustomEvent(INBOX_COUNTS, { detail: { messages: next.unreadTutor, support: next.unreadSupport } }));
       }, () => undefined);
     }, 250);
   }, []);

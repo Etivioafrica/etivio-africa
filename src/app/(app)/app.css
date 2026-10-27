@@ -358,6 +358,14 @@ a.et-lesson:hover{background:var(--a-hover);color:var(--a-fg)}
 .et-chat-item b{color:var(--a-fg);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .et-chat-item.is-unread b::after{content:"";display:inline-block;width:7px;height:7px;margin-left:7px;border-radius:50%;background:var(--accent);vertical-align:middle}
 .et-chat-item-tag{align-self:flex-start;padding:2px 8px;border-radius:999px;background:#f59e0b;color:#fff;font-size:11px;font-weight:700}
+.et-chat-item-tag.is-closed{background:var(--a-faint)}
+.et-chat-find{position:relative;display:flex;align-items:center;margin:0 12px 8px}
+.et-chat-find>svg{position:absolute;left:11px;color:var(--a-faint);pointer-events:none}
+.et-chat-find input{width:100%;height:38px;padding:0 32px 0 34px;border:1px solid var(--a-border);border-radius:10px;background:var(--a-input);font:inherit;font-size:13.5px;color:var(--a-fg);outline:none}
+.et-chat-find input:focus{border-color:var(--accent)}
+.et-chat-find button{position:absolute;right:6px;display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:6px;background:none;color:var(--a-muted);cursor:pointer}
+.et-chat-find button:hover{background:var(--a-panel-2);color:var(--a-fg)}
+.et-chat-find-count{padding:0 16px 8px;font-size:12px;color:var(--a-muted)}
 .et-chat-item-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--a-faint)}
 .et-chat-pane{display:flex;flex-direction:column;min-width:0;min-height:0}
 .et-chat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px;border-bottom:1px solid var(--a-border);flex-wrap:wrap}
@@ -3373,3 +3381,10 @@ button.et-pl-box:hover{border-color:var(--accent)}
 .et-hn-panel footer a{flex:1;padding:12px;text-align:center;font-size:13px;font-weight:600;color:var(--accent)}
 .et-hn-panel footer a+a{border-left:1px solid var(--a-border)}
 .et-hn-panel footer a:hover{background:var(--a-panel-2)}
+/* Support page: the one open conversation */
+.et-sup-active{display:flex;flex-direction:column;align-items:flex-start;gap:10px;align-self:start}
+.et-sup-active h2{margin:0;font-size:17px}
+.et-sup-active p{margin:0;font-size:13.5px;line-height:1.55;color:var(--a-muted)}
+.et-sup-active .et-btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.et-sup-active small{font-size:12px;color:var(--a-faint)}
+.et-sup-active-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--accent);color:#fff}

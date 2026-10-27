@@ -4,9 +4,11 @@ import { listConversations } from "@/lib/data/messages";
 
 export type InboxNote = { id: string; kind: string; title: string; body: string | null; href: string | null; read: boolean; at: string };
 export type InboxThread = { id: string; kind: "tutor" | "support"; title: string; sub: string; preview: string | null; avatar: string | null; at: string; unread: number; href: string };
-export type Inbox = { notes: InboxNote[]; unreadNotes: number; threads: InboxThread[]; unreadMessages: number };
+// unreadMessages counts every unread conversation (the header icon); unreadTutor and unreadSupport split it for the
+// sidebar, where tutor chats live under Messages and support chats under Support.
+export type Inbox = { notes: InboxNote[]; unreadNotes: number; threads: InboxThread[]; unreadMessages: number; unreadTutor: number; unreadSupport: number };
 
-const EMPTY: Inbox = { notes: [], unreadNotes: 0, threads: [], unreadMessages: 0 };
+const EMPTY: Inbox = { notes: [], unreadNotes: 0, threads: [], unreadMessages: 0, unreadTutor: 0, unreadSupport: 0 };
 
 // Everything the header's bell and messages menus show: the latest notifications, and the latest conversations
 // (course chats on both sides, plus support chats) with unread counts.
@@ -34,6 +36,8 @@ export async function getInbox(): Promise<Inbox> {
     unreadNotes: unread.count ?? 0,
     threads: threads.slice(0, 12),
     unreadMessages: threads.reduce((n, t) => n + (t.unread ? 1 : 0), 0),
+    unreadTutor: threads.filter((t) => t.kind === "tutor" && t.unread).length,
+    unreadSupport: threads.filter((t) => t.kind === "support" && t.unread).length,
   };
 }
 

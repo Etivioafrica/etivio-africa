@@ -325,9 +325,9 @@ export default function Shell({
     return () => window.removeEventListener(OPEN_LEARNING_PREFS, open);
   }, []);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unread, setUnread] = useState({ messages: 0, support: 0 });
   useEffect(() => {
-    const on = (e: Event) => setUnreadMessages((e as CustomEvent<{ messages: number }>).detail.messages);
+    const on = (e: Event) => setUnread((e as CustomEvent<{ messages: number; support: number }>).detail);
     window.addEventListener(INBOX_COUNTS, on);
     return () => window.removeEventListener(INBOX_COUNTS, on);
   }, []);
@@ -379,8 +379,12 @@ export default function Shell({
       ...g,
       items: g.items
         .filter((i) => !i.feature || features[i.feature] !== false)
-        // Unread conversations, kept live by the header's messages menu.
-        .map((i) => (!admin && unreadMessages && (i.href === "/learn/messages" || i.href === "/teach/messages") ? { ...i, badge: unreadMessages } : i)),
+        // Unread tutor chats on Messages, unread support replies on Support; kept live by the header's messages menu.
+        .map((i) => {
+          if (admin) return i;
+          const n = i.href === "/learn/messages" || i.href === "/teach/messages" ? unread.messages : i.href === "/support" ? unread.support : 0;
+          return n ? { ...i, badge: n } : i;
+        }),
     }))
     .filter((g) => g.items.length);
   const matches = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
