@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { activeAccess } from "@/lib/access";
 import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -37,7 +38,7 @@ export async function joinCommunity(_prev: Result | null, fd: FormData): Promise
     const mod = await moderate("community", user.id, [answer], `/communities/${c.slug}`);
     if (mod.error) return { error: mod.error };
   } else if (c.joinMode === "course") {
-    const { data: enrolled } = c.course_id ? await db.from("enrollments").select("user_id").eq("course_id", c.course_id).eq("user_id", user.id).maybeSingle() : { data: null };
+    const { data: enrolled } = c.course_id ? await db.from("enrollments").select("user_id").eq("course_id", c.course_id).eq("user_id", user.id).or(activeAccess()).maybeSingle() : { data: null };
     if (!enrolled) return { error: "This community is for students of its course. Enrol in the course to join." };
   } else if (c.joinMode === "invite") {
     if (str(fd, "invite", 40) !== c.invite_code) return { error: "This community is invite only. Ask a member for the invite link." };

@@ -1,4 +1,5 @@
 import "server-only";
+import { renewAccess } from "@/lib/data/access";
 import { randomBytes } from "node:crypto";
 import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -100,6 +101,7 @@ export async function createGroup(course: { id: string; price_minor: number; cur
 async function enroll(userId: string, courseId: string) {
   const db = createAdminClient();
   const { data } = await db.from("enrollments").upsert({ user_id: userId, course_id: courseId }, { onConflict: "user_id,course_id", ignoreDuplicates: true }).select("user_id");
+  await renewAccess(userId, [courseId]);
   if (data?.length) after(() => emailEnrolled(userId, courseId));
 }
 

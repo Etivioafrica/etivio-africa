@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { videoSource } from "@/lib/video";
 import { LessonVideo } from "@/components/learn/LessonVideo";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { BarChart3, BookOpen, Pin, ChevronRight, Clock, Download, FileText, ListChecks, Lock, UserRound } from "lucide-react";
 import { PlayerFrame } from "@/components/learn/PlayerFrame";
 import { buildOutline } from "@/lib/player";
@@ -34,7 +34,8 @@ const dayAgo = () => new Date(Date.now() - 86_400_000).toISOString();
 export default async function CoursePlayer({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lesson?: string }> }) {
   const [{ id }, { lesson: lessonParam }] = await Promise.all([params, searchParams]);
   const data = await getCoursePlayer(id);
-  if (!data) notFound();
+  // Access period over: send them to the course page, which offers to buy (or enrol) again.
+  if (!data) redirect(`/learn/browse/${id}`);
 
   const { course, modules, lessons, doneCount, progress, quizzes, passedCount, review } = data;
   // RLS limits this to documents the viewer may open (enrolled, owner, or public).

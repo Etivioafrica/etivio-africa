@@ -12,6 +12,7 @@ import { createCourseFull, updateCourseFull, type Created, type LessonFile } fro
 import { LessonCard, hasText, type LessonPatch, type WizLesson } from "./LessonCard";
 import { Select } from "@/components/dash/Select";
 import { confirmDialog } from "@/components/dash/dialogs";
+import { ACCESS_PRESETS, accessLabel, accessPeriod } from "@/lib/access";
 
 type Level = "beginner" | "intermediate" | "advanced";
 type Mod = { key: number; id?: string; title: string; lessons: WizLesson[] };
@@ -26,6 +27,8 @@ export type WizardInitial = {
   coverUrl: string;
   priceNaira: number;
   listed: boolean;
+  // How long learners keep the course after enrolling; null = lifetime.
+  accessDays: number | null;
   group?: GroupBuy;
   modules: { id: string; title: string; lessons: { id: string; title: string; videoUrl: string; hostedVideo: boolean; content: string; files: LessonFile[] }[] }[];
 };
@@ -76,6 +79,9 @@ export function CourseWizard({
   const [coverUrl, setCoverUrl] = useState(initial?.coverUrl ?? "");
   const [paid, setPaid] = useState((initial?.priceNaira ?? 0) > 0);
   const [listed, setListed] = useState(initial?.listed ?? true);
+  const [accessDays, setAccessDays] = useState<number | null>(initial?.accessDays ?? null);
+  // Custom length in days, shown when the period isn't one of the presets.
+  const [customAccess, setCustomAccess] = useState(() => initial?.accessDays != null && !ACCESS_PRESETS.some((p) => p.days === initial.accessDays));
   const [group, setGroup] = useState<GroupBuy>(initial?.group ?? GROUP_DEFAULT);
   const setG = (patch: Partial<GroupBuy>) => setGroup((g) => ({ ...g, ...patch }));
   // AI helpers: which one is running, and whether the outline should research the web first.
@@ -188,7 +194,7 @@ export function CourseWizard({
       return copy;
     });
 
-  const fields = () => ({ title, summary, description, skills, instructorId, categoryId, level, coverUrl, priceNaira: paid ? String(priceNum) : "0", listed, group: { ...group, enabled: paid && group.enabled }, modules: lessonPayload() });
+  const fields = () => ({ title, summary, description, skills, instructorId, categoryId, level, coverUrl, priceNaira: paid ? String(priceNum) : "0", listed, accessDays, group: { ...group, enabled: paid && group.enabled }, modules: lessonPayload() });
   // What the course looks like, without row ids, so merging ids after a save doesn't count as a change.
   const snapshot = JSON.stringify({
     ...fields(),
@@ -282,6 +288,7 @@ export function CourseWizard({
         coverUrl,
         priceNaira: paid ? String(priceNum) : "0",
         listed,
+        accessDays,
         group: { ...group, enabled: paid && group.enabled },
         modules: lessonPayload(),
         publish,
@@ -520,7 +527,7 @@ export function CourseWizard({
               </button>
               <button type="button" className={paid ? "is-on" : ""} onClick={() => setPaid(true)}>
                 <b>Paid</b>
-                <small>Learners pay once through Paystack and keep access for good.</small>
+                <small>Learners pay once through Paystack. You choose how long they keep it below.</small>
               </button>
             </div>
             {paid && (
@@ -564,6 +571,56 @@ export function CourseWizard({
                 )}
               </div>
             )}
+            <div className="et-field et-wiz-access">
+              <label>How long learners keep it</label>
+              <div className="et-wiz-access-opts" role="radiogroup" aria-label="Access period">
+                {ACCESS_PRESETS.map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={!customAccess && accessDays === p.days}
+                    className={!customAccess && accessDays === p.days ? "is-on" : ""}
+                    onClick={() => {
+                      setCustomAccess(false);
+                      setAccessDays(p.days);
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={customAccess}
+                  className={customAccess ? "is-on" : ""}
+                  onClick={() => {
+                    setCustomAccess(true);
+                    setAccessDays((d) => d ?? 60);
+                  }}
+                >
+                  Custom
+                </button>
+              </div>
+              {customAccess && (
+                <div className="et-wiz-access-custom">
+                  <input
+                    type="number"
+                    min={1}
+                    max={3650}
+                    value={accessDays ?? ""}
+                    onChange={(e) => setAccessDays(e.target.value ? Math.max(1, Math.min(3650, Math.round(Number(e.target.value)))) : null)}
+                    aria-label="Access period in days"
+                  />
+                  <span>days</span>
+                </div>
+              )}
+              <small>
+                {accessDays
+                  ? `Each learner's access ends ${accessPeriod(accessDays).toLowerCase()} after they enrol. They can buy it again to keep going. Learners already enrolled keep the access they had.`
+                  : "Learners keep the course for good."}
+              </small>
+            </div>
             <label className="et-wiz-listed">
               <span>
                 <b>Show on the marketplace</b>
@@ -593,6 +650,8 @@ export function CourseWizard({
                   {paid ? `₦${priceNum.toLocaleString()}` : "Free"}
                   {paid && group.enabled ? ` · group buy ${group.discount}% off for ${group.size} people` : ""}
                 </dd>
+                <dt>Access</dt>
+                <dd>{accessLabel(accessDays)}</dd>
                 <dt>Curriculum</dt>
                 <dd>
                   {modules.filter((m) => m.title.trim()).length} modules · {lessonTotal} lessons

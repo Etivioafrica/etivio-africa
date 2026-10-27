@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { renewAccess } from "@/lib/data/access";
 import { refresh } from "next/cache";
 import { after } from "next/server";
 import { emailApplicationDecision } from "@/lib/email/notify";
@@ -119,7 +120,12 @@ export async function grantCourseAccess(_prev: FormState, fd: FormData): Promise
   const courseId = str(fd, "course_id");
   if (!courseId) return { error: "Pick a course." };
   const { error } = await db.from("enrollments").insert({ user_id: userId, course_id: courseId });
-  if (error) return { error: error.code === "23505" ? "Already enrolled in that course." : "Could not enroll the user." };
+  if (error?.code === "23505") {
+    // Already enrolled: if their access had ended, this gives them a fresh period.
+    const { data: row } = await db.from("enrollments").select("expires_at").eq("user_id", userId).eq("course_id", courseId).maybeSingle();
+    if (!row?.expires_at || new Date(row.expires_at) > new Date()) return { error: "Already enrolled in that course." };
+    await renewAccess(userId, [courseId]);
+  } else if (error) return { error: "Could not enroll the user." };
   await audit(admin.id, "user.grant_course", { type: "user", id: userId }, { course_id: courseId });
   refresh();
   return { ok: "Course access granted." };

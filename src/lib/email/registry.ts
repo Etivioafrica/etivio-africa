@@ -47,13 +47,13 @@ export const TEMPLATES: TemplateDef[] = [
     group: "app",
     when: "Enrolling in a course",
     subject: "You're enrolled: {{course}}",
-    placeholders: [name, course, P("instructor", "Instructor", "Nnamdi Obi"), P("course_url", "Course link", `${SITE()}/learn/course/…`)],
+    placeholders: [name, course, P("instructor", "Instructor", "Nnamdi Obi"), P("access", "Access", "Lifetime"), P("course_url", "Course link", `${SITE()}/learn/course/…`)],
     starter: {
       banner: "enrolled",
       parts: [
         { type: "heading", text: "You're enrolled!" },
         { type: "text", html: "<p><strong>Hi {{name}},</strong></p><p>Great choice. You now have full access to your new course. Work through the lessons in order and you'll earn a certificate when you finish.</p>" },
-        { type: "box", html: "<p style=\"font-size:16px\"><strong>{{course}}</strong></p><p>Instructor: <strong>{{instructor}}</strong><br>Access: <strong>Lifetime</strong></p>" },
+        { type: "box", html: "<p style=\"font-size:16px\"><strong>{{course}}</strong></p><p>Instructor: <strong>{{instructor}}</strong><br>Access: <strong>{{access}}</strong></p>" },
         { type: "button", label: "Start learning", href: "{{course_url}}" },
       ],
       footer: "You're getting this because you enrolled in a course on Etivio.",

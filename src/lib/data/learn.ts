@@ -1,4 +1,5 @@
 import "server-only";
+import { activeAccess, isExpired } from "@/lib/access";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sessionUser } from "@/lib/supabase/session";
@@ -25,6 +26,9 @@ export type CourseCard = {
 
 export type MyCourse = CourseCard & {
   enrolledAt: string;
+  // When access ends (null = lifetime), and whether it already has.
+  expiresAt: string | null;
+  expired: boolean;
   done: number;
   progress: number;
   completed: boolean;
@@ -91,11 +95,11 @@ export async function getMyCourses(): Promise<MyCourse[]> {
   const supabase = await createClient();
 
   const [{ data: enrollments }, { data: progress }] = await Promise.all([
-    supabase.from("enrollments").select(`enrolled_at, course:courses(${COURSE_COLS})`).eq("user_id", user.id).order("enrolled_at", { ascending: false }),
+    supabase.from("enrollments").select(`enrolled_at, expires_at, course:courses(${COURSE_COLS})`).eq("user_id", user.id).order("enrolled_at", { ascending: false }),
     supabase.from("lesson_progress").select("lesson_id, completed_at, lesson:lessons(course_id)").eq("user_id", user.id),
   ]);
 
-  const rows = (enrollments ?? []).filter((e) => e.course) as unknown as { enrolled_at: string; course: CourseRow }[];
+  const rows = (enrollments ?? []).filter((e) => e.course) as unknown as { enrolled_at: string; expires_at: string | null; course: CourseRow }[];
   const doneIds = new Set((progress ?? []).map((p) => p.lesson_id));
   const { data: lessonRows } = rows.length
     ? await supabase.from("lessons").select("id, course_id, duration_seconds").in("course_id", rows.map((r) => r.course.id))
@@ -133,6 +137,8 @@ export async function getMyCourses(): Promise<MyCourse[]> {
       return {
         ...card,
         enrolledAt: r.enrolled_at,
+        expiresAt: r.expires_at,
+        expired: isExpired(r.expires_at),
         done,
         progress: percent(done + quiz.passed, card.lessonCount + quiz.quizzes),
         completed: card.lessonCount > 0 && done >= card.lessonCount && quiz.passed >= quiz.quizzes,
@@ -183,7 +189,8 @@ export async function getCoursePlayer(courseId: string) {
   const { data: course } = await supabase.from("courses").select(`${COURSE_COLS}, instructor_id`).eq("id", courseId).maybeSingle();
   if (!course) return null;
 
-  const { data: enrollment } = await supabase.from("enrollments").select("enrolled_at").eq("user_id", user.id).eq("course_id", courseId).maybeSingle();
+  // Enrolments whose access period has ended don't open the player.
+  const { data: enrollment } = await supabase.from("enrollments").select("enrolled_at").eq("user_id", user.id).eq("course_id", courseId).or(activeAccess()).maybeSingle();
   const isOwner = course.instructor_id === user.id;
   if (!enrollment && !isOwner) return null;
 
@@ -292,7 +299,7 @@ export async function getCourseDetails(idOrSlug: string) {
   const { data: course } = await db
     .from("courses")
     .select(
-      "id, slug, title, summary, description, cover_url, level, price_minor, currency, category, skills, status, featured, published_at, instructor_id, updated_at, instructor:profiles!courses_instructor_id_fkey(full_name, avatar_url, headline, bio)",
+      "id, slug, title, summary, description, cover_url, level, price_minor, currency, category, skills, status, featured, published_at, instructor_id, updated_at, access_days, instructor:profiles!courses_instructor_id_fkey(full_name, avatar_url, headline, bio)",
     )
     .eq(byId ? "id" : "slug", idOrSlug)
     .maybeSingle();
@@ -305,7 +312,7 @@ export async function getCourseDetails(idOrSlug: string) {
     db.from("lessons").select("id, module_id, title, kind, duration_seconds, is_preview").eq("course_id", courseId).order("position"),
     db.from("course_quizzes").select("module_id, title").eq("course_id", courseId),
     db.from("documents").select("id", { count: "exact", head: true }).eq("course_id", courseId),
-    user ? db.from("enrollments").select("enrolled_at").eq("course_id", courseId).eq("user_id", user.id).maybeSingle() : none,
+    user ? db.from("enrollments").select("enrolled_at, expires_at").eq("course_id", courseId).eq("user_id", user.id).maybeSingle() : none,
     user ? db.from("saved_courses").select("course_id").eq("course_id", courseId).eq("user_id", user.id).maybeSingle() : none,
     db.from("enrollments").select("user_id", { count: "exact", head: true }).eq("course_id", courseId),
     db
@@ -336,6 +343,7 @@ export async function getCourseDetails(idOrSlug: string) {
       publishedAt: course.published_at,
       featured: course.featured,
       instructorId: course.instructor_id,
+      accessDays: course.access_days,
     },
     instructor: {
       name: course.instructor?.full_name || "Etivio instructor",
@@ -363,7 +371,10 @@ export async function getCourseDetails(idOrSlug: string) {
       reviews: rated.length,
     },
     reviews: rated.slice(0, 6).map((r) => ({ id: r.id, rating: r.rating, body: r.body, reply: r.admin_reply, at: r.created_at, author: r.author?.full_name || "Learner", avatar: r.author?.avatar_url ?? null })),
-    enrolled: !!enrollment || (!!user && course.instructor_id === user.id),
+    enrolled: (!!enrollment && !isExpired(enrollment.expires_at)) || (!!user && course.instructor_id === user.id),
+    // Bought before but the access period has ended: offer to buy again.
+    accessEnded: !!enrollment && isExpired(enrollment.expires_at) && !(user && course.instructor_id === user.id),
+    accessEndsAt: enrollment && !isExpired(enrollment.expires_at) ? enrollment.expires_at : null,
     saved: !!saved,
     signedIn: !!user,
   };

@@ -1746,6 +1746,7 @@ export type Database = {
       }
       courses: {
         Row: {
+          access_days: number | null
           category: string | null
           category_id: string | null
           cover_url: string | null
@@ -1775,6 +1776,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_days?: number | null
           category?: string | null
           category_id?: string | null
           cover_url?: string | null
@@ -1804,6 +1806,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_days?: number | null
           category?: string | null
           category_id?: string | null
           cover_url?: string | null
@@ -2019,18 +2022,21 @@ export type Database = {
           completed_at: string | null
           course_id: string
           enrolled_at: string
+          expires_at: string | null
           user_id: string
         }
         Insert: {
           completed_at?: string | null
           course_id: string
           enrolled_at?: string
+          expires_at?: string | null
           user_id: string
         }
         Update: {
           completed_at?: string | null
           course_id?: string
           enrolled_at?: string
+          expires_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -3795,6 +3801,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      renew_enrollments: {
+        Args: { p_course_ids: string[]; p_user_id: string }
+        Returns: undefined
+      }
       admin_active_users: {
         Args: { p_days?: number; p_end?: string }
         Returns: number

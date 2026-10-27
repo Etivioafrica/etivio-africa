@@ -1,4 +1,5 @@
 import { NextResponse, after, type NextRequest } from "next/server";
+import { activeAccess } from "@/lib/access";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sessionUser } from "@/lib/supabase/session";
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
   const [{ data: course }, { data: lesson }, { data: enrolled }, { data: roles }, { count: used }] = await Promise.all([
     db.from("courses").select("id, title, summary, instructor_id").eq("id", body.courseId).maybeSingle(),
     db.from("lessons").select("id, course_id, module_id, title, content, video_url").eq("id", body.lessonId).maybeSingle(),
-    db.from("enrollments").select("user_id").eq("course_id", body.courseId).eq("user_id", user.id).maybeSingle(),
+    db.from("enrollments").select("user_id").eq("course_id", body.courseId).eq("user_id", user.id).or(activeAccess()).maybeSingle(),
     db.from("user_roles").select("role").eq("user_id", user.id).eq("role", "super_admin"),
     db.from("ai_messages").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("feature", "lesson_chat").eq("role", "user").gte("created_at", since),
   ]);

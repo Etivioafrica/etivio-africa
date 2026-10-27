@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { activeAccess } from "@/lib/access";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SendResult } from "@/components/chat/ChatThread";
@@ -20,7 +21,7 @@ export async function startConversation(_prev: StartState, fd: FormData): Promis
   const db = createAdminClient();
   const [{ data: course }, { data: enrolled }] = await Promise.all([
     db.from("courses").select("id, instructor_id").eq("id", courseId).maybeSingle(),
-    db.from("enrollments").select("user_id").eq("course_id", courseId).eq("user_id", user.id).maybeSingle(),
+    db.from("enrollments").select("user_id").eq("course_id", courseId).eq("user_id", user.id).or(activeAccess()).maybeSingle(),
   ]);
   if (!course) return { error: "That course wasn't found." };
   if (!enrolled) return { error: "Enrol in the course to message its tutor." };

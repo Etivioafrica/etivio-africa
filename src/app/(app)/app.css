@@ -3330,3 +3330,13 @@ button.et-pl-box:hover{border-color:var(--accent)}
 .et-pl-lock:disabled{opacity:1}
 .et-pl-lock-pct{padding:2px 7px;border-radius:999px;background:var(--a-panel);font-size:11.5px;font-weight:700;color:var(--a-fg)}
 .et-pl-lock-fill{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);transition:width .4s ease}
+.et-ud-access-note{margin:0;font-size:12.5px;line-height:1.45;color:var(--a-muted)}
+/* Course wizard: access period */
+.et-wiz-access{max-width:640px}
+.et-wiz-access-opts{display:flex;flex-wrap:wrap;gap:8px}
+.et-wiz-access-opts button{height:36px;padding:0 14px;border:1px solid var(--a-border);border-radius:999px;background:var(--a-panel);font:inherit;font-size:13px;font-weight:600;color:var(--a-fg);cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+.et-wiz-access-opts button:hover{border-color:var(--a-muted)}
+.et-wiz-access-opts button.is-on{border-color:var(--accent);background:var(--accent);color:#fff}
+.et-wiz-access-custom{display:flex;align-items:center;gap:8px}
+.et-wiz-access-custom input{width:110px}
+.et-wiz-access-custom span{font-size:13px;color:var(--a-muted)}

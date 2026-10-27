@@ -11,6 +11,7 @@ import { MessageTutorSlot } from "@/components/chat/MessageTutorSlot";
 import { PaymentNotice } from "./PaymentNotice";
 import type { getCourseDetails } from "@/lib/data/learn";
 import { formatDate, formatDuration, formatPrice } from "@/lib/format";
+import { accessLabel } from "@/lib/access";
 import { toHtml } from "@/lib/blog";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { ReportButton } from "@/components/moderation/ReportButton";
@@ -35,7 +36,7 @@ export type CourseData = NonNullable<Awaited<ReturnType<typeof getCourseDetails>
 // The course details page (Udemy-style), shared by the in-app page and the public /courses/[slug] page.
 // Call connection() before rendering: the "New" badge depends on today's date.
 export function CourseView({ data }: { data: CourseData }) {
-  const { course, instructor, modules, stats, reviews, enrolled, saved, signedIn } = data;
+  const { course, instructor, modules, stats, reviews, enrolled, saved, signedIn, accessEnded, accessEndsAt } = data;
   const publicPath = `/courses/${course.slug}`;
   const free = course.priceMinor === 0;
   const hasPreview = modules.some((m) => m.lessons.some((l) => l.preview));
@@ -61,7 +62,7 @@ export function CourseView({ data }: { data: CourseData }) {
     <form action={enrollFree}>
       <input type="hidden" name="courseId" value={course.id} />
       <button type="submit" className="et-btn et-btn-primary et-ud-cta">
-        Enroll for free
+        {accessEnded ? "Enroll again for free" : "Enroll for free"}
       </button>
     </form>
   );
@@ -127,7 +128,9 @@ export function CourseView({ data }: { data: CourseData }) {
               </div>
               <div className="et-ud-card-body">
                 <p className="et-ud-price">{free ? "Free" : formatPrice(course.priceMinor, course.currency)}</p>
+                {accessEnded && <p className="et-ud-access-note">Your access to this course has ended. {free ? "Enroll again" : "Buy it again"} to pick up where you left off.</p>}
                 {cta}
+                {accessEndsAt && <p className="et-ud-access-note">Your access ends {formatDate(accessEndsAt)}.</p>}
                 {enrolled && (
                   <Suspense fallback={null}>
                     <MessageTutorSlot courseId={course.id} tutorId={course.instructorId} tutorName={instructor.name} />
@@ -149,7 +152,7 @@ export function CourseView({ data }: { data: CourseData }) {
                 )}
                 <ul className="et-ud-perks">
                   <li>
-                    <Lifetime size={16} /> Full lifetime access
+                    {course.accessDays ? <CalendarDays size={16} /> : <Lifetime size={16} />} {course.accessDays ? accessLabel(course.accessDays) : "Full lifetime access"}
                   </li>
                   <li>
                     <Award size={16} /> Certificate of completion

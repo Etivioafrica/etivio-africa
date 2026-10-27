@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { renewAccess } from "@/lib/data/access";
 import { audit, requireAdmin } from "@/lib/admin";
 import { nairaToMinor } from "@/lib/format";
 import type { FormState } from "@/app/(app)/teach/actions";
@@ -43,6 +44,7 @@ export async function recordPayment(_prev: FormState, fd: FormData): Promise<For
   });
   if (error) return { error: error.code === "23505" ? "That reference is already used." : "Could not record the payment." };
   await db.from("enrollments").upsert({ user_id: buyer.id, course_id: course.id }, { onConflict: "user_id,course_id", ignoreDuplicates: true });
+  await renewAccess(buyer.id, [course.id]);
   await audit(admin.id, "payment.manual", { type: "payment", id: reference }, { amount, course_id: course.id, user_id: buyer.id });
   refresh();
   return { ok: `Recorded ${reference} and enrolled ${buyer.full_name || email}.` };

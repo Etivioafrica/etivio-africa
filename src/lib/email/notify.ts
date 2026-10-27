@@ -1,4 +1,6 @@
 import "server-only";
+import { accessPeriod } from "@/lib/access";
+import { formatDate } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripHtml } from "@/lib/announcements";
 import { formatPrice } from "@/lib/format";
@@ -19,14 +21,17 @@ export async function emailWelcome(userId: string) {
 }
 
 export async function emailEnrolled(userId: string, courseId: string) {
-  const [r, { data: c }] = await Promise.all([
+  const db = createAdminClient();
+  const [r, { data: c }, { data: e }] = await Promise.all([
     recipient(userId),
-    createAdminClient().from("courses").select("title, instructor:profiles!courses_instructor_id_fkey(full_name)").eq("id", courseId).maybeSingle(),
+    db.from("courses").select("title, access_days, instructor:profiles!courses_instructor_id_fkey(full_name)").eq("id", courseId).maybeSingle(),
+    db.from("enrollments").select("expires_at").eq("user_id", userId).eq("course_id", courseId).maybeSingle(),
   ]);
   if (!r || !c) return;
   const instructor = c.instructor?.full_name ?? null;
-  const email = await compose("enrolled", { name: r.name, course: c.title, instructor: instructor ?? "Etivio", course_url: `${siteUrl()}/learn/course/${courseId}` }, () =>
-    enrolledEmail({ name: r.name, course: c.title, instructor, courseId }),
+  const access = e?.expires_at ? `${accessPeriod(c.access_days)} (until ${formatDate(e.expires_at)})` : "Lifetime";
+  const email = await compose("enrolled", { name: r.name, course: c.title, instructor: instructor ?? "Etivio", access, course_url: `${siteUrl()}/learn/course/${courseId}` }, () =>
+    enrolledEmail({ name: r.name, course: c.title, instructor, courseId, access }),
   );
   await sendEmail({ to: r.email, userId, kind: "enrolled", ref: courseId, ...email });
 }

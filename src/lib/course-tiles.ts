@@ -3,6 +3,7 @@ import type { CourseCard, MyCourse } from "@/lib/data/learn";
 import type { Tile } from "@/components/dash/CourseTiles";
 
 export function progressOf(c: MyCourse) {
+  if (c.expired) return { value: c.progress, left: "Access ended" };
   if (c.completed) return { value: 100, left: "Finished" };
   const left = c.secondsLeft ? `${formatDuration(c.secondsLeft)} left` : `${c.lessonsLeft} ${c.lessonsLeft === 1 ? "lesson" : "lessons"} left`;
   return { value: c.progress, left };

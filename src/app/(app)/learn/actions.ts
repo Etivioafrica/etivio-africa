@@ -1,5 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
+import { renewAccess } from "@/lib/data/access";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { refresh } from "next/cache";
 import { after } from "next/server";
 import { emailEnrolled } from "@/lib/email/notify";
@@ -23,6 +25,11 @@ export async function enrollFree(formData: FormData) {
   const { supabase, userId } = await requireUserId();
   const { error } = await supabase.from("enrollments").insert({ user_id: userId, course_id: courseId });
   if (error && error.code !== "23505") throw new Error("Could not enroll in this course.");
+  // Re-enrolling in a free course after access ended starts a fresh period.
+  if (error) {
+    const { data: course } = await createAdminClient().from("courses").select("price_minor").eq("id", courseId).maybeSingle();
+    if (course && course.price_minor === 0) await renewAccess(userId, [courseId]);
+  }
   if (!error) after(() => emailEnrolled(userId, courseId));
   redirect(`/learn/course/${courseId}`);
 }

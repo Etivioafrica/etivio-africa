@@ -25,6 +25,7 @@ export async function loadWizardCourse(id: string) {
     coverUrl: course.cover_url ?? "",
     priceNaira: course.price_minor / 100,
     listed: course.marketplace_listed,
+    accessDays: course.access_days,
     group: { enabled: course.group_buy_enabled, size: course.group_size, discount: course.group_discount_percent, days: course.group_days },
     modules: (modules ?? []).map((m) => ({
       id: m.id,

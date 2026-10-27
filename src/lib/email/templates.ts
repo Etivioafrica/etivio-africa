@@ -24,14 +24,15 @@ export function welcomeEmail({ name }: { name: string }) {
   });
 }
 
-export function enrolledEmail({ name, course, instructor, courseId }: { name: string; course: string; instructor: string | null; courseId: string }) {
+// `access` is "Lifetime" or the period with its end date, e.g. "6 months (until 27 Apr 2027)".
+export function enrolledEmail({ name, course, instructor, courseId, access }: { name: string; course: string; instructor: string | null; courseId: string; access: string }) {
   return build(`You're enrolled: ${course}`, {
     preheader: `You're in. Start ${course} whenever you're ready.`,
     banner: "enrolled",
     heading: "You're enrolled!",
     greeting: name,
     blocks: [{ p: "Great choice. You now have full access to your new course. Work through the lessons in order and mark each one complete, and you'll earn a certificate when you finish." }],
-    info: { title: course, rows: [...(instructor ? ([["Instructor", instructor]] as [string, string][]) : []), ["Access", "Lifetime"], ["Certificate", "On completion"]] },
+    info: { title: course, rows: [...(instructor ? ([["Instructor", instructor]] as [string, string][]) : []), ["Access", access], ["Certificate", "On completion"]] },
     cta: { label: "Start learning", url: `${siteUrl()}/learn/course/${courseId}` },
     reason: "You're getting this because you enrolled in a course on Etivio.",
   });
@@ -157,7 +158,7 @@ const REMINDER_COPY = [
   { subject: "You left something in your cart", heading: "Your order is waiting", p: "Looks like your payment didn't go through. Your items are saved, so you can pick up right where you left off." },
   { subject: "Still thinking it over?", heading: "Still interested?", p: "Your cart is still saved. Finish your order in a minute and start learning today." },
   { subject: "Your cart is waiting for you", heading: "Don't miss out", p: "Everything you picked is still here, ready when you are. It only takes a moment to finish." },
-  { subject: "Last reminder about your cart", heading: "Last reminder", p: "This is the last email we'll send about this order. Complete it now to get lifetime access." },
+  { subject: "Last reminder about your cart", heading: "Last reminder", p: "This is the last email we'll send about this order. Complete it now to get access." },
 ] as const;
 
 export function checkoutReminderEmail({ name, items, total, resumeUrl, attempt }: { name: string; items: string[]; total: string; resumeUrl: string; attempt: number }) {
@@ -328,7 +329,7 @@ export function sampleEmails(): { key: string; label: string; group: "App" | "Si
   const auth = (kind: AuthEmail) => authEmail(kind, { url: `${siteUrl()}/auth/callback`, email: "ada@example.com", newEmail: "ada.okafor@example.com" });
   return [
     { key: "welcome", label: "Welcome", group: "App", when: "First time someone finishes or skips the welcome guide", email: welcomeEmail({ name: "Ada" }) },
-    { key: "enrolled", label: "Enrolled", group: "App", when: "Enrolling in a course", email: enrolledEmail({ name: "Ada", course: "Introduction To Web-Design", instructor: "Nnamdi Obi", courseId }) },
+    { key: "enrolled", label: "Enrolled", group: "App", when: "Enrolling in a course", email: enrolledEmail({ name: "Ada", course: "Introduction To Web-Design", instructor: "Nnamdi Obi", courseId, access: "Lifetime" }) },
     { key: "certificate", label: "Certificate earned", group: "App", when: "Finishing every lesson and quiz in a course", email: certificateEmail({ name: "Ada", course: "Introduction To Web-Design", code: "K7M2QX9P" }) },
     {
       key: "support_reply",

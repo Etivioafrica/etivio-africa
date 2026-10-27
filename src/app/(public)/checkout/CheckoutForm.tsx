@@ -203,7 +203,7 @@ export function CheckoutForm({ prefill, walletMinor = 0, initialCoupon = "" }: {
           <Lock size={12} /> Secure payment by Paystack · card, bank transfer or USSD
         </p>
         <p className="et-guest-alt">
-          <ShieldCheck size={12} /> Lifetime access · <Link href="/refund-policy">Refund policy</Link>
+          <ShieldCheck size={12} /> <Link href="/refund-policy">Refund policy</Link>
         </p>
       </aside>
     </form>

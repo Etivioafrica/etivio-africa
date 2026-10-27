@@ -220,12 +220,16 @@ export type NewCourseInput = {
   priceNaira: string;
   // Shown on the marketplace (/explore). Defaults to on.
   listed?: boolean;
+  // Days learners keep the course after enrolling; null = lifetime. Undefined leaves it unchanged.
+  accessDays?: number | null;
   // Group buy settings (only kept for paid courses; values are clamped to the allowed ranges).
   group?: { enabled: boolean; size: number; discount: number; days: number };
   modules: ModuleDraft[];
   publish: boolean;
 };
 
+// A whole number of days between 1 and 10 years, or null for lifetime.
+const accessDaysOf = (d: number | null | undefined) => (d && Number.isFinite(d) ? Math.min(3650, Math.max(1, Math.round(d))) : d === undefined ? undefined : null);
 const clamp = (n: number, lo: number, hi: number, fallback: number) => (Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : fallback);
 function groupColumns(group: NewCourseInput["group"], priceNaira: string) {
   if (!group) return {};
@@ -417,6 +421,7 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
         level: LEVELS.includes(input.level) ? input.level : "beginner",
         price_minor: nairaToMinor(input.priceNaira),
         marketplace_listed: input.listed ?? true,
+        access_days: accessDaysOf(input.accessDays) ?? null,
         ...groupColumns(input.group, input.priceNaira),
         ...(await categoryColumns(db, input.categoryId)),
         ...(goLive ? { status: "published" as const, published_at: new Date().toISOString() } : submit ? { status: "pending" as const, submitted_at: new Date().toISOString() } : {}),
@@ -668,6 +673,7 @@ export async function updateCourseFull(courseId: string, input: EditCourseInput)
       level: LEVELS.includes(input.level) ? input.level : "beginner",
       price_minor: nairaToMinor(input.priceNaira),
       ...(input.listed === undefined ? {} : { marketplace_listed: input.listed }),
+      ...(input.accessDays === undefined ? {} : { access_days: accessDaysOf(input.accessDays) }),
       ...groupColumns(input.group, input.priceNaira),
       ...(await categoryColumns(db, input.categoryId)),
       ...(nextStatus !== before.status

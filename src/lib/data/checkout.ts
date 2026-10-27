@@ -1,4 +1,6 @@
 import "server-only";
+import { activeAccess } from "@/lib/access";
+import { renewAccess } from "@/lib/data/access";
 import { randomUUID } from "node:crypto";
 import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -47,7 +49,7 @@ export async function priceItems(refs: CartRef[], ownerId: string | null): Promi
   const [{ data: courses }, { data: products }, { data: enrolled }, { data: owned }] = await Promise.all([
     courseIds.length ? db.from("courses").select("id, slug, title, price_minor, currency, status, cover_url, instructor_id").in("id", courseIds) : Promise.resolve({ data: [] }),
     productIds.length ? db.from("products").select("id, slug, title, kind, price_minor, currency, status, cover_url, creator_id").in("id", productIds) : Promise.resolve({ data: [] }),
-    ownerId && courseIds.length ? db.from("enrollments").select("course_id").eq("user_id", ownerId).in("course_id", courseIds) : Promise.resolve({ data: [] }),
+    ownerId && courseIds.length ? db.from("enrollments").select("course_id").eq("user_id", ownerId).in("course_id", courseIds).or(activeAccess()) : Promise.resolve({ data: [] }),
     ownerId && productIds.length ? db.from("product_access").select("product_id").eq("user_id", ownerId).in("product_id", productIds) : Promise.resolve({ data: [] }),
   ]);
   const ownedSet = new Set([...(enrolled ?? []).map((e) => `course:${e.course_id}`), ...(owned ?? []).map((o) => `product:${o.product_id}`)]);
@@ -256,7 +258,10 @@ async function completeOrder(order: OrderRow, paidAt: string, destination: strin
     .select("id, course_id, product_id");
   for (const item of items ?? []) {
     if (item.course_id && order.group_buy_id) await groupPaymentCleared(order.group_buy_id, userId, order.id);
-    else if (item.course_id) await db.from("enrollments").upsert({ user_id: userId, course_id: item.course_id }, { onConflict: "user_id,course_id", ignoreDuplicates: true });
+    else if (item.course_id) {
+      await db.from("enrollments").upsert({ user_id: userId, course_id: item.course_id }, { onConflict: "user_id,course_id", ignoreDuplicates: true });
+      await renewAccess(userId, [item.course_id]);
+    }
     if (item.product_id) await grantProduct(userId, item.product_id, item.id);
   }
   after(() => emailOrderReceipt(order.id));
