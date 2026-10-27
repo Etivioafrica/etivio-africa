@@ -1,7 +1,7 @@
 <svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g>
 <g>
-<circle cx="128" cy="128" r="128" fill="#ED7449"/>
+<rect width="256" height="256" fill="#ED7449"/>
 <path d="M69 107C82.3333 96.3333 95.6667 96.3333 109 107" stroke="#492C29" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 <ellipse cx="165" cy="106" rx="23" ry="32" fill="#FFF2DB"/>
 <ellipse cx="172" cy="100" rx="10.35" ry="16.64" fill="#492C29"/>
