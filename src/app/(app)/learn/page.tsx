@@ -17,6 +17,9 @@ import { syncBadges } from "@/lib/data/badges";
 import { syncCertificates } from "@/lib/data/certificates";
 import { after } from "next/server";
 import { sendDueAnnouncements } from "@/lib/email/notify";
+import { GettingStarted } from "@/components/dash/GettingStarted";
+import { getChecklist, getGuideState } from "@/lib/data/guide";
+import { featuresFor } from "@/lib/data/features";
 
 export const metadata = { title: "Learn" };
 
@@ -35,7 +38,8 @@ export default async function LearnDashboard() {
     syncBadges(user.id),
     syncCertificates(user.id),
   ]);
-  const platform = await getPlatformSettings();
+  const [platform, guide, features] = await Promise.all([getPlatformSettings(), getGuideState(user.id), featuresFor(user.roles)]);
+  const checklist = guide.checklist_hidden ? [] : await getChecklist(user.id, guide, features.campus !== false);
   // Lessons this week (Sunday to Saturday), from the activity heatmap's current column.
   const thisWeek = profile?.heatmap.weeks.at(-1)?.reduce((n, d) => n + d.count, 0) ?? 0;
   const active = mine.filter((c) => !c.completed);
@@ -84,6 +88,7 @@ export default async function LearnDashboard() {
           ) : null
         }
       />
+      {checklist.length > 0 && <GettingStarted items={checklist} />}
       <PhoneHome
         current={current ?? null}
         upNext={upNext && player ? { id: upNext.id, title: upNext.title, index: player.lessons.indexOf(upNext) + 1 } : null}

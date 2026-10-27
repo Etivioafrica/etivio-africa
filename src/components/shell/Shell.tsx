@@ -49,6 +49,9 @@ import { AiWidget } from "./AiWidget";
 import type { FeatureKey, FeatureMap } from "@/lib/features";
 import { BadgeCelebration } from "@/components/dash/BadgeCelebration";
 import { Onboarding } from "@/components/dash/Onboarding";
+import { GuideTour } from "@/components/dash/GuideTour";
+import { PageTip } from "@/components/dash/PageTip";
+import { startTour, type GuideState } from "@/lib/guide";
 import { ROLE_LABELS, canAccess, canTeach, isCoach, isStaff, primaryRole, type AdminArea, type AppRole } from "@/lib/roles";
 import { Avatar as PhotoAvatar } from "@/components/dash/Avatar";
 import { CartButton } from "@/components/market/CartButton";
@@ -273,6 +276,7 @@ export default function Shell({
   needsUsername = false,
   lastSide = "learn",
   features = {},
+  guide: guideState = {},
   children,
 }: {
   user: ShellUser;
@@ -288,6 +292,8 @@ export default function Shell({
   lastSide?: "learn" | "teach";
   // Features this person can use (Settings → Features). Anything missing counts as on.
   features?: Partial<FeatureMap>;
+  // Learner guides: tour done, dismissed page tips (profiles.guide_state).
+  guide?: GuideState;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -395,7 +401,7 @@ export default function Shell({
               Teach
             </Link>
           </div>}
-          <div className="et-search">
+          <div className="et-search" data-tour="search">
             <Search size={14} />
             <input
               ref={searchRef}
@@ -464,7 +470,7 @@ export default function Shell({
             </button>
             <span className="et-header-divider" />
             <div className="et-profile" ref={profileRef}>
-              <button className="et-profile-btn" onClick={() => setProfileOpen((v) => !v)} aria-label="Account menu">
+              <button className="et-profile-btn" onClick={() => setProfileOpen((v) => !v)} aria-label="Account menu" data-tour="account">
                 <Avatar user={user} initial={initial} />
                 <ChevronDown size={13} className={`et-chev${profileOpen ? " is-open" : ""}`} />
               </button>
@@ -478,6 +484,7 @@ export default function Shell({
         </header>
         <main className={`et-main${admin ? "" : " has-bottom-nav"}`}>
           {!admin && <MobileSection pathname={pathname} features={features} />}
+          {!admin && !teachMode && !guideOpen && guideState.tour && <PageTip key={pathname} pathname={pathname} dismissed={guideState.tips ?? []} />}
           {children}
         </main>
         {!admin && <MobileTabBar pathname={pathname} tabs={tabs} />}
@@ -486,6 +493,8 @@ export default function Shell({
         {!admin && guideOpen && <Onboarding name={user.name || user.email} askUsername={guide.username} askQuestions={guide.questions} onClosed={() => setGuideOpen(false)} />}
         {/* Badge celebrations wait until the welcome guide is out of the way. */}
         {!admin && !guideOpen && <BadgeCelebration trigger={unseenBadges} />}
+        {/* The tour starts once the welcome guide is closed, the first time only; replays come from the account menu. */}
+        {!admin && !guideOpen && <GuideTour autoStart={!guideState.tour && !teachMode} features={features} />}
       </div>
     </div>
   );
@@ -494,7 +503,7 @@ export default function Shell({
 function NavLink({ item, active }: { item: Item; active: boolean }) {
   const Icon = item.icon;
   return (
-    <Link href={item.href} title={item.label} className={`et-nav-item${active ? " is-active" : ""}`}>
+    <Link href={item.href} title={item.label} className={`et-nav-item${active ? " is-active" : ""}`} data-tour={item.href}>
       <Icon size={17} strokeWidth={1.8} />
       <span className="et-nav-text">{item.label}</span>
       {item.badge ? <span className="et-count">{item.badge}</span> : null}
@@ -556,6 +565,19 @@ function MenuBody({ user, initial, admin, close }: { user: ShellUser; initial: s
           <UserRound size={16} />
           Your profile
         </Link>
+      )}
+      {!admin && (
+        <button
+          type="button"
+          className="et-menu-item"
+          onClick={() => {
+            close();
+            startTour();
+          }}
+        >
+          <Compass size={16} />
+          Take the tour
+        </button>
       )}
       <Link href={admin ? "/admin/settings" : "/settings"} onClick={close} className="et-menu-item">
         <Settings size={16} />

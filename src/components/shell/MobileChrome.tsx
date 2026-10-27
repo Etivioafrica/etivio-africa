@@ -93,7 +93,7 @@ export function MobileTabBar({ pathname, tabs }: { pathname: string; tabs: Tab[]
       {tabs.map(({ label, href, icon: Icon, match }) => {
         const on = match(pathname);
         return (
-          <Link key={label} href={href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined}>
+          <Link key={label} href={href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined} data-tour={href}>
             <Icon size={23} strokeWidth={on ? 2.2 : 1.7} />
             <span>{label}</span>
           </Link>

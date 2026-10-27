@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { showsTeach } from "@/lib/roles";
 import { featuresFor } from "@/lib/data/features";
+import { getGuideState } from "@/lib/data/guide";
 import "./app.css";
 
 export const metadata: Metadata = {
@@ -29,7 +30,12 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
   // Re-read whenever the layout re-renders (full loads and refresh() after actions), so a badge earned
   // without a navigation still triggers the celebration.
   const supabase = await createClient();
-  const [{ data: unseen }, jar, features] = await Promise.all([supabase.from("user_badges").select("badge_id").eq("user_id", user.id).is("seen_at", null), cookies(), featuresFor(user.roles)]);
+  const [{ data: unseen }, jar, features, guide] = await Promise.all([
+    supabase.from("user_badges").select("badge_id").eq("user_id", user.id).is("seen_at", null),
+    cookies(),
+    featuresFor(user.roles),
+    getGuideState(user.id),
+  ]);
   return (
     <Shell
       user={{
@@ -45,6 +51,7 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
       lastSide={jar.get("et-side")?.value === "teach" ? "teach" : "learn"}
       features={features}
       unseenBadges={(unseen ?? []).map((b) => b.badge_id).join(",")}
+      guide={guide}
     >
       {children}
     </Shell>

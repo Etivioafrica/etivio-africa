@@ -3092,6 +3092,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           full_name: string | null
+          guide_state: Json
           headline: string | null
           id: string
           interests: string[]
@@ -3123,6 +3124,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           full_name?: string | null
+          guide_state?: Json
           headline?: string | null
           id: string
           interests?: string[]
@@ -3154,6 +3156,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           full_name?: string | null
+          guide_state?: Json
           headline?: string | null
           id?: string
           interests?: string[]
