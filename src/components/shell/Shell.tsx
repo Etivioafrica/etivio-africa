@@ -325,9 +325,9 @@ export default function Shell({
     return () => window.removeEventListener(OPEN_LEARNING_PREFS, open);
   }, []);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [unread, setUnread] = useState({ messages: 0, support: 0 });
+  const [unread, setUnread] = useState({ messages: 0, teach: 0, support: 0 });
   useEffect(() => {
-    const on = (e: Event) => setUnread((e as CustomEvent<{ messages: number; support: number }>).detail);
+    const on = (e: Event) => setUnread((e as CustomEvent<{ messages: number; teach: number; support: number }>).detail);
     window.addEventListener(INBOX_COUNTS, on);
     return () => window.removeEventListener(INBOX_COUNTS, on);
   }, []);
@@ -382,7 +382,7 @@ export default function Shell({
         // Unread tutor chats on Messages, unread support replies on Support; kept live by the header's messages menu.
         .map((i) => {
           if (admin) return i;
-          const n = i.href === "/learn/messages" || i.href === "/teach/messages" ? unread.messages : i.href === "/support" ? unread.support : 0;
+          const n = i.href === "/learn/messages" ? unread.messages : i.href === "/teach/messages" ? unread.teach : i.href === "/support" ? unread.support : 0;
           return n ? { ...i, badge: n } : i;
         }),
     }))

@@ -35,7 +35,7 @@ export function HeaderInbox({ userId, messagesOn }: { userId: string; messagesOn
     timer.current = setTimeout(() => {
       getInbox().then((next) => {
         setInbox(next);
-        window.dispatchEvent(new CustomEvent(INBOX_COUNTS, { detail: { messages: next.unreadTutor, support: next.unreadSupport } }));
+        window.dispatchEvent(new CustomEvent(INBOX_COUNTS, { detail: { messages: next.unreadTutor, teach: next.unreadAsTutor, support: next.unreadSupport } }));
       }, () => undefined);
     }, 250);
   }, []);

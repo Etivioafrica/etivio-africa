@@ -6,9 +6,9 @@ export type InboxNote = { id: string; kind: string; title: string; body: string 
 export type InboxThread = { id: string; kind: "tutor" | "support"; title: string; sub: string; preview: string | null; avatar: string | null; at: string; unread: number; href: string };
 // unreadMessages counts every unread conversation (the header icon); unreadTutor and unreadSupport split it for the
 // sidebar, where tutor chats live under Messages and support chats under Support.
-export type Inbox = { notes: InboxNote[]; unreadNotes: number; threads: InboxThread[]; unreadMessages: number; unreadTutor: number; unreadSupport: number };
+export type Inbox = { notes: InboxNote[]; unreadNotes: number; threads: InboxThread[]; unreadMessages: number; unreadTutor: number; unreadAsTutor: number; unreadSupport: number };
 
-const EMPTY: Inbox = { notes: [], unreadNotes: 0, threads: [], unreadMessages: 0, unreadTutor: 0, unreadSupport: 0 };
+const EMPTY: Inbox = { notes: [], unreadNotes: 0, threads: [], unreadMessages: 0, unreadTutor: 0, unreadAsTutor: 0, unreadSupport: 0 };
 
 // Everything the header's bell and messages menus show: the latest notifications, and the latest conversations
 // (course chats on both sides, plus support chats) with unread counts.
@@ -36,7 +36,9 @@ export async function getInbox(): Promise<Inbox> {
     unreadNotes: unread.count ?? 0,
     threads: threads.slice(0, 12),
     unreadMessages: threads.reduce((n, t) => n + (t.unread ? 1 : 0), 0),
+    // Course chats on either side (Learn → Messages lists both), and just the ones where you're the tutor (Teach → Messages).
     unreadTutor: threads.filter((t) => t.kind === "tutor" && t.unread).length,
+    unreadAsTutor: asTutor.filter((c) => c.unread).length,
     unreadSupport: threads.filter((t) => t.kind === "support" && t.unread).length,
   };
 }
