@@ -39,6 +39,10 @@ import {
   FolderDown,
   Store,
   CalendarClock,
+  ShoppingBasket,
+  ToggleRight,
+  TrendingUp,
+  UsersRound,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -75,17 +79,33 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
   (
     [
       {
-        label: "Overview",
+        label: "Panel",
         items: [
           { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true, area: "dashboard" },
           { label: "Review queue", href: "/admin/review", icon: ClipboardCheck, area: "review", badge: badges.queue },
           { label: "Moderation", href: "/admin/moderation", icon: ShieldAlert, area: "moderation", badge: badges.moderation },
+          { label: "Announcements", href: "/admin/announcements", icon: Megaphone, area: "announcements" },
+          {
+            label: "Blog",
+            href: "/admin/blog",
+            icon: Newspaper,
+            area: "blog",
+            badge: badges.comments,
+            children: [
+              { label: "All posts", href: "/admin/blog" },
+              { label: "New post", href: "/admin/blog/new" },
+              { label: "Categories", href: "/admin/blog/categories" },
+              { label: "Archives", href: "/admin/blog/archives" },
+              { label: "Post metrics", href: "/admin/blog/metrics" },
+              { label: "Comments", href: "/admin/blog/comments", badge: badges.comments },
+              { label: "Curated", href: "/admin/blog/curated" },
+            ],
+          },
         ],
       },
       {
         label: "Manage",
         items: [
-          { label: "Users", href: "/admin/users", icon: Users, area: "users", badge: badges.applications },
           {
             label: "Courses",
             href: "/admin/courses",
@@ -118,42 +138,17 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
               { label: "Orders", href: "/admin/marketplace/orders" },
             ],
           },
-          { label: "Group buys", href: "/admin/group-buys", icon: Users, area: "marketplace" },
+          { label: "Communities", href: "/admin/communities", icon: UsersRound, area: "communities" },
+          { label: "Group buys", href: "/admin/group-buys", icon: ShoppingBasket, area: "marketplace" },
           { label: "Coaching", href: "/admin/coaching", icon: CalendarClock, area: "coaching" },
-          { label: "Announcements", href: "/admin/announcements", icon: Megaphone, area: "announcements" },
-          {
-            label: "Blog",
-            href: "/admin/blog",
-            icon: Newspaper,
-            area: "blog",
-            badge: badges.comments,
-            children: [
-              { label: "All posts", href: "/admin/blog" },
-              { label: "New post", href: "/admin/blog/new" },
-              { label: "Categories", href: "/admin/blog/categories" },
-              { label: "Archives", href: "/admin/blog/archives" },
-              { label: "Post metrics", href: "/admin/blog/metrics" },
-              { label: "Comments", href: "/admin/blog/comments", badge: badges.comments },
-              { label: "Curated", href: "/admin/blog/curated" },
-            ],
-          },
           { label: "Documents", href: "/admin/documents", icon: FileText, area: "documents" },
+        ],
+      },
+      {
+        label: "Support",
+        items: [
+          { label: "Users", href: "/admin/users", icon: Users, area: "users", badge: badges.applications },
           { label: "Chats", href: "/admin/chats", icon: MessagesSquare, area: "chats", badge: badges.chats },
-        ],
-      },
-      {
-        label: "Insights",
-        items: [
-          { label: "Tracking", href: "/admin/tracking", icon: BarChart3, area: "tracking" },
-          { label: "Financials", href: "/admin/financials", icon: Wallet, area: "financials" },
-          { label: "Wallets", href: "/admin/wallets", icon: Wallet, area: "financials" },
-          { label: "Coupons", href: "/admin/coupons", icon: Tag, area: "coupons" },
-        ],
-      },
-      {
-        label: "System",
-        items: [
-          { label: "Team", href: "/admin/team", icon: ShieldCheck, area: "team" },
           {
             label: "Emails",
             href: "/admin/emails",
@@ -164,7 +159,23 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
               { label: "Templates", href: "/admin/emails/templates" },
             ],
           },
+          { label: "Team", href: "/admin/team", icon: ShieldCheck, area: "team" },
+        ],
+      },
+      {
+        label: "Finance",
+        items: [
+          { label: "Wallets", href: "/admin/wallets", icon: Wallet, area: "financials" },
+          { label: "Finance analytics", href: "/admin/financials", icon: TrendingUp, area: "financials" },
+          { label: "Coupons", href: "/admin/coupons", icon: Tag, area: "coupons" },
+        ],
+      },
+      {
+        label: "System",
+        items: [
           { label: "Settings", href: "/admin/settings", icon: Settings, area: "settings" },
+          { label: "Features", href: "/admin/settings/features", icon: ToggleRight, area: "platform" },
+          { label: "Tracking", href: "/admin/tracking", icon: BarChart3, area: "tracking" },
         ],
       },
     ] satisfies Group[]

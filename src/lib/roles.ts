@@ -61,6 +61,7 @@ export const ADMIN_AREAS = {
   financials: ["super_admin", "accountant"],
   coupons: ["super_admin", "accountant"],
   coaching: ["super_admin"],
+  communities: ["super_admin"],
   team: ["super_admin"],
   emails: ["super_admin"],
   settings: ["super_admin", "editor", "accountant"],
