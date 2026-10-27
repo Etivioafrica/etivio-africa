@@ -64,6 +64,22 @@ export function supportReplyEmail({ name, subject, body }: { name: string; subje
   });
 }
 
+export function supportResolvedEmail({ name, subject }: { name: string; subject: string | null }) {
+  return build("Your support conversation is resolved", {
+    preheader: subject ? `We've marked "${excerpt(subject, 60)}" as resolved.` : "We've marked your conversation as resolved.",
+    banner: "support_reply",
+    heading: "All sorted",
+    greeting: name,
+    blocks: [
+      { p: `The Etivio team marked your support conversation${subject ? ` about "${subject}"` : ""} as resolved. You can still read it any time.` },
+      { p: "Need anything else? Start a new conversation from Support and we'll pick it up." },
+    ],
+    cta: { label: "Go to Support", url: `${siteUrl()}/support` },
+    reason: "You're getting this because you have support replies turned on.",
+    manageLink: true,
+  });
+}
+
 // Course reviews by default; product reviews pass their own `url` and `cta`.
 export function reviewReplyEmail({ name, course, courseId, reply, url, cta }: { name: string; course: string; courseId: string; reply: string; url?: string; cta?: string }) {
   return build(`Reply to your review of ${course}`, {
@@ -337,6 +353,13 @@ export function sampleEmails(): { key: string; label: string; group: "App" | "Si
       group: "App",
       when: "Staff reply in Chats (at most one email per conversation every 15 minutes)",
       email: supportReplyEmail({ name: "Ada", subject: "Can't see my certificate", body: "Hi Ada, thanks for flagging this. Your certificate is now showing under Profile, then Certificates. Let us know if anything else looks off!" }),
+    },
+    {
+      key: "support_resolved",
+      label: "Support resolved",
+      group: "App",
+      when: "Staff mark a support conversation resolved",
+      email: supportResolvedEmail({ name: "Ada", subject: "Can't see my certificate" }),
     },
     {
       key: "review_reply",

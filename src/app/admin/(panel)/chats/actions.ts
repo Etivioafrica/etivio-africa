@@ -1,7 +1,7 @@
 "use server";
 import { refresh } from "next/cache";
 import { after } from "next/server";
-import { emailSupportReply } from "@/lib/email/notify";
+import { emailSupportReply, emailSupportResolved } from "@/lib/email/notify";
 import { audit, requireAdmin } from "@/lib/admin";
 import type { SendResult } from "@/components/chat/ChatThread";
 
@@ -25,11 +25,24 @@ export async function staffReply(fd: FormData): Promise<SendResult> {
   return { message: { ...data, sender: admin.name || "You" } };
 }
 
+// Closing tells the learner (bell and email) that it's resolved and they can start a new conversation.
 export async function setThreadStatus(fd: FormData) {
   const { admin, db } = await requireAdmin("chats");
   const id = str(fd, "id");
   const status = str(fd, "status") === "closed" ? "closed" : "open";
+  const { data: before } = await db.from("support_threads").select("status, user_id, subject").eq("id", id).maybeSingle();
+  if (!before) return;
   await db.from("support_threads").update({ status }).eq("id", id);
+  if (status === "closed" && before.status !== "closed") {
+    await db.from("notifications").insert({
+      user_id: before.user_id,
+      kind: "support",
+      title: "Your support conversation is resolved",
+      body: `${before.subject}. Need more help? Start a new conversation from Support.`,
+      href: `/support/${id}`,
+    });
+    after(() => emailSupportResolved(id));
+  }
   await audit(admin.id, `chat.${status === "closed" ? "close" : "reopen"}`, { type: "thread", id });
   refresh();
 }

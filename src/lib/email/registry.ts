@@ -101,6 +101,26 @@ export const TEMPLATES: TemplateDef[] = [
     },
   },
   {
+    key: "support_resolved",
+    label: "Support resolved",
+    group: "app",
+    when: "Staff mark a support conversation resolved",
+    subject: "Your support conversation is resolved",
+    placeholders: [name, P("subject", "Conversation subject", "Can't see my certificate"), P("support_url", "Support link", `${SITE()}/support`)],
+    starter: {
+      banner: "support_reply",
+      parts: [
+        { type: "heading", text: "All sorted" },
+        {
+          type: "text",
+          html: "<p><strong>Hi {{name}},</strong></p><p>The Etivio team marked your support conversation about \"{{subject}}\" as resolved. You can still read it any time.</p><p>Need anything else? Start a new conversation from Support and we'll pick it up.</p>",
+        },
+        { type: "button", label: "Go to Support", href: "{{support_url}}" },
+      ],
+      footer: `You're getting this because you have support replies turned on. ${manage}`,
+    },
+  },
+  {
     key: "review_reply",
     label: "Review reply",
     group: "app",

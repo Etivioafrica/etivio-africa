@@ -7,7 +7,8 @@ import { formatPrice } from "@/lib/format";
 import { everyone, recipient } from "./recipients";
 import { sendBatch, sendEmail, sentRecently, siteUrl, type Mail } from "./send";
 import { compose, fillStored, storedTemplate } from "./stored";
-import { announcementEmail, applicationEmail, courseApprovedEmail, courseChangesEmail, courseSubmittedEmail, productApprovedEmail, productChangesEmail, productSubmittedEmail, receiptEmail, guestAccessEmail, checkoutReminderEmail, certificateEmail, enrolledEmail, reviewReplyEmail, supportReplyEmail, testEmail, welcomeEmail } from "./templates";
+import { announcementEmail, applicationEmail, courseApprovedEmail, courseChangesEmail, courseSubmittedEmail, productApprovedEmail, productChangesEmail, productSubmittedEmail, receiptEmail, guestAccessEmail, checkoutReminderEmail, certificateEmail, enrolledEmail, reviewReplyEmail, supportReplyEmail,
+  supportResolvedEmail, testEmail, welcomeEmail } from "./templates";
 
 // Every email Etivio sends from the app. Callers run these inside after() so a slow mail API never delays a page.
 // Account emails (welcome, enrolment, certificates, application decisions) always send; the rest follow the
@@ -57,6 +58,15 @@ export async function emailSupportReply(threadId: string, body: string) {
     supportReplyEmail({ name: r.name, subject: t.subject, body }),
   );
   await sendEmail({ to: r.email, userId: r.userId, kind: "support_reply", ref: threadId, ...email });
+}
+
+export async function emailSupportResolved(threadId: string) {
+  const { data: t } = await createAdminClient().from("support_threads").select("user_id, subject").eq("id", threadId).maybeSingle();
+  if (!t || (await sentRecently("support_resolved", threadId, 60))) return;
+  const r = await recipient(t.user_id, "support_replies");
+  if (!r) return;
+  const email = await compose("support_resolved", { name: r.name, subject: t.subject ?? "", support_url: `${siteUrl()}/support` }, () => supportResolvedEmail({ name: r.name, subject: t.subject }));
+  await sendEmail({ to: r.email, userId: r.userId, kind: "support_resolved", ref: threadId, ...email });
 }
 
 export async function emailReviewReply(reviewId: string) {
