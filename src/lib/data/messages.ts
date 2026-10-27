@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Student-tutor conversations (migration 0044). Read with the service role after checking who's asking.
@@ -31,25 +32,29 @@ export async function listConversations(userId: string, side: Side, courseId?: s
 }
 
 // One conversation the user is part of, its messages, and which side they're on. Opening it clears their unread count.
+// The conversation and its messages load together; nothing is returned unless the user is part of it.
 export async function openConversation(id: string, userId: string) {
   const db = createAdminClient();
-  const { data: c } = await db
-    .from("conversations")
-    .select("id, course_id, student_id, tutor_id, student_unread, tutor_unread, course:courses(title, slug), student:profiles!conversations_student_id_fkey(full_name), tutor:profiles!conversations_tutor_id_fkey(full_name)")
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: c }, { data: messages }] = await Promise.all([
+    db
+      .from("conversations")
+      .select("id, course_id, student_id, tutor_id, student_unread, tutor_unread, course:courses(title, slug), student:profiles!conversations_student_id_fkey(full_name), tutor:profiles!conversations_tutor_id_fkey(full_name)")
+      .eq("id", id)
+      .maybeSingle(),
+    // Messages held for a moderation check show only to whoever sent them.
+    db.from("conversation_messages").select("id, body, sender_id, created_at, hidden").eq("conversation_id", id).or(`hidden.eq.false,sender_id.eq.${userId}`).order("created_at").limit(500),
+  ]);
   if (!c || (c.student_id !== userId && c.tutor_id !== userId)) return null;
   const side: Side = c.student_id === userId ? "student" : "tutor";
-  if (side === "student" && c.student_unread) await db.from("conversations").update({ student_unread: 0 }).eq("id", id);
-  if (side === "tutor" && c.tutor_unread) await db.from("conversations").update({ tutor_unread: 0 }).eq("id", id);
-  // Messages held for a moderation check show only to whoever sent them.
-  const { data: messages } = await db
-    .from("conversation_messages")
-    .select("id, body, sender_id, created_at, hidden")
-    .eq("conversation_id", id)
-    .or(`hidden.eq.false,sender_id.eq.${userId}`)
-    .order("created_at")
-    .limit(500);
+  // Clearing the unread count doesn't need to hold up the page.
+  if (side === "student" && c.student_unread)
+    after(async () => {
+      await db.from("conversations").update({ student_unread: 0 }).eq("id", id);
+    });
+  if (side === "tutor" && c.tutor_unread)
+    after(async () => {
+      await db.from("conversations").update({ tutor_unread: 0 }).eq("id", id);
+    });
   return {
     id: c.id,
     side,
