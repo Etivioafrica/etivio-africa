@@ -7,6 +7,7 @@ import { featureOn } from "@/lib/data/features";
 import { canCreateCommunity, getCommunity, type JoinMode } from "@/lib/data/communities";
 import { slugify } from "@/lib/format";
 import { moderate } from "@/lib/moderation";
+import { keyFromUrl } from "@/lib/r2";
 
 type Result = { ok?: string; error?: string };
 const str = (fd: FormData, key: string, max: number) => String(fd.get(key) ?? "").trim().slice(0, max);
@@ -156,6 +157,9 @@ export async function createCommunity(_prev: Result | null, fd: FormData): Promi
     const staff = user.roles.includes("super_admin");
     if (!staff && course.instructor_id !== user.id) return { error: "You can only link a course you teach." };
   }
+  // Only covers uploaded to our own storage.
+  const cover = str(fd, "cover_url", 500);
+  const coverUrl = keyFromUrl(cover) ? cover : null;
   const base = slugify(name).slice(0, 50) || "community";
   let id: string | null = null;
   let slug = base;
@@ -167,6 +171,7 @@ export async function createCommunity(_prev: Result | null, fd: FormData): Promi
         slug,
         name,
         description: str(fd, "description", 600) || null,
+        cover_url: coverUrl,
         owner_id: user.id,
         join_mode: joinMode,
         course_id: joinMode === "course" ? courseId : null,
