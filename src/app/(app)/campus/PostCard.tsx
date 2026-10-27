@@ -12,6 +12,8 @@ import { addCampusComment, campusProfileCard, createCampusPost, deleteCampusComm
 import { JOB_PAY, JOB_TYPE, type CampusJob, type CampusLink } from "./job";
 import { KIND_STYLE } from "./kinds";
 import { MentionList, useMentions } from "./Mentions";
+import { VideoPlayer } from "./VideoPlayer";
+import { parseVideo } from "./video";
 
 
 const CAMPUS_PLURAL: Record<CampusKind, string> = { update: "Updates", question: "Questions", win: "Wins", poll: "Polls", opportunity: "Opportunities" };
@@ -28,7 +30,6 @@ function ago(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-const youtubeId = (url: string | null) => url?.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? null;
 
 // Post text with #hashtags, @usernames and web links made clickable. Everything else stays plain text.
 export function CampusText({ text, clamp }: { text: string; clamp?: number }) {
@@ -533,7 +534,7 @@ function Card({ post, viewer, open: startOpen, clamp = 420, initialComments, onD
   const [copied, setCopied] = useState(false);
   const [, start] = useTransition();
   const router = useRouter();
-  const yt = youtubeId(post.videoUrl);
+  const video = parseVideo(post.videoUrl);
   const mine = post.author.id === viewer.id;
 
   function like() {
@@ -636,12 +637,8 @@ function Card({ post, viewer, open: startOpen, clamp = 420, initialComments, onD
           <img src={post.imageUrl} alt="" loading="lazy" />
         </a>
       )}
-      {yt && (
-        <div className="et-cps-video">
-          <iframe src={`https://www.youtube-nocookie.com/embed/${yt}`} title="YouTube video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-        </div>
-      )}
-      {post.link && !post.imageUrl && !yt && <LinkCard link={post.link} />}
+      {video && <VideoPlayer video={video} />}
+      {post.link && !post.imageUrl && !video && <LinkCard link={post.link} />}
       {post.job && <JobCard job={post.job} />}
       {post.quoted && <QuoteCard quote={post.quoted} />}
       {post.quoteGone && <p className="et-cps-gone">The original post was deleted.</p>}

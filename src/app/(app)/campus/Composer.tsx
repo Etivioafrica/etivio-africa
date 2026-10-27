@@ -2,9 +2,12 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Globe, ImagePlus, Link2, ListPlus, Loader2, Minus, Play, Plus, Smile, Video, X } from "lucide-react";
+import { Globe, ImagePlus, Link2, ListPlus, Loader2, Minus, Plus, Smile, Video, X } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { uploadFile } from "@/lib/upload-client";
+import { VIDEO_SITES, parseVideo, videoIn } from "./video";
+import { VideoPlayer } from "./VideoPlayer";
+import { PhotoEditor } from "./PhotoEditor";
 import type { CampusKind } from "@/lib/data/campus";
 import { createCampusPost, findCampusPeople, previewCampusLink } from "./actions";
 import { KIND_STYLE } from "./kinds";
@@ -46,9 +49,13 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   const [image, setImage] = useState<string | null>(null);
   // The picked photo shows straight away from the device while it uploads.
   const [photo, setPhoto] = useState<{ local: string; percent: number; checking: boolean } | null>(null);
+  // A photo open in the editor, before it's added.
+  const [editing, setEditing] = useState<File | null>(null);
   const uploading = !!photo && !image;
   const [videoOpen, setVideoOpen] = useState(false);
   const [video, setVideo] = useState("");
+  // A pasted video link the person chose to keep as a plain link instead.
+  const [videoOff, setVideoOff] = useState<string | null>(null);
   const [options, setOptions] = useState(["", ""]);
   const [multiple, setMultiple] = useState(false);
   const [days, setDays] = useState(3);
@@ -107,6 +114,16 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
     return () => window.removeEventListener(OPEN_EVENT, onOpen);
   });
 
+  // The phone's floating + button lands here with ?compose=1 from other screens: open the composer once.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("compose") !== "1") return;
+    url.searchParams.delete("compose");
+    window.history.replaceState(null, "", url.pathname + url.search);
+    const t = setTimeout(() => window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { text: "" } })), 150);
+    return () => clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     const el = dialog.current;
     if (sheet && el && !el.open) {
@@ -153,8 +170,12 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
     };
   }, [mention]);
 
+  // A video link pasted into the text plays as the post's video (like X), unless there's already a photo, video
+  // or poll. The link itself leaves the text when posting.
+  const pastedLink = !photo && !videoOpen && kind !== "poll" ? videoIn(body) : null;
+  const pasted = pastedLink && pastedLink !== videoOff ? pastedLink : null;
   // A card for the first web link in the text, unless the post already has a photo, video or poll.
-  const hasMedia = !!photo || videoOpen || kind === "poll";
+  const hasMedia = !!photo || videoOpen || kind === "poll" || !!pasted;
   const url = hasMedia ? null : firstLink(body);
   const wanted = url && url !== linkOff ? url : null;
   useEffect(() => {
@@ -201,6 +222,17 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
     });
   }
 
+  // On desktop a picked, pasted or dropped photo opens the editor first (crop, filters); phones and GIFs go straight up.
+  function pickPhoto(f: File) {
+    setError("");
+    if (!f.type.startsWith("image/")) return setError("Pick a photo (JPG, PNG, WebP or GIF).");
+    if (f.type !== "image/gif" && !isPhone()) {
+      if (f.size > 25 * 1024 * 1024) return setError("Photos can be up to 25 MB.");
+      return setEditing(f);
+    }
+    void upload(f);
+  }
+
   async function upload(f: File) {
     setError("");
     if (!f.type.startsWith("image/")) return setError("Pick a photo (JPG, PNG, WebP or GIF).");
@@ -233,7 +265,7 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   function takeFiles(files: FileList | null | undefined) {
     const f = [...(files ?? [])].find((x) => x.type.startsWith("image/"));
     if (f) {
-      upload(f);
+      pickPhoto(f);
       return true;
     }
     return false;
@@ -283,12 +315,15 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
 
   function submit() {
     setError("");
+    // A pasted video link becomes the post's video and leaves the text.
+    const found = !photo && !videoOpen && kind !== "poll" ? videoIn(body) : null;
+    const asVideo = found && found !== videoOff ? found : null;
     start(async () => {
       const res = await createCampusPost({
         kind,
-        body,
+        body: asVideo ? body.replace(asVideo, "").replace(/[ \t]{2,}/g, " ").trim() : body,
         imageUrl: image ?? undefined,
-        videoUrl: video.trim() || undefined,
+        videoUrl: video.trim() || asVideo || undefined,
         poll: kind === "poll" ? { options, multiple, days } : undefined,
         job: kind === "opportunity" ? job : undefined,
         linkUrl: card?.url ?? null,
@@ -327,7 +362,8 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
       })}
     </div>
   );
-  const yt = video.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? null;
+  const typed = parseVideo(video);
+  const pastedVideo = parseVideo(pasted);
   const target = typeof document === "undefined" ? null : (document.querySelector<HTMLElement>(".et-app") ?? document.body);
   const setJ = <F extends keyof CampusJob>(field: F, value: CampusJob[F]) => setJob((j) => ({ ...j, [field]: value }));
 
@@ -350,10 +386,20 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
             e.target.value = "";
           }}
         />
+        {editing && (
+          <PhotoEditor
+            file={editing}
+            onCancel={() => setEditing(null)}
+            onDone={(edited) => {
+              setEditing(null);
+              void upload(edited);
+            }}
+          />
+        )}
         <button type="button" className={photo ? "is-on" : ""} onClick={() => file.current?.click()} disabled={uploading} aria-label="Add a photo" title="Photo">
           {uploading ? <Loader2 size={19} className="et-spin" /> : <ImagePlus size={19} />}
         </button>
-        <button type="button" className={videoOpen ? "is-on" : ""} onClick={toggleVideo} aria-label="Add a YouTube video" title="YouTube video">
+        <button type="button" className={videoOpen ? "is-on" : ""} onClick={toggleVideo} aria-label="Add a video" title="Video">
           <Video size={19} />
         </button>
         {threads && (
@@ -596,13 +642,9 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
             )}
             {videoOpen && (
               <div className="et-cps-yt">
-                {yt ? (
-                  <div className="et-cps-yt-card">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" />
-                    <span className="et-cps-yt-play">
-                      <Play size={20} fill="currentColor" />
-                    </span>
+                {typed ? (
+                  <div className="et-cps-vidprev">
+                    <VideoPlayer video={typed} />
                     <button type="button" className="et-cps-photo-x" onClick={toggleVideo} aria-label="Remove video">
                       <X size={16} />
                     </button>
@@ -610,13 +652,21 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
                 ) : (
                   <div className="et-cps-yt-input">
                     <Video size={18} className="is-video" />
-                    <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Paste a YouTube link" inputMode="url" autoFocus />
+                    <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Paste a video link: YouTube, Vimeo, TikTok, Loom or a video file" inputMode="url" autoFocus />
                     <button type="button" className="et-icon-btn" onClick={toggleVideo} aria-label="Cancel video">
                       <X size={15} />
                     </button>
                   </div>
                 )}
-                {video.trim() && !yt && <small>That doesn&apos;t look like a YouTube link yet.</small>}
+                {video.trim() && !typed && <small>That link can&apos;t be played here. Use {VIDEO_SITES}.</small>}
+              </div>
+            )}
+            {pastedVideo && (
+              <div className="et-cps-vidprev">
+                <VideoPlayer video={pastedVideo} />
+                <button type="button" className="et-cps-photo-x" onClick={() => setVideoOff(pasted)} aria-label="Keep it as a link instead">
+                  <X size={16} />
+                </button>
               </div>
             )}
             {card && (

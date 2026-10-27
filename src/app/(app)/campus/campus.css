@@ -417,3 +417,36 @@ a.et-cps-name:hover{text-decoration:underline}
 .et-cps-part small.is-over{color:#dc2626}
 .et-cps-part-add{display:inline-flex;align-items:center;gap:6px;height:34px;margin-left:50px;padding:0 12px;border:1px solid var(--a-border);border-radius:999px;background:var(--a-panel);color:var(--a-fg);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
 .et-cps-part-add:hover{border-color:var(--accent)}
+/* Photo editor (desktop): crop, filters and adjustments before a photo is added to a post */
+.et-modal.et-phed{width:min(980px,calc(100vw - 32px))}
+.et-phed-body{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;padding:0 22px 18px;min-height:0}
+.et-phed-stage{display:grid;place-items:center;min-height:420px;max-height:calc(100dvh - 220px);padding:12px;border-radius:14px;background:#0b0f1a;overflow:hidden}
+.et-phed-frame{width:100%;max-height:calc(100dvh - 250px);max-width:100%;border:0;background:#000}
+.et-phed-frame[style*="aspect-ratio"]{height:auto}
+.et-phed-loading{font-size:13px;color:#cbd5e1}
+.et-phed-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.et-phed-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border:1px solid var(--a-border);border-radius:12px;background:var(--a-panel-2)}
+.et-phed-tabs button{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;border:0;border-radius:9px;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--a-muted);cursor:pointer}
+.et-phed-tabs button.is-on{background:var(--a-panel);color:var(--a-fg);box-shadow:0 1px 3px #0000001f}
+.et-phed-panel{display:flex;flex-direction:column;gap:16px}
+.et-phed-panel>.et-btn{align-self:flex-start}
+.et-phed-ratios{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.et-phed-ratios button{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border:1px solid var(--a-border);border-radius:10px;background:var(--a-panel);font:inherit;font-size:13px;font-weight:600;color:var(--a-fg);cursor:pointer}
+.et-phed-ratios button.is-on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.et-phed-ratios i{display:block;height:20px;max-width:30px;border:2px solid currentColor;border-radius:3px;opacity:.7}
+.et-phed-slider{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600}
+.et-phed-slider em{font-style:normal;font-weight:500;color:var(--a-muted)}
+.et-phed-slider input[type=range]{width:100%;accent-color:var(--accent)}
+.et-phed-range{display:flex;align-items:center;gap:8px;color:var(--a-muted)}
+.et-phed-filters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.et-phed-filters button{display:flex;flex-direction:column;gap:6px;padding:0;border:0;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--a-muted);cursor:pointer}
+.et-phed-filters img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid transparent}
+.et-phed-filters button.is-on{color:var(--a-fg)}
+.et-phed-filters button.is-on img{border-color:var(--accent)}
+@media (max-width:860px){.et-phed-body{grid-template-columns:1fr}.et-phed-stage{min-height:260px}}
+/* Videos: site players (16:9, or tall for TikTok and Shorts) and plain video files */
+.et-cps-video.is-tall{aspect-ratio:9/16;max-width:340px}
+.et-cps-video.is-file{aspect-ratio:auto;background:#000}
+.et-cps-video.is-file video{display:block;width:100%;max-height:560px;background:#000}
+.et-cps-vidprev{position:relative}
+.et-cps-vidprev .et-cps-photo-x{z-index:2}

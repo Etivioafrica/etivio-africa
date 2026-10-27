@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { VIDEO_SITES, parseVideo } from "./video";
 import { after } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -12,7 +13,6 @@ import { JOB_PAY, JOB_TYPE, type CampusJob, type CampusLink } from "./job";
 
 type Result = { ok?: string; error?: string };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const YOUTUBE = /^https:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/)|youtu\.be\/)[\w-]{11}/;
 // Posts an hour per person, to keep spam out.
 const HOURLY_POSTS = 10;
 
@@ -116,7 +116,7 @@ export async function createCampusPost(input: NewPost): Promise<Result & { id?: 
   const thread = kind === "poll" || kind === "opportunity" ? [] : (input.thread ?? []).map((t) => String(t ?? "").trim().slice(0, 5000)).filter(Boolean).slice(0, 24);
   const image = input.imageUrl && keyFromUrl(input.imageUrl)?.startsWith("posts/") ? input.imageUrl : null;
   const video = input.videoUrl?.trim() || null;
-  if (video && !YOUTUBE.test(video)) return { error: "Videos are YouTube links (youtube.com or youtu.be)." };
+  if (video && !parseVideo(video)) return { error: `That video link can't be played here. Use ${VIDEO_SITES}.` };
   const quotedId = input.quotedId && UUID.test(input.quotedId) ? input.quotedId : null;
   const options = kind === "poll" ? (input.poll?.options ?? []).map((o) => String(o).trim().slice(0, 80)).filter(Boolean) : [];
   if (kind === "poll" && (options.length < 2 || options.length > 4)) return { error: "A poll needs 2 to 4 options." };
