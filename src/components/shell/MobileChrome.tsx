@@ -21,7 +21,7 @@ const starts = (p: string, ...prefixes: string[]) => prefixes.some((x) => p === 
 // Campus takes the fourth tab; Messages and Announcements then live on the Me screen. With Campus off, it's Inbox again.
 const learnTabs = (inbox: string, campus: boolean): Tab[] => [
   { label: "Home", href: "/learn", icon: House, match: (p) => p === "/learn" },
-  { label: "Learn", href: "/learn/courses", icon: BookOpen, match: (p) => starts(p, "/learn/courses", "/learn/browse", "/learn/library", "/profile/saved") },
+  { label: "Learn", href: "/learn/courses", icon: BookOpen, match: (p) => starts(p, "/learn/courses", "/learn/browse", "/learn/library", "/learn/saved") },
   { label: "Explore", href: "/learn/explore", icon: Compass, match: (p) => starts(p, "/learn/explore") },
   campus
     ? { label: "Campus", href: "/campus", icon: School, match: (p) => starts(p, "/campus") }
@@ -30,7 +30,7 @@ const learnTabs = (inbox: string, campus: boolean): Tab[] => [
     label: "Me",
     href: "/me",
     icon: UserRound,
-    match: (p) => (starts(p, "/me", "/profile", "/settings", "/support", "/learn/wallet", "/learn/sessions", "/communities") || (campus && starts(p, "/learn/messages", "/learn/announcements"))) && !starts(p, "/profile/saved"),
+    match: (p) => (starts(p, "/me", "/profile", "/settings", "/support", "/learn/wallet", "/learn/sessions", "/communities") || (campus && starts(p, "/learn/messages", "/learn/announcements"))),
   },
 ];
 
@@ -50,12 +50,12 @@ const teachTabs = (canTeach: boolean, coach: boolean, messages: boolean): Tab[] 
 const sections = (messages: boolean): Section[] => [
   {
     title: "Learn",
-    match: (p) => ["/learn/courses", "/learn/browse", "/learn/library", "/profile/saved"].includes(p),
+    match: (p) => ["/learn/courses", "/learn/browse", "/learn/library", "/learn/saved"].includes(p),
     segments: [
       { label: "My courses", href: "/learn/courses", match: (p) => p === "/learn/courses" },
       { label: "Browse", href: "/learn/browse", match: (p) => p === "/learn/browse" },
       { label: "Library", href: "/learn/library", match: (p) => p === "/learn/library" },
-      { label: "Saved", href: "/profile/saved", match: (p) => p === "/profile/saved" },
+      { label: "Saved", href: "/learn/saved", match: (p) => p === "/learn/saved" },
     ],
   },
   { title: "Explore", match: (p) => p === "/learn/explore" },
@@ -81,7 +81,7 @@ const sections = (messages: boolean): Section[] => [
 ];
 
 // Screens a tab opens (no back arrow). Everything else is a pushed screen with a back arrow.
-const rootPaths = ["/learn", "/teach", "/me", "/campus", "/learn/explore", "/learn/courses", "/learn/browse", "/learn/library", "/profile/saved", "/learn/messages", "/learn/announcements", "/teach/courses", "/teach/products", "/teach/students", "/teach/messages", "/teach/coaching", "/teach/earnings"];
+const rootPaths = ["/learn", "/teach", "/me", "/campus", "/learn/explore", "/learn/courses", "/learn/browse", "/learn/library", "/learn/saved", "/learn/messages", "/learn/announcements", "/teach/courses", "/teach/products", "/teach/students", "/teach/messages", "/teach/coaching", "/teach/earnings"];
 
 export function mobileTabs({ teach, canTeach, coach, features }: { teach: boolean; canTeach: boolean; coach: boolean; features: Partial<FeatureMap> }) {
   const messages = features.messages !== false;

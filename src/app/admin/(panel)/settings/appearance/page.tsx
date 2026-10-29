@@ -76,7 +76,9 @@ export default async function AppearanceSettings() {
                 label: "Continue learning",
                 href: "/admin/settings/appearance",
               }}
-              background={settings?.hero_bg_url}
+              variant="strip"
+              avatar={{ src: null, seed: "Ada" }}
+              stat={{ value: 40, label: "Overall progress" }}
             />
           </div>
           <HeroBackgroundEditor current={settings?.hero_bg_url ?? null} />

@@ -73,3 +73,40 @@
 .et-mx-chips::-webkit-scrollbar{display:none}
 .et-mx-chips a{flex-shrink:0;height:34px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;background:var(--a-panel-2);border:1px solid var(--a-border);font-size:13px;font-weight:600;color:var(--a-muted)}
 .et-mx-chips a.is-on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Phone Home (/learn): a blue band with greeting, inbox and search in place of the top bar and banner, then a rounded
+   sheet with the ongoing courses sliding sideways. */
+.et-mhome{display:none}
+@media(max-width:860px){
+  .et-app.is-phone-app:has(.et-mhome) .et-mtop{display:none}
+  .et-app.is-phone-app:has(.et-mhome) .et-body{padding-top:0}
+  .et-app.is-phone-app .et-home:has(> .et-mhome) > .et-hero,.et-app.is-phone-app .et-home:has(> .et-mhome) .et-lb-continue-wrap{display:none}
+  .et-app.is-phone-app .et-mhome{display:block;margin:-8px -16px 0}
+  .et-mhome-top{display:flex;flex-direction:column;gap:20px;padding:calc(env(safe-area-inset-top) + 22px) 16px 54px;background:#1d4ed8;color:#fff}
+  .et-mhome-hi{display:flex;align-items:center;gap:10px}
+  .et-mhome-hi>a:first-child{flex-shrink:0;border-radius:999px}
+  .et-mhome-avatar{width:40px;height:40px;border-radius:999px;object-fit:cover;display:grid;place-items:center;background:#fff;color:#1d4ed8;font-size:16px;font-weight:700;border:2px solid #fff}
+  .et-mhome-hi>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .et-mhome-hi b{font-size:15px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .et-mhome-hi small{font-size:11.5px;color:#dbeafe}
+  .et-mhome-bell{flex-shrink:0;display:grid;place-items:center;width:42px;height:42px;color:#fff}
+  .et-mhome-search{display:flex;align-items:center;gap:10px;height:54px;padding:0 8px 0 18px;border-radius:999px;background:#1e40af;color:#dbeafe}
+  .et-mhome-search input{flex:1;min-width:0;height:100%;border:0;background:none;color:#fff;outline:none;-webkit-appearance:none}
+  .et-mhome-search input::placeholder{color:#c7d2fe}
+  .et-mhome-search a{display:grid;place-items:center;width:40px;height:40px;color:#dbeafe}
+  .et-mhome-sheet{position:relative;margin-top:-30px;padding:24px 16px 4px;border-radius:28px 28px 0 0;background:var(--a-bg)}
+  .et-mhome-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .et-mhome-head h2{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .et-mhome-head a{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--a-faint)}
+  .et-mhome-rail{display:flex;gap:12px;margin:0 -16px;padding:0 16px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 16px;scrollbar-width:none}
+  .et-mhome-rail::-webkit-scrollbar{display:none}
+  .et-mhome-card{flex:0 0 calc(100% - 22px);scroll-snap-align:start;display:flex;align-items:center;gap:12px;padding:12px;border-radius:20px;background:#0b1a45;color:#fff;-webkit-tap-highlight-color:transparent}
+  .et-mhome-card:only-child{flex-basis:100%}
+  .et-mhome-card:active{transform:scale(.98)}
+  .et-mhome-thumb{flex-shrink:0;width:92px;height:80px;border-radius:14px;overflow:hidden;display:grid;place-items:center;background:#1e3a8a;color:#bfdbfe}
+  .et-mhome-thumb img{width:100%;height:100%;object-fit:cover}
+  .et-mhome-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+  .et-mhome-text b{font-size:15.5px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .et-mhome-text small{font-size:12.5px;color:#c7d2fe}
+  .et-mhome-play{flex-shrink:0;display:grid;place-items:center;width:46px;height:46px;border-radius:999px;background:#2563eb;color:#fff}
+}

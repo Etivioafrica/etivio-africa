@@ -1,25 +1,21 @@
-import Link from "next/link";
-import { ArrowRight, Award, BookOpen, Clock, Compass, Flame, ListChecks, PlayCircle, Store, Target } from "lucide-react";
-import { Cover, Progress, Ring } from "@/components/dash/ui";
-import { CourseGrid } from "@/components/dash/CourseGrid";
-import { getCoursePlayer, getMyCourses, getSavedIds } from "@/lib/data/learn";
-import { formatDuration } from "@/lib/format";
-import { getLearnerPrefs, getRecommendations } from "@/lib/data/recommend";
+import { after } from "next/server";
+import { getCatalog, getMyCourses, quizProgress } from "@/lib/data/learn";
 import { getLearnerProfile } from "@/lib/data/profile";
-import { GOAL_TIPS } from "@/components/dash/LearnerGuidance";
-import { WelcomeHero } from "@/components/dash/WelcomeHero";
-import { PhoneHome } from "@/components/dash/PhoneHome";
 import { sessionsFor } from "@/lib/data/coaching";
+import { getChecklist, getGuideState } from "@/lib/data/guide";
+import { featuresFor } from "@/lib/data/features";
+import { getCampusPulse, getQuizStats, getQuizzesToDo } from "@/lib/data/dashboard";
+import { LearnBoard } from "@/components/dash/LearnBoard";
+import { BADGE_INFO, nextBadge } from "@/lib/badges";
+import type { Task } from "@/components/dash/LearnBoardClient";
+import { WelcomeHero } from "@/components/dash/WelcomeHero";
+import { MobileHome } from "@/components/dash/MobileHome";
 import { getPlatformSettings } from "@/lib/platform";
 import { AnnouncementBar } from "@/components/dash/AnnouncementBar";
 import { getCurrentUser } from "@/lib/auth";
 import { syncBadges } from "@/lib/data/badges";
 import { syncCertificates } from "@/lib/data/certificates";
-import { after } from "next/server";
 import { sendDueAnnouncements } from "@/lib/email/notify";
-import { GettingStarted } from "@/components/dash/GettingStarted";
-import { getChecklist, getGuideState } from "@/lib/data/guide";
-import { featuresFor } from "@/lib/data/features";
 
 export const metadata = { title: "Learn" };
 
@@ -28,24 +24,32 @@ export default async function LearnDashboard() {
   // Sends any scheduled announcement whose time has passed (claimed once, so this is cheap when there's nothing due).
   after(sendDueAnnouncements);
   // Landing page after sign-in, so it also catches badges earned outside a lesson (e.g. Pioneer).
-  const [mine, recommended, prefs, profile, savedIds, sessions] = await Promise.all([
+  const [mine, platform, profile, sessions, guide, features, quiz, catalog, campus] = await Promise.all([
     getMyCourses(),
-    getRecommendations(3),
-    getLearnerPrefs(),
+    getPlatformSettings(),
     getLearnerProfile(user.id),
-    getSavedIds(),
     sessionsFor(user.id, "learner"),
+    getGuideState(user.id),
+    featuresFor(user.roles),
+    getQuizStats(),
+    getCatalog(24),
+    getCampusPulse(user.id),
     syncBadges(user.id),
     syncCertificates(user.id),
   ]);
-  const [platform, guide, features] = await Promise.all([getPlatformSettings(), getGuideState(user.id), featuresFor(user.roles)]);
-  const checklist = guide.checklist_hidden ? [] : await getChecklist(user.id, guide, features.campus !== false);
-  // Lessons this week (Sunday to Saturday), from the activity heatmap's current column.
-  const thisWeek = profile?.heatmap.weeks.at(-1)?.reduce((n, d) => n + d.count, 0) ?? 0;
   const active = mine.filter((c) => !c.completed);
-  const completed = mine.filter((c) => c.completed);
-  const lessonsDone = mine.reduce((n, c) => n + c.done, 0);
-  const enrolledIds = new Set(mine.map((c) => c.id));
+  const [quizzes, quizCounts, checklist] = await Promise.all([
+    getQuizzesToDo(active.map((c) => ({ id: c.id, title: c.title }))),
+    quizProgress(
+      user.id,
+      mine.map((c) => c.id),
+    ),
+    guide.checklist_hidden ? Promise.resolve([]) : getChecklist(user.id, guide, features.campus !== false),
+  ]);
+  const quizTotal = [...quizCounts.values()].reduce((n, q) => n + q.quizzes, 0);
+  const quizPassed = [...quizCounts.values()].reduce((n, q) => n + q.passed, 0);
+  const now = new Date().toISOString();
+  const soon = new Date(Date.parse(now) + 30 * 86400e3).toISOString();
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   // The banner's one next step: the course they touched most recently, else something new to start.
   const current = active[0];
@@ -59,230 +63,62 @@ export default async function LearnDashboard() {
     : mine.length
       ? { message: "You've finished every course you started. Ready for the next one?", cta: { label: "Find a new course", href: "/learn/browse" } }
       : { message: "Find your first course and start learning today. Your progress, badges, and certificates start here.", cta: { label: "Browse courses", href: "/learn/browse" } };
-
-  // The resume card names the exact lesson to pick up.
-  const player = current ? await getCoursePlayer(current.id) : null;
-  const upNext = player?.lessons.find((l) => !l.done) ?? null;
-  const week = profile?.heatmap.weeks.at(-1) ?? [];
-  const streak = profile?.heatmap.currentStreak ?? 0;
-  const tip = prefs.goals[0] ? GOAL_TIPS[prefs.goals[0]] : null;
-  const others = active.slice(current ? 1 : 0, 7);
+  const booked = sessions.filter((s) => s.status === "confirmed" && s.endsAt > now).reverse();
+  // Tasks: the next lesson, quizzes still to pass and booked sessions, then the getting-started steps.
+  const at = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const tasks: Task[] = [
+    ...(current ? [{ key: "continue", label: `Continue ${current.title}`, hint: `${current.lessonsLeft} ${current.lessonsLeft === 1 ? "lesson" : "lessons"} left`, href: `/learn/course/${current.id}`, done: false }] : []),
+    ...quizzes.slice(0, 2).map((q) => ({ key: `quiz-${q.id}`, label: `Pass ${q.title}`, hint: q.courseTitle, href: `/learn/course/${q.courseId}/quiz/${q.id}`, done: false })),
+    ...booked.slice(0, 2).map((b) => ({ key: `session-${b.id}`, label: `Session with ${b.other.name}`, hint: "1-on-1 coaching", when: at(b.startsAt), href: `/sessions/${b.id}`, done: false })),
+    // Courses whose access ends within 30 days.
+    ...active
+      .filter((c) => c.expiresAt && !c.expired && c.expiresAt < soon)
+      .map((c) => ({ key: `ends-${c.id}`, label: `Finish ${c.title}`, hint: "Access ends", when: at(c.expiresAt!), href: `/learn/course/${c.id}`, done: false })),
+    ...checklist,
+  ];
   // Overall progress across every enrolled course, for the banner.
   const totalLessons = mine.reduce((n, c) => n + c.lessonCount, 0);
+  const lessonsDone = mine.reduce((n, c) => n + c.done, 0);
   const overall = totalLessons ? Math.round((lessonsDone / totalLessons) * 100) : 0;
-  const now = new Date().toISOString();
-  const upcoming = sessions.filter((s) => s.status === "confirmed" && s.endsAt > now).reverse();
 
   return (
     <div className="et-page et-home">
+      <MobileHome
+        name={(user.name || "there").split(" ")[0]}
+        avatar={{ src: user.avatarUrl, seed: user.name || user.email }}
+        inbox={features.campus === false && features.messages !== false ? "/learn/messages" : "/learn/announcements"}
+        courses={active}
+      />
       {platform.announcement && <AnnouncementBar text={platform.announcement.text} link={platform.announcement.link} />}
-      <WelcomeHero name={(user.name || "there").split(" ")[0]} date={today} message={hero.message} cta={hero.cta} background={platform.heroBgUrl}
-        side={
-          mine.length ? (
-            <>
-              <Ring value={overall} max={100} size={84}>
-                <b>{overall}%</b>
-              </Ring>
-              <small>Overall progress</small>
-            </>
-          ) : null
-        }
+      <WelcomeHero
+        name={(user.name || "there").split(" ")[0]}
+        date={today}
+        message={hero.message}
+        cta={hero.cta}
+        variant="strip"
+        avatar={{ src: user.avatarUrl, seed: user.name || user.email }}
+        stat={mine.length ? { value: overall, label: "Overall progress" } : null}
       />
-      {checklist.length > 0 && <GettingStarted items={checklist} />}
-      <PhoneHome
+      <LearnBoard
         current={current ?? null}
-        upNext={upNext && player ? { id: upNext.id, title: upNext.title, index: player.lessons.indexOf(upNext) + 1 } : null}
-        courses={[...active, ...completed]}
-        week={week}
-        thisWeek={thisWeek}
-        goal={prefs.weeklyGoal || null}
-        streak={streak}
-        sessions={upcoming}
-        interests={prefs.interests}
+        weeks={profile?.heatmap.weeks ?? []}
+        secondsLearned={profile?.stats.secondsLearned ?? 0}
+        streak={profile?.heatmap.currentStreak ?? 0}
+        quiz={quiz}
+        quizzes={quizzes}
+        quizTotal={quizTotal}
+        quizPassed={quizPassed}
+        tasks={tasks}
+        campus={campus}
+        campusOn={features.campus !== false}
+        badges={(profile?.badges ?? []).map((b) => ({ id: b.id, label: BADGE_INFO[b.id]?.label ?? b.id }))}
+        next={
+          profile
+            ? nextBadge({ joinedAt: profile.profile.joinedAt, lessonsDone, coursesCompleted: mine.filter((c) => c.completed).length, longestStreak: profile.heatmap.longestStreak })
+            : null
+        }
+        available={catalog.filter((c) => !mine.some((m) => m.id === c.id)).slice(0, 8)}
       />
-
-      <div className="et-dash-top">
-        {current ? (
-          <section className="et-card et-dash-resume">
-            <Link href={`/learn/course/${current.id}`} className="et-dash-resume-cover" aria-label={`Resume ${current.title}`}>
-              <Cover url={current.coverUrl} />
-              <span className="et-dash-play">
-                <PlayCircle size={30} />
-              </span>
-            </Link>
-            <div className="et-dash-resume-body">
-              <span className="et-dash-eyebrow">{current.done ? "Pick up where you left off" : "Ready when you are"}</span>
-              <h2>{current.title}</h2>
-              <p className="et-muted">{current.instructor}</p>
-              <Progress value={current.progress} label={`${current.progress}% complete`} />
-              <p className="et-dash-left">
-                {current.secondsLeft > 0 ? `${formatDuration(current.secondsLeft)} left` : `${current.lessonsLeft} ${current.lessonsLeft === 1 ? "lesson" : "lessons"} left`}
-              </p>
-              {upNext && (
-                <p className="et-dash-next">
-                  <PlayCircle size={15} /> <span>Up next:</span> <b>{upNext.title}</b>
-                </p>
-              )}
-              <div className="et-inline">
-                <Link href={upNext ? `/learn/course/${current.id}?lesson=${upNext.id}` : `/learn/course/${current.id}`} className="et-btn et-btn-primary">
-                  {current.done ? "Resume" : "Start course"} <ArrowRight size={15} />
-                </Link>
-                <Link href={`/learn/browse/${current.id}`} className="et-btn et-btn-ghost">
-                  Course details
-                </Link>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section className="et-card et-dash-start">
-            <span className="et-cta-icon">
-              <Compass size={24} />
-            </span>
-            <h2>{mine.length ? "You've finished everything you started" : "Start your first course"}</h2>
-            <p>{mine.length ? "Pick your next skill. Your progress and certificates carry on from here." : "Courses, templates and guides from creators across Africa. Your progress, badges and certificates start here."}</p>
-            <div className="et-inline">
-              <Link href="/learn/browse" className="et-btn et-btn-primary">
-                <BookOpen size={15} /> Browse courses
-              </Link>
-              <Link href="/learn/explore" className="et-btn et-btn-ghost">
-                <Store size={15} /> Explore the marketplace
-              </Link>
-            </div>
-            {prefs.interests.length > 0 && (
-              <div className="et-dash-chips">
-                <small>Your interests:</small>
-                {prefs.interests.slice(0, 6).map((i) => (
-                  <Link key={i} href={`/explore?q=${encodeURIComponent(i)}`}>
-                    {i}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        <section className="et-card et-dash-week">
-          <div className="et-dash-week-head">
-            {prefs.weeklyGoal ? (
-              <Ring value={thisWeek} max={prefs.weeklyGoal} size={76}>
-                <b style={{ fontSize: 17 }}>{thisWeek}</b>
-                <small>of {prefs.weeklyGoal}</small>
-              </Ring>
-            ) : (
-              <span className="et-set-icon et-dash-goal-icon">
-                <Target size={22} />
-              </span>
-            )}
-            <div>
-              <b>
-                {!prefs.weeklyGoal
-                  ? "Set a weekly goal"
-                  : thisWeek >= prefs.weeklyGoal
-                    ? "Weekly goal reached!"
-                    : `${prefs.weeklyGoal - thisWeek} ${prefs.weeklyGoal - thisWeek === 1 ? "lesson" : "lessons"} to go this week`}
-              </b>
-              <small>{prefs.weeklyGoal ? "Resets every Sunday." : <Link href="/profile">Choose 3, 5 or 7 lessons a week</Link>}</small>
-            </div>
-          </div>
-
-          <div className="et-dash-days" aria-label="This week">
-            {week.map((d, i) => (
-              <span key={d.date} className={`${d.count ? "is-on" : ""}${d.future ? " is-future" : ""}`} title={`${d.date}: ${d.count} ${d.count === 1 ? "lesson" : "lessons"}`}>
-                <i>{d.count ? <Flame size={13} /> : null}</i>
-                <small>{"SMTWTFS"[i]}</small>
-              </span>
-            ))}
-          </div>
-
-          <ul className="et-dash-mini">
-            <li>
-              <Flame size={16} />
-              <b>{streak}</b>
-              <small>day streak</small>
-            </li>
-            <li>
-              <ListChecks size={16} />
-              <b>{lessonsDone}</b>
-              <small>lessons done</small>
-            </li>
-            <li>
-              <Clock size={16} />
-              <b>{formatDuration(profile?.stats.secondsLearned ?? 0) || "0 min"}</b>
-              <small>learned</small>
-            </li>
-            <li>
-              <Award size={16} />
-              <b>{completed.length}</b>
-              <small>{completed.length === 1 ? "certificate" : "certificates"}</small>
-            </li>
-          </ul>
-
-          {tip && (
-            <p className="et-dash-tip">
-              {tip.tip} <Link href={tip.cta.href}>{tip.cta.label}</Link>
-            </p>
-          )}
-        </section>
-      </div>
-
-      {others.length > 0 && (
-        <section className="et-dash-section is-desk">
-          <div className="et-dash-head">
-            <h2>Also in progress</h2>
-            <Link href="/learn/courses">My courses</Link>
-          </div>
-          <div className="et-dash-row">
-            {others.map((c) => (
-              <Link key={c.id} href={`/learn/course/${c.id}`} className="et-card et-dash-mini-course">
-                <Cover url={c.coverUrl} />
-                <div>
-                  <b>{c.title}</b>
-                  <Progress value={c.progress} label={`${c.done}/${c.lessonCount}`} />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {recommended.length > 0 && (
-        <section className="et-dash-section">
-          <div className="et-dash-head">
-            <div>
-              <h2>{prefs.interests.length || prefs.level ? "Recommended for you" : "Popular on Etivio"}</h2>
-              {(prefs.interests.length > 0 || prefs.level) && (
-                <p className="et-muted">
-                  Based on your interests{prefs.level ? " and level" : ""}. <Link href="/settings">Update interests</Link>
-                </p>
-              )}
-            </div>
-            <Link href="/learn/browse">Browse all</Link>
-          </div>
-          <CourseGrid courses={recommended} enrolledIds={enrolledIds} savedIds={savedIds} />
-        </section>
-      )}
-
-      {completed.length > 0 && (
-        <section className="et-dash-section is-desk">
-          <div className="et-dash-head">
-            <h2>Completed</h2>
-            <Link href="/profile/certificates">Your certificates</Link>
-          </div>
-          <div className="et-dash-row">
-            {completed.slice(0, 6).map((c) => (
-              <Link key={c.id} href={`/learn/course/${c.id}`} className="et-card et-dash-done">
-                <Cover url={c.coverUrl} small />
-                <div>
-                  <b>{c.title}</b>
-                  <small>
-                    <Award size={13} /> Certificate earned
-                  </small>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

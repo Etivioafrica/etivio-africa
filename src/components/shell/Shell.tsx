@@ -204,7 +204,7 @@ const learnNav: Group[] = [
       { label: "My courses", href: "/learn/courses", icon: Library },
       { label: "Browse courses", href: "/learn/browse", icon: Compass },
       { label: "Library", href: "/learn/library", icon: FolderDown },
-      { label: "Saved", href: "/profile/saved", icon: Heart },
+      { label: "Saved", href: "/learn/saved", icon: Heart },
       { label: "Marketplace", href: "/learn/explore", icon: Store },
       { label: "Wallet", href: "/learn/wallet", icon: Wallet, feature: "wallet" },
       { label: "Messages", href: "/learn/messages", icon: MessagesSquare, feature: "messages" },
@@ -392,7 +392,7 @@ export default function Shell({
     .filter((g) => g.items.length);
   const matches = (i: Item) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`));
   const flat = groups.flatMap((g) => g.items);
-  // When two links match (Profile and Saved on /profile/saved), only the more specific one lights up.
+  // When two links match (one nested under the other), only the more specific one lights up.
   const isActive = (i: Item) => matches(i) && !flat.some((o) => o !== i && o.href.length > i.href.length && o.href.startsWith(`${i.href}/`) && matches(o));
   const results = search ? flat.filter((i) => i.label.toLowerCase().includes(search.toLowerCase())) : null;
 
