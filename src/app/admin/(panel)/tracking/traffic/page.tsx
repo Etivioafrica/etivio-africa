@@ -4,10 +4,10 @@ import { BarChart } from "@/components/dash/BarChart";
 import { requireAdmin } from "@/lib/admin";
 import { dayLabel } from "@/lib/data/admin";
 import { TrackingNav, parseRange } from "../TrackingNav";
+import { Countries, type Row } from "./Countries";
 
 export const metadata = { title: "Traffic" };
 
-type Row = { key: string; visits: number; visitors: number; bounces: number; signups: number };
 type Report = {
   totals: { visits: number; visitors: number; pages: number; bounces: number; signups: number };
   daily: { day: string; visits: number }[];
@@ -21,15 +21,6 @@ type Report = {
 };
 
 const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : "–");
-const regions = new Intl.DisplayNames(["en"], { type: "region" });
-const country = (code: string) => {
-  if (code === "??") return "Unknown";
-  try {
-    return regions.of(code) ?? code;
-  } catch {
-    return code;
-  }
-};
 
 function Breakdown({ title, rows, label, empty, mono, signups = true, format = (k) => k }: {
   title: string;
@@ -127,10 +118,7 @@ export default async function Traffic({ searchParams }: { searchParams: Promise<
         <Breakdown title="Sources" label="Site or utm_source" rows={r.sources} empty="No referring sites or campaign links yet." />
         <Breakdown title="Campaigns" label="utm_campaign" rows={r.campaigns} signups={false} empty="No campaign links used yet. Add ?utm_campaign=name to links you share." />
       </div>
-      <div className="et-grid-2">
-        <Breakdown title="Countries" label="Country" rows={r.countries} format={country} empty="No visits recorded yet." />
-        <Breakdown title="Cities" label="City" rows={r.cities} signups={false} empty="No city data yet (only available on the live site)." />
-      </div>
+      <Countries countries={r.countries} cities={r.cities} visitors={t.visitors} />
       <div className="et-grid-2">
         <Breakdown title="Devices" label="Device" rows={r.devices} empty="No visits recorded yet." />
       </div>

@@ -37,6 +37,8 @@ function deviceFor(ua: string) {
 }
 
 export async function POST(request: NextRequest) {
+  // Local development shares the live database but has no location data; its test visits would skew the reports.
+  if (process.env.NODE_ENV !== "production") return new NextResponse(null, { status: 204 });
   const ua = request.headers.get("user-agent") ?? "";
   const origin = request.headers.get("origin");
   if (!ua || BOTS.test(ua) || (origin && new URL(origin).host !== request.nextUrl.host)) return new NextResponse(null, { status: 204 });
