@@ -135,7 +135,7 @@ function ProgressMenu({ progress, steps }: { progress: number; steps: { done: nu
   const r = 15;
   const c = 2 * Math.PI * r;
   return (
-    <details className="et-pl-progress">
+    <details className="et-pl-progress" data-menu>
       <summary>
         <span className="et-pl-ring">
           <svg viewBox="0 0 36 36" aria-hidden="true" className="et-pl-ring-svg">

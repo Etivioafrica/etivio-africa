@@ -127,7 +127,7 @@ async function Campus({ searchParams }: Props) {
               );
             })}
           </nav>
-          <details className="et-cps-sortmenu" key={`${sort}-${saved}`}>
+          <details className="et-cps-sortmenu" data-menu key={`${sort}-${saved}`}>
             <summary>
               {saved ? <Bookmark size={14} /> : sort === "hot" ? <Flame size={14} /> : sort === "top" ? <TrendingUp size={14} /> : <Clock size={14} />}
               {saved ? "Saved" : SORTS.find((x) => x.value === sort)?.label}

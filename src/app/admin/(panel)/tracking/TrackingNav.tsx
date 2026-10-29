@@ -55,7 +55,7 @@ export function TrackingNav({ tab, range, sub }: { tab: Tab; range: Range; sub: 
           <h1>Tracking</h1>
           <p>{sub}</p>
         </div>
-        <details className="et-range" key={`${tab}-${range.qs}`}>
+        <details className="et-range" data-menu key={`${tab}-${range.qs}`}>
           <summary>
             <CalendarDays size={15} strokeWidth={1.9} />
             {range.label}

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
 import { RegisterServiceWorker } from "@/components/pwa/RegisterServiceWorker";
 import { DialogHost } from "@/components/dash/dialogs";
+import { MenuCloser } from "@/components/dash/MenuCloser";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <RegisterServiceWorker />
         <DialogHost />
+        <MenuCloser />
         <Suspense fallback={null}>
           <VisitTracker />
         </Suspense>
