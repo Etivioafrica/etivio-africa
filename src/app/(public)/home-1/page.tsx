@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, AtSign, Award, BadgeCheck, BookOpen, Bookmark, Check, Flame, LifeBuoy, Megaphone, PlayCircle, Sparkles, StickyNote, Upload, Users, Wallet } from "lucide-react";
 import { Cover } from "@/components/dash/ui";
 import { AiAvatar } from "@/components/learn/AiAvatar";
-import { HeroStage } from "./HeroStage";
+import { HeroStage } from "../HeroStage";
 import { createClient } from "@/lib/supabase/server";
 import { getCatalog } from "@/lib/data/learn";
 import { formatPrice } from "@/lib/format";
@@ -11,6 +11,8 @@ import { formatPrice } from "@/lib/format";
 export const metadata = {
   title: "Etivio | Learn the skills that move you forward",
   description: "Practical courses from instructors across Africa. Learn at your pace, track your progress, and earn certificates you can share.",
+  // The previous home page, kept for reference now that Home 2 is at /; out of search so it doesn't compete with it.
+  robots: { index: false, follow: false },
 };
 
 const STEPS = [
@@ -21,7 +23,7 @@ const STEPS = [
 
 const WEEK = ["M", "T", "W", "T", "F", "S", "S"];
 
-// Landing page, laid out after huly.io: dark hero with a light beam, then alternating light and dark sections.
+// Home 1, the previous landing page, laid out after huly.io: dark hero with a light beam, then alternating light and dark sections.
 export default function Home() {
   return (
     <>

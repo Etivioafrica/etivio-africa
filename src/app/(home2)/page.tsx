@@ -35,8 +35,6 @@ export const metadata: Metadata = {
   title: "Etivio | Learn, connect and build",
   description:
     "Courses, communities, coaches and an AI study partner, built for learners across Africa.",
-  // A design draft next to the live home page; keep it out of search until it replaces it.
-  robots: { index: false, follow: false },
 };
 
 const PILLARS = [

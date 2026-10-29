@@ -162,7 +162,7 @@ export function Home2Nav() {
   return (
     <header className={`et-h2-nav${active ? " is-mega" : ""}`} ref={header} onPointerLeave={(e) => e.pointerType === "mouse" && hide()}>
       <div className="et-h2-nav-in">
-        <Link href="/home-2" className="et-h2-logo" aria-label="Etivio home">
+        <Link href="/" className="et-h2-logo" aria-label="Etivio home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/etiviologo.svg" alt="Etivio" />
         </Link>
