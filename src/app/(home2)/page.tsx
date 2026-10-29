@@ -29,6 +29,7 @@ import { Caveat } from "next/font/google";
 import { HeroCta } from "./HeroCta";
 import { HeroReel } from "./HeroReel";
 import { Home2Nav } from "./Home2Nav";
+import { AppDemo } from "./AppDemo";
 import "./home2.css";
 
 export const metadata: Metadata = {
@@ -165,6 +166,11 @@ export default function Home2() {
             </span>
             <HeroCta />
           </div>
+        </section>
+
+        {/* 3. Product tour: the app playing itself on a coloured panel */}
+        <section className="et-h2-demo-sec" aria-label="Product tour">
+          <AppDemo />
         </section>
 
         {/* 4. Four pillars */}

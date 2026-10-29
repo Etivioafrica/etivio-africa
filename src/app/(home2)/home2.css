@@ -303,3 +303,18 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 @media(prefers-reduced-motion:reduce){
   .et-h2-typing i{animation:none}
 }
+
+/* 3. Product tour: the app playing itself (the /tour page) in an iframe drawn at 1440x900 and scaled to fit. */
+.et-h2-demo-sec{padding:0 0 clamp(64px,8vw,120px)}
+.et-h2-demo{padding:clamp(16px,4vw,64px) clamp(12px,4vw,64px) clamp(20px,3vw,36px);background:linear-gradient(135deg,#8b9cf6 0%,#5b74e6 40%,#3b5bdb 70%,#7c6fe0 100%)}
+.et-h2-demo-stage{position:relative;max-width:1440px;margin:0 auto;background:#fff;box-shadow:0 40px 80px -30px #0b1a45}
+.et-h2-demo-frame{position:absolute;top:0;left:0;display:block;border:0;transform-origin:top left;background:#fff;pointer-events:none}
+.et-h2-demo-tabs{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:clamp(18px,2.4vw,28px)}
+.et-h2-demo-tabs button{position:relative;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;overflow:hidden;border:0;border-radius:10px;background:#2c47c4;color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,color .2s}
+.et-h2-demo-tabs button:hover{background:#2440b8}
+.et-h2-demo-tabs button.is-on{background:#fff;color:#0b1a45}
+.et-h2-demo-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:#2563eb;transform-origin:left;animation:et-h2-bar linear both}
+@keyframes et-h2-bar{from{transform:scaleX(0)}}
+.et-h2-demo-cap{margin-top:12px;text-align:center;font-size:15px;color:#fff}
+@media(max-width:640px){.et-h2-demo-tabs button{height:34px;padding:0 11px;font-size:12.5px}.et-h2-demo-tabs button svg{display:none}.et-h2-demo-cap{font-size:13.5px}}
+@media(prefers-reduced-motion:reduce){.et-h2-demo-bar{display:none}}

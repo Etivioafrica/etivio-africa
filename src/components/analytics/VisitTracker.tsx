@@ -10,7 +10,7 @@ export function VisitTracker() {
 
   useEffect(() => {
     // The ref also stops React's dev double-run from counting a page twice.
-    if (pathname.startsWith("/admin") || last.current === pathname) return;
+    if (pathname.startsWith("/admin") || pathname === "/tour" || last.current === pathname) return;
     const referrer = last.current === null ? document.referrer : "";
     last.current = pathname;
     fetch("/api/t", {
