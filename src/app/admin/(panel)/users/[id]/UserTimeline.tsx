@@ -22,7 +22,7 @@ const PAGES: Record<string, string> = {
   "/profile/certificates": "Profile · Certificates",
   "/profile/courses": "Profile · Courses",
   "/profile/notes": "Profile · Notes",
-  "/profile/saved": "Profile · Saved",
+  "/learn/saved": "Saved",
   "/settings": "Settings",
   "/settings/account": "Settings · Account",
   "/settings/billing": "Settings · Billing",

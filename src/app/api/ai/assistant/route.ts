@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     courses.length ? `Courses on Etivio you can recommend (only these, never invent courses):\n${courses.join("\n")}` : "",
     [
       "Where things are in the app (link with markdown, e.g. [My courses](/learn/courses)):",
-      "Dashboard /learn, My courses /learn/courses, Browse courses /learn/browse, Library (downloads) /learn/library, Saved /profile/saved, Marketplace /explore, Announcements /learn/announcements, Profile /profile, Settings /settings (name, username, photo or character avatar, password), Support /support.",
+      "Dashboard /learn, My courses /learn/courses, Browse courses /learn/browse, Library (downloads) /learn/library, Saved /learn/saved, Marketplace /explore, Announcements /learn/announcements, Profile /profile, Settings /settings (name, username, photo or character avatar, password), Support /support.",
       roleList.includes("tutor") ? "For tutors: Teach dashboard /teach, Courses /teach/courses, New course /teach/courses/new (AI can draft the outline, copy and cover), Products /teach/products, Students /teach/students, Earnings /teach/earnings. Every course is reviewed by the Etivio team before it goes live." : "",
       "Inside a course, each lesson has an Ask AI tab for questions about that lesson.",
     ]

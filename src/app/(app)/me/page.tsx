@@ -43,7 +43,7 @@ export default async function MePage() {
     ...(f.messages ? [{ label: "Messages", href: "/learn/messages", icon: Inbox }] : []),
     { label: "Announcements", href: "/learn/announcements", icon: Megaphone },
     { label: "Library", href: "/learn/library", icon: FolderDown },
-    { label: "Saved", href: "/profile/saved", icon: Heart },
+    { label: "Saved", href: "/learn/saved", icon: Heart },
     { label: "Certificates", href: "/profile/certificates", icon: Award },
     ...(f.wallet ? [{ label: "Wallet", href: "/learn/wallet", icon: Wallet }] : []),
     ...(f.coaching ? [{ label: "Coaching sessions", href: "/learn/sessions", icon: CalendarClock }] : []),

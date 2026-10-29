@@ -36,7 +36,7 @@ const STEPS: Step[] = [
   { targets: ["/learn/explore"], icon: Store, title: "Marketplace", body: "Courses plus templates, e-books, resource packs and bundles from creators. Filter by type, level, category or price." },
   { targets: ["/campus"], icon: School, title: "Campus", body: "The learner community: share wins, ask questions, run polls and find opportunities.", feature: "campus" },
   { targets: ["/learn/announcements"], icon: Megaphone, title: "Announcements", body: "News from the Etivio team: new courses, features and events." },
-  { targets: ["/profile/saved"], icon: Heart, title: "Saved", body: "Courses you've hearted, kept here until you're ready to start." },
+  { targets: ["/learn/saved"], icon: Heart, title: "Saved", body: "Courses you've hearted, kept here until you're ready to start." },
   { targets: ["/learn/messages"], icon: MessagesSquare, title: "Messages", body: "Talk to the tutors of your courses. Ask about a lesson any time." },
   { targets: ["/learn/library"], icon: FolderDown, title: "Library", body: "Templates, e-books and packs you own. Download them any time." },
   { targets: ["/learn/wallet"], icon: Wallet, title: "Wallet", body: "Top-ups and credits for courses. Your balance is used first at checkout." },

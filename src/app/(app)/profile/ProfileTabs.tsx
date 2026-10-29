@@ -9,7 +9,6 @@ const TABS = [
   { href: "/profile/certificates", label: "Certificates" },
   { href: "/profile/activity", label: "Activity" },
   { href: "/profile/badges", label: "Badges" },
-  { href: "/profile/saved", label: "Saved" },
   { href: "/profile/notes", label: "Notes" },
 ];
 

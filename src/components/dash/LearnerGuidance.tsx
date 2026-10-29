@@ -9,7 +9,7 @@ export const GOAL_TIPS: Record<LearningGoal, { tip: string; cta: { label: string
   career: { tip: "Every course you finish gives you a verified certificate you can add to LinkedIn.", cta: { label: "See certificates", href: "/profile/certificates" } },
   job: { tip: "Employers want proof. Finish courses, then share your certificates and public profile.", cta: { label: "Set up your profile", href: "/settings" } },
   freelance: { tip: "Clients hire on proof of skill. Complete practical courses and share your profile link with them.", cta: { label: "Set up your profile", href: "/settings" } },
-  creative: { tip: "Explore freely. Save courses that catch your eye and come back to them any time.", cta: { label: "Saved courses", href: "/profile/saved" } },
+  creative: { tip: "Explore freely. Save courses that catch your eye and come back to them any time.", cta: { label: "Saved courses", href: "/learn/saved" } },
 };
 
 export function LearnerGuidance({ goal, weeklyGoal, thisWeek }: { goal: LearningGoal | null; weeklyGoal: number | null; thisWeek: number }) {

@@ -24,7 +24,7 @@ export const PAGE_TIPS: Record<string, { title: string; body: string }> = {
   "/learn/courses": { title: "Your courses live here", body: "Everything you've enrolled in, with your progress. Open a course to pick up exactly where you stopped." },
   "/learn/explore": { title: "The Etivio marketplace", body: "Courses plus templates, e-books, resource packs and bundles. Filter by type, level, category or price." },
   "/learn/library": { title: "Your downloads", body: "Templates, e-books and packs you've bought or been given. Download them here any time." },
-  "/profile/saved": { title: "Saved for later", body: "Tap the heart on any course to keep it here until you're ready to start." },
+  "/learn/saved": { title: "Saved for later", body: "Tap the heart on any course to keep it here until you're ready to start." },
   "/learn/wallet": { title: "Your Etivio wallet", body: "Money for courses: top-ups, credits and group buys that didn't fill. Your balance is used first at checkout." },
   "/learn/messages": { title: "Messages", body: "Your conversations with the tutors of your courses. Ask about a lesson any time." },
   "/learn/announcements": { title: "News from Etivio", body: "Updates from the Etivio team: new courses, features and events." },
