@@ -50,6 +50,37 @@ export default async function PlatformSettings() {
 
       <section className="et-card">
         <div className="et-card-head">
+          <h2>Invite rewards</h2>
+          <span className="et-muted" style={{ fontSize: 12.5 }}>
+            Wallet credit when an invited friend buys their first course
+          </span>
+        </div>
+        <div className="et-card-pad et-form-grid">
+          <div className="et-field">
+            <label htmlFor="referral_percent">Inviter gets (%)</label>
+            <input id="referral_percent" name="referral_percent" type="number" min={0} max={50} step="0.5" defaultValue={Number(s?.referral_percent ?? 10)} />
+            <small>Share of what the friend paid on their first course. 0 turns it off.</small>
+          </div>
+          <div className="et-field">
+            <label htmlFor="referral_friend_percent">Friend gets back (%)</label>
+            <input id="referral_friend_percent" name="referral_friend_percent" type="number" min={0} max={50} step="0.5" defaultValue={Number(s?.referral_friend_percent ?? 5)} />
+            <small>Cash back to the new member on that same purchase.</small>
+          </div>
+          <div className="et-field">
+            <label htmlFor="referral_cap">Most per reward (₦)</label>
+            <input id="referral_cap" name="referral_cap" type="number" min={0} step="100" defaultValue={(s?.referral_cap_minor ?? 500000) / 100} />
+            <small>Caps each credit, for the inviter and the friend.</small>
+          </div>
+          <div className="et-field">
+            <label htmlFor="referral_days">Days to buy</label>
+            <input id="referral_days" name="referral_days" type="number" min={1} max={365} defaultValue={s?.referral_days ?? 90} />
+            <small>How long after signing up the first purchase still counts.</small>
+          </div>
+        </div>
+      </section>
+
+      <section className="et-card">
+        <div className="et-card-head">
           <h2>Support contact</h2>
           <span className="et-muted" style={{ fontSize: 12.5 }}>
             Shown to learners who need help

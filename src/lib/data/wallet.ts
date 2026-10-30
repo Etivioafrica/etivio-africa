@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// The Etivio wallet: a ledger of credits (group buys that didn't fill, top-ups, admin credits) and spending (paid
+// The Etivio wallet: a ledger of credits (group buys that didn't fill, top-ups, invite rewards, admin credits) and spending (paid
 // orders). The balance is the sum. Spending only happens through spend_wallet (migration 0041), which checks it.
 
 export const TOPUP_MIN_MINOR = 500_00;
@@ -29,4 +29,5 @@ export const WALLET_KIND_LABEL: Record<string, string> = {
   topup: "Top-up",
   spend: "Spent at checkout",
   adjustment: "Adjustment by Etivio",
+  referral: "Invite reward",
 };

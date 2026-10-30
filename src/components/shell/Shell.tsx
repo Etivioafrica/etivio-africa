@@ -45,6 +45,7 @@ import {
   TrendingUp,
   UsersRound,
   Target,
+  Gift,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -172,6 +173,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         label: "Finance",
         items: [
           { label: "Wallets", href: "/admin/wallets", icon: Wallet, area: "financials" },
+          { label: "Referrals", href: "/admin/referrals", icon: Gift, area: "financials" },
           { label: "Finance analytics", href: "/admin/financials", icon: TrendingUp, area: "financials" },
           { label: "Coupons", href: "/admin/coupons", icon: Tag, area: "coupons" },
         ],
@@ -207,6 +209,7 @@ const learnNav: Group[] = [
       { label: "Saved", href: "/learn/saved", icon: Heart },
       { label: "Marketplace", href: "/learn/explore", icon: Store },
       { label: "Wallet", href: "/learn/wallet", icon: Wallet, feature: "wallet" },
+      { label: "Invite friends", href: "/learn/invite", icon: Gift, feature: "referrals" },
       { label: "Messages", href: "/learn/messages", icon: MessagesSquare, feature: "messages" },
       { label: "Communities", href: "/communities", icon: Users, feature: "communities" },
       { label: "Coaching", href: "/learn/sessions", icon: CalendarClock, feature: "coaching" },

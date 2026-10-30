@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { claimReferralFromCookie } from "@/lib/data/referrals";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -10,8 +11,10 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // New Google accounts that came through an invite link.
+      if (data.user) await claimReferralFromCookie(data.user.id);
       return NextResponse.redirect(`${origin}${safeNext}`);
     }
   }

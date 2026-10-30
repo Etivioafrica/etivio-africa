@@ -2147,6 +2147,29 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 .et-gba-detail{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
 .et-gba-side{display:flex;flex-direction:column;gap:16px}
 @media (max-width:900px){.et-wl-grid,.et-gba-detail{grid-template-columns:1fr}}
+
+/* Invite friends (/learn/invite): the blue wallet card with the link and share buttons, and how it works. */
+.et-inv-card{gap:8px}
+.et-inv-card .et-wl-card-top{margin-bottom:10px}
+.et-inv-headline{font-size:clamp(22px,2.4vw,28px);font-weight:700;letter-spacing:-.03em;line-height:1.15}
+.et-inv-card>small{font-size:13.5px;color:#dbe6fd;line-height:1.5}
+.et-inv-share{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:14px}
+.et-inv-link{display:flex;align-items:center;gap:6px;padding:5px 5px 5px 14px;border-radius:12px;background:#1d4ed8}
+.et-inv-link input{flex:1;min-width:0;height:36px;border:0;background:none;color:#fff;font:inherit;font-size:14px;font-weight:600;outline:none;text-overflow:ellipsis}
+.et-inv-link button{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:0;border-radius:9px;background:#fff;color:#1d4ed8;font:inherit;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
+.et-inv-apps{display:flex;flex-wrap:wrap;gap:6px}
+.et-inv-apps a,.et-inv-apps button{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;padding:0 12px;border:0;border-radius:9px;background:#1d4ed8;color:#fff;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.et-inv-apps a:hover,.et-inv-apps button:hover{background:#1e40af}
+.et-inv-how-title{font-size:17px;font-weight:700;margin-bottom:16px}
+.et-inv-steps{display:flex;flex-direction:column;gap:18px;margin:0;padding:0;list-style:none}
+.et-inv-steps li{display:flex;gap:14px;align-items:flex-start}
+.et-inv-steps li>span{display:grid;place-items:center;width:36px;height:36px;flex-shrink:0;border-radius:10px;background:#2563eb;color:#fff}
+.et-inv-steps div{display:flex;flex-direction:column;gap:3px}
+.et-inv-steps b{font-size:14.5px}
+.et-inv-steps small{font-size:13px;color:var(--a-muted);line-height:1.5}
+.et-inv-avatar{width:34px;height:34px;flex-shrink:0;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#2563eb;color:#fff;font-weight:700;font-size:13px}
+.et-inv-code{white-space:nowrap;font-size:inherit;color:var(--a-fg)}
+.et-inv-wait{font-size:12.5px;color:var(--a-muted);white-space:nowrap}
 @media (max-width:480px){.et-wl-quick{grid-template-columns:repeat(2,minmax(0,1fr))}.et-wl-quick button{height:52px}}
 .et-wd-card{margin-bottom:16px}
 .et-wd-setup{display:flex;flex-direction:column;align-items:flex-start;gap:6px}

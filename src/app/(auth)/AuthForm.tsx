@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Avatar } from "@/components/dash/Avatar";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
 
@@ -45,7 +46,10 @@ export function PasswordField({ name, label, autoComplete, placeholder }: { name
   );
 }
 
-export function AuthForm({ mode }: { mode: Mode }) {
+// Who sent the invite link this visitor came through (sign-up only).
+export type Invite = { code: string; name: string; avatarUrl: string | null; seed: string };
+
+export function AuthForm({ mode, invite }: { mode: Mode; invite?: Invite | null }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +125,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
       email,
       password,
       options: {
-        data: { full_name: String(fd.get("name") ?? "").trim() },
+        // The database links the new account to whoever invited them (migration 0060).
+        data: { full_name: String(fd.get("name") ?? "").trim(), ...(invite ? { ref: invite.code } : {}) },
         emailRedirectTo: callbackUrl("/learn"),
       },
     });
@@ -152,6 +157,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <ArrowLeft size={16} />
           Back to sign in
         </Link>
+      )}
+      {invite && mode === "signup" && !sent && (
+        <p className="et-auth-invite">
+          <Avatar src={invite.avatarUrl} initial={invite.name.charAt(0).toUpperCase()} seed={invite.seed} className="et-auth-invite-avatar" />
+          <span>
+            <b>{invite.name}</b> invited you to Etivio
+          </span>
+        </p>
       )}
       <h1>{sent && mode === "signup" ? "Check your email" : title}</h1>
       <p className="et-auth-sub">{sent && mode === "signup" ? "One more step." : sub}</p>

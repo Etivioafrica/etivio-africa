@@ -24,6 +24,14 @@ export async function savePlatformSettings(_prev: FormState, fd: FormData): Prom
   const whatsapp = str(fd, "support_whatsapp");
   if (whatsapp && !/^\+?[0-9 ]{7,20}$/.test(whatsapp)) return { error: "WhatsApp number should look like +234 801 234 5678." };
 
+  const referralPercent = Number(str(fd, "referral_percent"));
+  const friendPercent = Number(str(fd, "referral_friend_percent"));
+  const cap = Number(str(fd, "referral_cap"));
+  const days = Number(str(fd, "referral_days"));
+  if (![referralPercent, friendPercent].every((n) => Number.isFinite(n) && n >= 0 && n <= 50)) return { error: "Invite rewards must be between 0 and 50%." };
+  if (!Number.isFinite(cap) || cap < 0 || cap > 10_000_000) return { error: "Set a sensible most-per-reward amount." };
+  if (!Number.isInteger(days) || days < 1 || days > 365) return { error: "Days to buy must be between 1 and 365." };
+
   const socials: Record<string, string | null> = {};
   for (const key of ["social_x", "social_instagram", "social_linkedin", "social_youtube", "social_tiktok"]) {
     const url = link(str(fd, key));
@@ -35,6 +43,10 @@ export async function savePlatformSettings(_prev: FormState, fd: FormData): Prom
     .from("platform_settings")
     .update({
       commission_percent: commission,
+      referral_percent: referralPercent,
+      referral_friend_percent: friendPercent,
+      referral_cap_minor: Math.round(cap * 100),
+      referral_days: days,
       support_email: str(fd, "support_email") || null,
       support_whatsapp: whatsapp || null,
       ...socials,
@@ -43,7 +55,7 @@ export async function savePlatformSettings(_prev: FormState, fd: FormData): Prom
     })
     .eq("id", true);
   if (error) return { error: "Could not save settings." };
-  await audit(admin.id, "settings.update", undefined, { commission_percent: commission });
+  await audit(admin.id, "settings.update", undefined, { commission_percent: commission, referral_percent: referralPercent, referral_friend_percent: friendPercent });
   refresh();
   return { ok: "Platform settings saved. Commission changes apply to future sales only." };
 }

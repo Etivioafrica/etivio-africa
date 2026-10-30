@@ -30,7 +30,7 @@ const learnTabs = (inbox: string, campus: boolean): Tab[] => [
     label: "Me",
     href: "/me",
     icon: UserRound,
-    match: (p) => (starts(p, "/me", "/profile", "/settings", "/support", "/learn/wallet", "/learn/sessions", "/communities") || (campus && starts(p, "/learn/messages", "/learn/announcements"))),
+    match: (p) => (starts(p, "/me", "/profile", "/settings", "/support", "/learn/wallet", "/learn/invite", "/learn/sessions", "/communities") || (campus && starts(p, "/learn/messages", "/learn/announcements"))),
   },
 ];
 

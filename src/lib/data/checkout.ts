@@ -264,6 +264,8 @@ async function completeOrder(order: OrderRow, paidAt: string, destination: strin
     }
     if (item.product_id) await grantProduct(userId, item.product_id, item.id);
   }
+  // A friend's first paid purchase earns the person who invited them (and the friend) wallet credit.
+  await db.rpc("reward_referral", { p_order: order.id });
   after(() => emailOrderReceipt(order.id));
   // New accounts get their login details; buyers who already had an account just sign in as usual.
   if (tempPassword) {

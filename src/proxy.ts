@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
+import { REF_COOKIE, cleanRefCode, refCookieOptions } from "@/lib/referral";
 
 export async function proxy(request: NextRequest) {
   // One address for Google: www.etivio.co redirects permanently to etivio.co.
@@ -11,7 +12,11 @@ export async function proxy(request: NextRequest) {
     url.protocol = "https:";
     return NextResponse.redirect(url, 308);
   }
-  return updateSession(request);
+  const response = await updateSession(request);
+  // Any page shared with ?ref=<code> counts as an invite, like etivio.co/r/<code>.
+  const ref = cleanRefCode(request.nextUrl.searchParams.get("ref"));
+  if (ref) response.cookies.set(REF_COOKIE, ref, refCookieOptions);
+  return response;
 }
 
 export const config = {

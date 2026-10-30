@@ -56,6 +56,9 @@
 .et-auth-alt a:hover{text-decoration:underline}
 .et-auth-msg{padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.5;margin-bottom:20px}
 .et-auth-msg.is-err{background:#dc2626;color:#fff}
+.et-auth-invite{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:8px 14px 8px 8px;border-radius:999px;background:var(--a-input);border:1px solid var(--a-border);width:fit-content;max-width:100%;font-size:13.5px;color:var(--a-muted)}
+.et-auth-invite b{color:var(--a-fg);font-weight:600}
+.et-auth-invite-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;display:grid;place-items:center;background:#2563eb;color:#fff;font-weight:700;font-size:13px}
 .et-auth-sent{padding:16px 18px;border-radius:10px;background:var(--a-input);border:1px solid var(--a-border);font-size:14px;line-height:1.6}
 
 @media(max-width:1023px){.et-auth-hero{display:none}.et-auth-panel{margin:8px}}

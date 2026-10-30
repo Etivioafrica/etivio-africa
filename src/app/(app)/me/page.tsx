@@ -19,6 +19,7 @@ import {
   Users,
   Wallet,
   type LucideIcon,
+  Gift,
 } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { getCurrentUser } from "@/lib/auth";
@@ -46,6 +47,7 @@ export default async function MePage() {
     { label: "Saved", href: "/learn/saved", icon: Heart },
     { label: "Certificates", href: "/profile/certificates", icon: Award },
     ...(f.wallet ? [{ label: "Wallet", href: "/learn/wallet", icon: Wallet }] : []),
+    ...(f.referrals ? [{ label: "Invite friends", href: "/learn/invite", icon: Gift }] : []),
     ...(f.coaching ? [{ label: "Coaching sessions", href: "/learn/sessions", icon: CalendarClock }] : []),
     ...(f.communities ? [{ label: "Communities", href: "/communities", icon: Users }] : []),
   ];

@@ -2819,6 +2819,10 @@ export type Database = {
           coach_commission_percent: number
           commission_percent: number
           hero_bg_url: string | null
+          referral_cap_minor: number
+          referral_days: number
+          referral_friend_percent: number
+          referral_percent: number
           id: boolean
           social_instagram: string | null
           social_linkedin: string | null
@@ -2840,6 +2844,10 @@ export type Database = {
           coach_commission_percent?: number
           commission_percent?: number
           hero_bg_url?: string | null
+          referral_cap_minor?: number
+          referral_days?: number
+          referral_friend_percent?: number
+          referral_percent?: number
           id?: boolean
           social_instagram?: string | null
           social_linkedin?: string | null
@@ -2861,6 +2869,10 @@ export type Database = {
           coach_commission_percent?: number
           commission_percent?: number
           hero_bg_url?: string | null
+          referral_cap_minor?: number
+          referral_days?: number
+          referral_friend_percent?: number
+          referral_percent?: number
           id?: boolean
           social_instagram?: string | null
           social_linkedin?: string | null
@@ -3175,6 +3187,9 @@ export type Database = {
           notification_prefs: Json
           onboarded_at: string | null
           profile_public: boolean
+          referral_code: string
+          referred_at: string | null
+          referred_by: string | null
           show_current_learning: boolean
           skill_level: string | null
           status: Database["public"]["Enums"]["account_status"]
@@ -3207,6 +3222,9 @@ export type Database = {
           notification_prefs?: Json
           onboarded_at?: string | null
           profile_public?: boolean
+          referral_code?: string
+          referred_at?: string | null
+          referred_by?: string | null
           show_current_learning?: boolean
           skill_level?: string | null
           status?: Database["public"]["Enums"]["account_status"]
@@ -3239,6 +3257,9 @@ export type Database = {
           notification_prefs?: Json
           onboarded_at?: string | null
           profile_public?: boolean
+          referral_code?: string
+          referred_at?: string | null
+          referred_by?: string | null
           show_current_learning?: boolean
           skill_level?: string | null
           status?: Database["public"]["Enums"]["account_status"]
@@ -3763,6 +3784,7 @@ export type Database = {
           kind: string
           note: string | null
           order_id: string | null
+          referral_friend_id: string | null
           user_id: string
         }
         Insert: {
@@ -3776,6 +3798,7 @@ export type Database = {
           kind: string
           note?: string | null
           order_id?: string | null
+          referral_friend_id?: string | null
           user_id: string
         }
         Update: {
@@ -3789,6 +3812,7 @@ export type Database = {
           kind?: string
           note?: string | null
           order_id?: string | null
+          referral_friend_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -4051,6 +4075,14 @@ export type Database = {
       spend_wallet: {
         Args: { p_user: string; p_amount: number; p_order: string }
         Returns: boolean
+      }
+      claim_referral: {
+        Args: { p_user: string; p_code: string }
+        Returns: boolean
+      }
+      reward_referral: {
+        Args: { p_order: string }
+        Returns: undefined
       }
       track_visit: {
         Args: { p_visit_id: string; p_visitor_id: string; p_user_id: string; p_path: string; p_new_campaign: boolean; p_referrer: string; p_referrer_host: string; p_utm_source: string; p_utm_medium: string; p_utm_campaign: string; p_utm_term: string; p_utm_content: string; p_channel: string; p_country: string; p_region: string; p_city: string; p_device: string; p_browser: string; p_os: string }
