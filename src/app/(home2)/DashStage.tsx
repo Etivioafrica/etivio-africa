@@ -16,7 +16,7 @@ export function DashStage({ bg }: { bg?: string }) {
   const wrap = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = useState(0.7);
-  const [light, setLight] = useState(false);
+  const [light, setLight] = useState(true);
   const [narrow, setNarrow] = useState(false);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function DashStage({ bg }: { bg?: string }) {
           <div ref={wrap} className="et-x-dashframe" style={{ height: fh * SHOWN * scale }}>
             <iframe
               ref={frame}
-              src="/tour?scene=dashboard&theme=dark"
+              src="/tour?scene=dashboard&theme=light"
               title="Etivio learner dashboard"
               loading="lazy"
               tabIndex={-1}
