@@ -448,7 +448,9 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 .et-x-sep .l{left:-5px}.et-x-sep .r{right:-5px}
 .et-x-sep + .et-x-row,.et-x-built + .et-x-row{border-top:0}
 .et-x-built{position:relative;margin:0 calc(-1*clamp(12px,1.2vw,24px));padding:clamp(36px,4.5vw,64px) 0;text-align:center;border-bottom:1px dashed var(--x-line)}
-.et-x-built h2{margin:0;font-size:clamp(26px,3.2vw,42px);font-weight:600;letter-spacing:-.02em;color:#0a0a0a}
+.et-x-built{display:flex;flex-direction:column;align-items:center;gap:14px;padding-left:20px;padding-right:20px}
+.et-x-built h2{margin:0;font-size:clamp(26px,3.2vw,42px);font-weight:400;letter-spacing:-.01em;color:#0a0a0a}
+.et-x-built p{margin:0;max-width:34em;text-wrap:balance;font-size:clamp(15px,1.3vw,18px);line-height:1.5;color:#5b6270}
 .et-x-built .h{position:absolute;z-index:5;width:9px;height:9px;border:1px solid #9aa3b5;background:#fff}
 .et-x-built .bl{left:-5px;bottom:-5px}.et-x-built .br{right:-5px;bottom:-5px}
 @media(max-width:720px){.et-x-sep .h{display:none}}
