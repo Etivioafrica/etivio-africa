@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-// A big statement whose words turn from grey to white as it scrolls up the screen (AgentLab style).
-// Everything is white until the page has mounted, and for people who prefer reduced motion.
+// A big statement that fills with colour, word by word, as it scrolls up the screen: each word's fill spreads left to
+// right, so it reads as one smooth sweep. Fully filled until the page has mounted, and for people who prefer reduced motion.
 export function Reveal({ text }: { text: string }) {
   const el = useRef<HTMLHeadingElement>(null);
   const words = text.split(" ");
-  const [lit, setLit] = useState(words.length);
+  const [p, setP] = useState(1);
 
   useEffect(() => {
     const node = el.current;
@@ -17,8 +17,7 @@ export function Reveal({ text }: { text: string }) {
       const r = node.getBoundingClientRect();
       const vh = window.innerHeight;
       // 0 when the heading enters at the bottom of the screen, 1 once it has reached the upper middle.
-      const p = Math.min(1, Math.max(0, (vh * 0.9 - r.top) / (vh * 0.5)));
-      setLit(Math.round(p * words.length));
+      setP(Math.min(1, Math.max(0, (vh * 0.92 - r.top) / (vh * 0.5))));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -31,13 +30,15 @@ export function Reveal({ text }: { text: string }) {
       window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [words.length]);
+  }, []);
 
   return (
     <h2 ref={el} aria-label={text}>
       {words.map((w, i) => (
-        <span key={i} aria-hidden="true" className={i < lit ? "on" : ""}>
-          {w}{" "}
+        <span key={i}>
+          <span aria-hidden="true" style={{ "--f": Math.min(1, Math.max(0, p * words.length - i)) } as React.CSSProperties}>
+            {w}
+          </span>{" "}
         </span>
       ))}
     </h2>
