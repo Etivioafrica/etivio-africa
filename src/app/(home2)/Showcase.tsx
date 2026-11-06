@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Check, Heart, MessageCircle, Sparkles } from "lucide-react";
+import { DashStage } from "./DashStage";
 
 // Block 1 of the rebuilt home page (after the hero): a statement, then three alternating feature rows
 // in the AgentLab style: serif headings, thin borders, arrow lists and a blue art panel with a product mock inside.
@@ -123,6 +124,7 @@ const ART = { learn: Lesson, campus: Post, ai: Chat };
 export function Showcase() {
   return (
     <div className="et-x" id="features">
+      <DashStage />
       <section className="et-x-statement">
         <span className="et-x-label">
           <i /> Why Etivio
