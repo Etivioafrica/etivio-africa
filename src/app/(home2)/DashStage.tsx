@@ -75,6 +75,7 @@ export function DashStage({ bg }: { bg?: string }) {
           </div>
         </div>
       </div>
+      <span className="et-x-rail is-bottom" aria-hidden="true" />
       <b className="h tl" />
       <b className="h tr" />
       <b className="h bl" />

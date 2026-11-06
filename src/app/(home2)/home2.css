@@ -392,6 +392,9 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 @keyframes et-x-creep{from{-webkit-mask-position:0 0;mask-position:0 0}to{-webkit-mask-position:6px 0;mask-position:6px 0}}
 .et-x-rail{position:absolute;z-index:3;top:0;left:50%;width:100vw;height:1px;transform:translateX(-50%);overflow:hidden;pointer-events:none;background:#b4bbcb;-webkit-mask:linear-gradient(90deg,#000 2px,transparent 2px) 0 0/6px 1px repeat-x;mask:linear-gradient(90deg,#000 2px,transparent 2px) 0 0/6px 1px repeat-x;animation:et-x-creep 1s linear infinite}
 .et-x-rail:after{content:"";position:absolute;top:0;left:0;width:260px;height:1px;background:linear-gradient(90deg,transparent,#2d58ff 60%,#7ea3ff);animation:et-x-run 4.5s linear infinite}
+/* The same line along the bottom edge of the panel, with its light running the other way */
+.et-x-rail.is-bottom{top:auto;bottom:-1px}
+.et-x-rail.is-bottom:after{animation-direction:reverse}
 @media(prefers-reduced-motion:reduce){.et-x-rail,.et-x-rail:after{animation:none}}
 
 .et-x-card2{position:relative;z-index:1;max-width:1060px;margin:0 auto;background:#050507;box-shadow:0 30px 70px rgba(8,20,90,.45)}
