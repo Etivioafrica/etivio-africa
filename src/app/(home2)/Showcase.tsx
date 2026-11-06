@@ -136,7 +136,7 @@ export function Showcase() {
         <span className="et-x-label">
           <i /> Why Etivio
         </span>
-        <Reveal text="One place to learn a skill, practise it with people, and build the confidence to use it." />
+        <Reveal text="One place to learn a skill, practise it with people, and turn it into a career." />
       </section>
 
       <div className="et-x-sep" aria-hidden="true">
