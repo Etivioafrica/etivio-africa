@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, Heart, MessageCircle, Sparkles } from "lucide-react";
 import { DashStage } from "./DashStage";
+import { Problem } from "./Problem";
 import { Reveal } from "./Reveal";
 import { Ticker } from "./Ticker";
 
@@ -134,6 +135,8 @@ export function Showcase() {
         </span>
         <Reveal text="One place to learn a skill, practise it with people, and get paid for what you know." />
       </section>
+
+      <Problem />
 
       {ROWS.map((r, i) => {
         const Art = ART[r.id];

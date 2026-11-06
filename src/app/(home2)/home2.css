@@ -416,3 +416,17 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 .et-x-ticker .h{position:absolute;z-index:2;width:9px;height:9px;border:1px solid #9aa3b5;background:#fff}
 .et-x-ticker .bl{left:-5px;bottom:-5px}.et-x-ticker .br{right:-5px;bottom:-5px}
 @media(prefers-reduced-motion:reduce){.et-x-ticker-track{animation:none}}
+
+/* "The problem" band: black, full width, dim dashed guides, and three bordered cards */
+.et-x-problem{--x-gap:calc(var(--h2-pad) + clamp(12px,1.2vw,24px));position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:26px;margin:0 calc(-1*var(--x-gap));padding:clamp(80px,9vw,130px) var(--x-gap) clamp(70px,8vw,120px);background:#000;color:#fff;text-align:center}
+.et-x-problem:before,.et-x-problem:after{content:"";position:absolute;top:0;bottom:0;border-left:1px dashed #2a2a2e;pointer-events:none}
+.et-x-problem:before{left:var(--h2-pad)}.et-x-problem:after{right:var(--h2-pad)}
+.et-x-problem .et-x-label{color:#fff}
+.et-x-problem h2{max-width:17em;font-size:clamp(26px,3.6vw,46px);line-height:1.22;color:#fff}
+.et-x-pcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin-top:clamp(28px,4vw,56px);border:1px solid #1f1f23;text-align:left}
+.et-x-pcards article{display:flex;flex-direction:column;justify-content:space-between;gap:clamp(60px,8vw,120px);min-height:clamp(320px,30vw,430px);padding:clamp(20px,2.4vw,32px);border-left:1px solid #1f1f23}
+.et-x-pcards article:first-child{border-left:0}
+.et-x-pcards h3{margin:0 0 12px;font-family:var(--h2-serif),Georgia,serif;font-size:clamp(21px,2vw,28px);font-weight:500;letter-spacing:-.01em;color:#fff}
+.et-x-pcards p{margin:0;max-width:30em;min-height:4.8em;font-size:15px;line-height:1.6;color:#8b8b94}
+@media(max-width:900px){.et-x-pcards p{min-height:0}.et-x-pcards{grid-template-columns:1fr}.et-x-pcards article{min-height:0;gap:36px;border-left:0;border-top:1px solid #1f1f23}.et-x-pcards article:first-child{border-top:0}}
+@media(max-width:720px){.et-x-problem:before,.et-x-problem:after{display:none}}
