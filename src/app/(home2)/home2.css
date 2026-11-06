@@ -371,7 +371,7 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 @keyframes et-x-draw{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @keyframes et-x-fade{from{opacity:0}to{opacity:1}}
 .et-x:before,.et-x:after{transform-origin:top;animation:et-x-draw 1.6s cubic-bezier(.2,.7,.2,1) both}
-.et-x-stagewrap{position:relative;margin-top:clamp(28px,4vw,56px)}
+.et-x-stagewrap{position:relative;margin:clamp(28px,4vw,56px) calc(-1*clamp(12px,1.2vw,24px)) 0}
 .et-x-stage{position:relative;overflow:hidden;height:clamp(420px,57vw,820px);padding:clamp(22px,5.5vw,84px) clamp(14px,7vw,128px) 0;background:#2d58ff}
 .et-x-stage.has-img{background-size:cover;background-position:center}
 .et-x-stage>i{position:absolute;display:block;pointer-events:none}
