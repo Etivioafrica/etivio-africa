@@ -1,4 +1,5 @@
 "use server";
+import { PROFILE_LIMITS } from "@/lib/profile-limits";
 import { redirect } from "next/navigation";
 import { isAvatarFace } from "@/lib/avatars";
 import { refresh } from "next/cache";
@@ -28,6 +29,8 @@ async function removeReplaced(previous: string | null | undefined, next: string 
 }
 
 const text = (fd: FormData, key: string, max = 2000) => String(fd.get(key) ?? "").trim().slice(0, max);
+// Same, but reports a value that is too long instead of cutting it off.
+const raw = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 // Accepts "example.com" or a full URL; returns a normalised https URL, "" for empty, or null when invalid.
 function cleanUrl(raw: string, mustInclude?: string): string | null {
@@ -45,6 +48,22 @@ function cleanUrl(raw: string, mustInclude?: string): string | null {
 export async function updateProfile(_prev: FormState, fd: FormData): Promise<FormState> {
   const { supabase, user } = await authed();
 
+  const L = PROFILE_LIMITS;
+  const tooLong: [string, string, number][] = [
+    ["Your name", "full_name", L.name],
+    ["Your headline", "headline", L.headline],
+    ["Your location", "location", L.location],
+    ["Your bio", "bio", L.bio],
+    ["Your interests", "interests", L.interests],
+    ["The website link", "website_url", L.url],
+    ["The LinkedIn link", "linkedin_url", L.url],
+    ["The X link", "x_url", L.url],
+  ];
+  for (const [label, key, max] of tooLong) {
+    const over = raw(fd, key).length - max;
+    if (over > 0) return { error: `${label} is ${over} character${over === 1 ? "" : "s"} over the ${max}-character limit. Please shorten it.` };
+  }
+
   const website = cleanUrl(text(fd, "website_url"));
   if (website === null) return { error: "That website link doesn't look right." };
   const linkedin = cleanUrl(text(fd, "linkedin_url"), "linkedin.com");
@@ -54,23 +73,23 @@ export async function updateProfile(_prev: FormState, fd: FormData): Promise<For
 
   const interests = [
     ...new Set(
-      text(fd, "interests", 600)
+      text(fd, "interests", L.interests)
         .split(",")
         .map((s) => s.trim().slice(0, 32))
         .filter(Boolean),
     ),
   ].slice(0, 12);
 
-  const check = await moderate("profile", user.id, [text(fd, "full_name", 80), text(fd, "headline", 120), text(fd, "location", 80), text(fd, "bio"), interests.join(", ")], `/admin/users/${user.id}`);
+  const check = await moderate("profile", user.id, [text(fd, "full_name", L.name), text(fd, "headline", L.headline), text(fd, "location", L.location), text(fd, "bio", L.bio), interests.join(", ")], `/admin/users/${user.id}`);
   if (check.error) return { error: check.error };
 
   const { error } = await supabase
     .from("profiles")
     .update({
-      full_name: text(fd, "full_name", 80) || null,
-      headline: text(fd, "headline", 120) || null,
-      location: text(fd, "location", 80) || null,
-      bio: text(fd, "bio") || null,
+      full_name: text(fd, "full_name", L.name) || null,
+      headline: text(fd, "headline", L.headline) || null,
+      location: text(fd, "location", L.location) || null,
+      bio: text(fd, "bio", L.bio) || null,
       website_url: website || null,
       linkedin_url: linkedin || null,
       x_url: x || null,

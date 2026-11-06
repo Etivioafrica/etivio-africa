@@ -21,6 +21,7 @@ export function CountedField({
   rows?: number;
   placeholder?: string;
   autoComplete?: string;
+  inputMode?: "url" | "text";
 }) {
   const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const [count, setCount] = useState(defaultValue.length);
@@ -35,13 +36,14 @@ export function CountedField({
   }, []);
 
   const left = max - count;
+  // Saved text can be longer than a limit introduced later: say how far over it is instead of "0 left".
   const state = left <= 0 ? "is-full" : left <= Math.max(10, Math.round(max * 0.1)) ? "is-near" : "";
   const shared = { id, name, defaultValue, maxLength: max, placeholder, autoComplete, onInput: (e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>) => setCount(e.currentTarget.value.length), "aria-describedby": `${id}-count` };
   return (
     <>
       {as === "textarea" ? <textarea ref={ref} rows={rows} {...shared} /> : <input ref={ref} {...shared} />}
       <small id={`${id}-count`} className={`et-count-hint ${state}`} aria-live="polite">
-        {left <= 0 ? `Limit reached: ${max.toLocaleString()} characters` : `${count.toLocaleString()} / ${max.toLocaleString()} characters`}
+        {left < 0 ? `${(-left).toLocaleString()} over the ${max.toLocaleString()}-character limit` : left === 0 ? `Limit reached: ${max.toLocaleString()} characters` : `${count.toLocaleString()} / ${max.toLocaleString()} characters`}
       </small>
     </>
   );

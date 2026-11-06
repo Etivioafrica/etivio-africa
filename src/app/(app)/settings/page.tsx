@@ -3,6 +3,7 @@ import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { AvatarEditor } from "@/components/dash/AvatarEditor";
 import { CountedField } from "@/components/dash/CountedField";
 import { getCurrentUser } from "@/lib/auth";
+import { PROFILE_LIMITS } from "@/lib/profile-limits";
 import { getProfileDetails } from "@/lib/data/profile";
 import { updateProfile } from "./actions";
 import { LearningPrefsButton } from "./LearningPrefsButton";
@@ -22,15 +23,15 @@ export default async function ProfileSettings() {
       <SetRow title="Public profile" sub="Your name and headline, shown on your profile and courses.">
         <div className="et-field">
           <label htmlFor="full_name">Full name</label>
-          <CountedField id="full_name" name="full_name" defaultValue={user.name} autoComplete="name" max={80} />
+          <CountedField id="full_name" name="full_name" defaultValue={user.name} autoComplete="name" max={PROFILE_LIMITS.name} />
         </div>
         <div className="et-field">
           <label htmlFor="headline">Headline</label>
-          <CountedField id="headline" name="headline" defaultValue={p.headline ?? ""} placeholder="Product designer learning data analysis" max={120} />
+          <CountedField id="headline" name="headline" defaultValue={p.headline ?? ""} placeholder="Product designer learning data analysis" max={PROFILE_LIMITS.headline} />
         </div>
         <div className="et-field">
           <label htmlFor="location">Location</label>
-          <CountedField id="location" name="location" defaultValue={p.location ?? ""} placeholder="Lagos, Nigeria" max={80} />
+          <CountedField id="location" name="location" defaultValue={p.location ?? ""} placeholder="Lagos, Nigeria" max={PROFILE_LIMITS.location} />
         </div>
       </SetRow>
 
@@ -59,11 +60,11 @@ export default async function ProfileSettings() {
       <SetRow title="About you" sub="What you're learning or teaching. Interests help us suggest courses.">
         <div className="et-field">
           <label htmlFor="bio">Bio</label>
-          <CountedField as="textarea" id="bio" name="bio" rows={4} defaultValue={p.bio ?? ""} max={2000} />
+          <CountedField as="textarea" id="bio" name="bio" rows={4} defaultValue={p.bio ?? ""} max={PROFILE_LIMITS.bio} />
         </div>
         <div className="et-field">
           <label htmlFor="interests">Interests</label>
-          <input id="interests" name="interests" defaultValue={p.interests.join(", ")} placeholder="Design, Data, Marketing" />
+          <CountedField id="interests" name="interests" defaultValue={p.interests.join(", ")} placeholder="Design, Data, Marketing" max={PROFILE_LIMITS.interests} />
           <small>Separate with commas, up to 12.</small>
         </div>
         <div className="et-field">
@@ -78,15 +79,15 @@ export default async function ProfileSettings() {
       <SetRow title="Links" sub="Where people can find you elsewhere.">
         <div className="et-field">
           <label htmlFor="website_url">Website</label>
-          <input id="website_url" name="website_url" defaultValue={p.websiteUrl ?? ""} placeholder="yoursite.com" inputMode="url" />
+          <CountedField id="website_url" name="website_url" defaultValue={p.websiteUrl ?? ""} placeholder="yoursite.com" max={PROFILE_LIMITS.url} />
         </div>
         <div className="et-field">
           <label htmlFor="linkedin_url">LinkedIn</label>
-          <input id="linkedin_url" name="linkedin_url" defaultValue={p.linkedinUrl ?? ""} placeholder="linkedin.com/in/you" inputMode="url" />
+          <CountedField id="linkedin_url" name="linkedin_url" defaultValue={p.linkedinUrl ?? ""} placeholder="linkedin.com/in/you" max={PROFILE_LIMITS.url} />
         </div>
         <div className="et-field">
           <label htmlFor="x_url">X</label>
-          <input id="x_url" name="x_url" defaultValue={p.xUrl ?? ""} placeholder="x.com/you" inputMode="url" />
+          <CountedField id="x_url" name="x_url" defaultValue={p.xUrl ?? ""} placeholder="x.com/you" max={PROFILE_LIMITS.url} />
         </div>
       </SetRow>
 
