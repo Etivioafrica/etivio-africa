@@ -199,6 +199,9 @@ export function Tour() {
   const [playing, setPlaying] = useState(false);
   // Recording mode (/tour?wait): a blank screen until told to play, so a capture starts right at the intro.
   const [held, setHeld] = useState(false);
+  // Still mode (/tour?scene=dashboard&theme=dark|light): just the dashboard, no walk-through. The home page's dashboard
+  // panel uses it and switches the theme by message. null = not decided yet, "no" = the normal tour.
+  const [still, setStill] = useState<null | "no" | "light" | "dark">(null);
   const current = SCENES[scene];
 
   const go = useCallback((i: number) => {
@@ -210,6 +213,7 @@ export function Tour() {
   useEffect(() => {
     const on = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.data?.type !== "et-tour") return;
+      if (e.data.theme === "light" || e.data.theme === "dark") setStill(e.data.theme);
       if (typeof e.data.play === "boolean") {
         setPlaying(e.data.play);
         if (e.data.play) setHeld(false);
@@ -217,10 +221,13 @@ export function Tour() {
       if (typeof e.data.chapter === "number") go(chapterStart(e.data.chapter));
     };
     window.addEventListener("message", on);
+    const params = new URLSearchParams(window.location.search);
+    const dashboardOnly = params.get("scene") === "dashboard";
+    window.setTimeout(() => setStill(dashboardOnly ? (params.get("theme") === "light" ? "light" : "dark") : "no"), 0);
     // Opened on its own (not in the home page), it just plays.
-    const wait = new URLSearchParams(window.location.search).has("wait");
-    const alone = window.parent === window ? window.setTimeout(() => (wait ? setHeld(true) : setPlaying(true)), 0) : 0;
-    if (!alone) window.parent.postMessage({ type: "et-tour", ready: true }, window.location.origin);
+    const wait = params.has("wait");
+    const alone = dashboardOnly ? 0 : window.parent === window ? window.setTimeout(() => (wait ? setHeld(true) : setPlaying(true)), 0) : 0;
+    if (!alone && !dashboardOnly) window.parent.postMessage({ type: "et-tour", ready: true }, window.location.origin);
     return () => {
       window.removeEventListener("message", on);
       clearTimeout(alone);
@@ -235,7 +242,7 @@ export function Tour() {
   }, [scene, current.chapter]);
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || still !== "no") return;
     const timers: number[] = [];
     const at = (ms: number, fn: () => void) => timers.push(window.setTimeout(fn, ms));
     const aim = (selector: string) => {
@@ -256,34 +263,39 @@ export function Tour() {
       });
     at(current.length, () => go((scene + 1) % SCENES.length));
     return () => timers.forEach(clearTimeout);
-  }, [scene, playing, current, go]);
+  }, [scene, playing, still, current, go]);
 
   const after = (id: SceneId) => scene >= SCENES.findIndex((s) => s.id === id);
 
   return (
     <div className="et-tour">
-      <div ref={cam} className="et-tour-cam" hidden={held}>
-        {current.id === "intro" && <Intro />}
-        {current.id === "signup" && <Signup fx={fx} />}
-        {["welcome", "username", "badge", "dashboard"].includes(current.id) && (
+      <div ref={cam} className="et-tour-cam" hidden={held || still === null}>
+        {(still === "light" || still === "dark") && (
+          <Shell active="dashboard" photo={ADA.photo} light={still === "light"}>
+            <Dashboard fresh={false} />
+          </Shell>
+        )}
+        {still === "no" && current.id === "intro" && <Intro />}
+        {still === "no" && current.id === "signup" && <Signup fx={fx} />}
+        {still === "no" && ["welcome", "username", "badge", "dashboard"].includes(current.id) && (
           <Shell active="dashboard" photo={after("profile") ? ADA.photo : null}>
             <Dashboard fresh={current.id !== "dashboard"} />
             {current.id === "username" && <UsernameModal fx={fx} />}
             {current.id === "badge" && <BadgeModal />}
           </Shell>
         )}
-        {current.id === "profile" && (
+        {still === "no" && current.id === "profile" && (
           <Shell active="profile" photo={fx.has("photo") ? ADA.photo : null}>
             <Profile fx={fx} />
           </Shell>
         )}
-        {current.id === "campus" && (
+        {still === "no" && current.id === "campus" && (
           <Shell active="campus" photo={ADA.photo}>
             <Campus fx={fx} />
           </Shell>
         )}
-        {current.id === "player" && <Player fx={fx} />}
-        <span className={`et-tour-cursor${current.id === "intro" ? " is-hidden" : ""}`} style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }} aria-hidden="true">
+        {still === "no" && current.id === "player" && <Player fx={fx} />}
+        <span className={`et-tour-cursor${current.id === "intro" || still !== "no" ? " is-hidden" : ""}`} style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }} aria-hidden="true">
           {tap > 0 && <i key={tap} />}
           <svg viewBox="0 0 24 24" width="24" height="24">
             <path d="M4 2 L4 19 L8.6 14.6 L11.6 21.4 L14.6 20.1 L11.7 13.4 L18 13.2 Z" />
@@ -424,10 +436,10 @@ const NAV: { label?: string; items: { label: string; icon: LucideIcon; key?: str
   },
 ];
 
-function Shell({ active, photo, children }: { active: string; photo: string | null; children: React.ReactNode }) {
+function Shell({ active, photo, light = true, children }: { active: string; photo: string | null; light?: boolean; children: React.ReactNode }) {
   const me = <Avatar src={photo} initial="A" seed={ADA.name} className="et-avatar" />;
   return (
-    <div className="et-app is-light">
+    <div className={`et-app${light ? " is-light" : ""}`}>
       <aside className="et-sidebar">
         <div className="et-sidebar-top">
           <span className="et-brand">
