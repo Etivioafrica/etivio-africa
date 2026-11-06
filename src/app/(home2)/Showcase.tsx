@@ -148,6 +148,7 @@ export function Showcase() {
       <div className="et-x-built">
         <h2>What you get</h2>
         <p>Real skills you can prove, people who back you, and a clear path to your next role.</p>
+        <span className="et-x-rail is-bottom" />
         <b className="h bl" />
         <b className="h br" />
       </div>
