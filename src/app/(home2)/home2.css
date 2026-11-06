@@ -320,9 +320,9 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 @media(prefers-reduced-motion:reduce){.et-h2-demo-bar{display:none}}
 
 /* ---- Rebuilt blocks (AgentLab-inspired): serif headings, thin borders, dashed guides, blue art panels ---- */
-.et-x{--x-line:#e4e6eb;--x-ink:#0a0a0a;--x-blue:#1d4fff;position:relative;max-width:1440px;margin:0 auto;padding:0 clamp(20px,5.5vw,80px);color:var(--x-ink)}
+.et-x{--x-line:#e4e6eb;--x-ink:#0a0a0a;--x-blue:#1d4fff;position:relative;padding:0 calc(var(--h2-pad) + clamp(12px,1.2vw,24px));color:var(--x-ink)}
 .et-x:before,.et-x:after{content:"";position:absolute;top:0;bottom:0;width:0;border-left:1px dashed var(--x-line);pointer-events:none}
-.et-x:before{left:clamp(8px,2.8vw,40px)}.et-x:after{right:clamp(8px,2.8vw,40px)}
+.et-x:before{left:var(--h2-pad)}.et-x:after{right:var(--h2-pad)}
 .et-x h2,.et-x h3,.et-x h4{font-family:var(--h2-serif),Georgia,serif;font-weight:500;letter-spacing:-.01em}
 .et-x-label{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 .et-x-label i{width:14px;height:10px;background:linear-gradient(135deg,#1d4fff,#7aa2ff)}
