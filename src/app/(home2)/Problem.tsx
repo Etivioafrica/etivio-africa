@@ -80,6 +80,8 @@ export function Problem() {
           </article>
         ))}
       </div>
+      <b className="h bl" aria-hidden="true" />
+      <b className="h br" aria-hidden="true" />
     </section>
   );
 }

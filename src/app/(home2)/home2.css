@@ -436,3 +436,8 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 @media(prefers-reduced-motion:reduce){.et-x-reveal,.et-x-reveal>p{transition:none}}
 @media(max-width:900px){.et-x-reveal{grid-template-rows:1fr;opacity:1}.et-x-reveal>p{padding-top:12px}.et-x-pcards{grid-template-columns:1fr}.et-x-pcards article{min-height:0;gap:36px;border-left:0;border-top:1px solid #1f1f23}.et-x-pcards article:first-child{border-top:0}}
 @media(max-width:720px){.et-x-problem:before,.et-x-problem:after{display:none}}
+
+/* Corner squares where the guide lines meet the bottom of the black band */
+.et-x-problem .h{position:absolute;z-index:5;width:9px;height:9px;border:1px solid #9aa3b5;background:#fff}
+.et-x-problem .bl{left:calc(var(--h2-pad) - 5px);bottom:-5px}.et-x-problem .br{right:calc(var(--h2-pad) - 5px);bottom:-5px}
+@media(max-width:720px){.et-x-problem .h{display:none}}
