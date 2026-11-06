@@ -24,6 +24,7 @@ export function DashStage({ bg }: { bg?: string }) {
   const [light, setLight] = useState(false);
   return (
     <div className="et-x-stagewrap">
+      <span className="et-x-rail" aria-hidden="true" />
       <div className={`et-x-stage${bg ? " has-img" : ""}`} style={bg ? { backgroundImage: `url(${bg})` } : undefined}>
         {!bg && (
           <>
