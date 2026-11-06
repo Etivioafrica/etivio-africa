@@ -10,20 +10,20 @@ import { Ticker } from "./Ticker";
 
 const ROWS = [
   {
+    id: "campus",
+    label: "Campus",
+    title: "So we built Campus: your learning feed, with real people in it.",
+    body: "Share notes, templates and wins, ask questions and meet smart people who are learning what you are. Add photos and video links, mention classmates and get replies as they happen.",
+    points: ["Updates, questions, wins, polls and opportunities", "Photos, video links and @mentions", "Save posts and follow the topics you care about"],
+    cta: { href: "/signup", label: "Join Campus" },
+  },
+  {
     id: "learn",
     label: "Learn",
     title: "Short, practical lessons that fit your day.",
     body: "Every course is broken into small lessons with notes, bookmarks and quizzes, so you can learn a little every day and see your progress grow.",
     points: ["Notes, bookmarks and quizzes in every course", "Certificates anyone can check online", "Free and paid courses, priced in naira"],
     cta: { href: "/explore", label: "Browse courses" },
-  },
-  {
-    id: "campus",
-    label: "Campus",
-    title: "Your learning feed, with real people in it.",
-    body: "Post your wins, ask questions and share what you are building. Add photos and video links, mention classmates and get replies as they happen.",
-    points: ["Updates, questions, wins, polls and opportunities", "Photos, video links and @mentions", "Save posts and follow the topics you care about"],
-    cta: { href: "/signup", label: "Join Campus" },
   },
   {
     id: "ai",

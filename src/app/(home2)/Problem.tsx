@@ -1,11 +1,11 @@
 // "The problem" band after the statement (AgentLab style): black, a serif heading, and three bordered cards with a
 // small isometric icon and a title; the one-line explanation slides in under the title on hover (always shown on touch
-// screens). The story: people learn alone, with no place to share resources or find each other, which is why Campus exists.
+// screens). The story: people learn alone, with no place to share resources or find each other, and the Campus row that follows is the answer.
 
 const CARDS = [
-  { id: "share", title: "Resources get lost", body: "Notes, templates and useful links end up lost in chat groups. Campus gives them one home you can search, save and share." },
-  { id: "find", title: "Hard to find smart people", body: "The people worth learning with are hard to find. On Campus you meet learners and tutors by topic, follow them and mention them." },
-  { id: "ask", title: "Questions with no answers", body: "You ask and then you wait. On Campus people who have been where you are reply, and Etivio AI helps with the rest." },
+  { id: "share", title: "Resources get lost", body: "Notes, templates and useful links end up scattered across chat groups and get lost. There is no shared place to keep them." },
+  { id: "find", title: "Hard to find smart people", body: "The people worth learning with are hard to find. Without a place to meet by topic, many learners never meet anyone on the same path." },
+  { id: "ask", title: "Questions with no answers", body: "You ask and then you wait. Too few places have people who have been where you are, ready to reply." },
 ] as const;
 
 // Isometric blocks: a lit top, a blue left face and a dark right face. Each icon builds on the same cube.
@@ -66,7 +66,7 @@ export function Problem() {
       <span className="et-x-label">
         <i /> The problem
       </span>
-      <h2>Too many smart people learn alone, with nowhere to share resources or meet each other. So we built Campus.</h2>
+      <h2>Too many smart people learn alone, with nowhere to share resources or meet each other.</h2>
       <div className="et-x-pcards">
         {CARDS.map((c) => (
           <article key={c.id}>
