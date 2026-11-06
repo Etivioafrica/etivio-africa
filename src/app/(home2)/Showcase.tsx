@@ -139,6 +139,12 @@ export function Showcase() {
         <Reveal text="One place to learn a skill, practise it with people, and get paid for what you know." />
       </section>
 
+      <div className="et-x-sep" aria-hidden="true">
+        <span className="et-x-rail" />
+        <b className="h l" />
+        <b className="h r" />
+      </div>
+
       {ROWS.map((r, i) => {
         const Art = ART[r.id];
         return (

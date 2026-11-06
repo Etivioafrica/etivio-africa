@@ -441,3 +441,10 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 .et-x-problem .h{position:absolute;z-index:5;width:9px;height:9px;border:1px solid #9aa3b5;background:#fff}
 .et-x-problem .bl{left:calc(var(--h2-pad) - 5px);bottom:-5px}.et-x-problem .br{right:calc(var(--h2-pad) - 5px);bottom:-5px}
 @media(max-width:720px){.et-x-problem .h{display:none}}
+
+/* A full-width animated dotted line between sections, with squares where it meets the guide lines */
+.et-x-sep{position:relative;height:0;margin:0 calc(-1*clamp(12px,1.2vw,24px))}
+.et-x-sep .h{position:absolute;z-index:5;top:-5px;width:9px;height:9px;border:1px solid #9aa3b5;background:#fff}
+.et-x-sep .l{left:-5px}.et-x-sep .r{right:-5px}
+.et-x-sep + .et-x-row{border-top:0}
+@media(max-width:720px){.et-x-sep .h{display:none}}
