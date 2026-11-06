@@ -146,8 +146,8 @@ export function Showcase() {
       </div>
 
       <div className="et-x-built">
-        <h2>What we built</h2>
-        <p>Campus to learn with people, courses to learn from experts, and an AI tutor for when you get stuck.</p>
+        <h2>What you get</h2>
+        <p>Real skills you can prove, people who back you, and a clear path to your next role.</p>
         <b className="h bl" />
         <b className="h br" />
       </div>
