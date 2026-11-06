@@ -426,7 +426,13 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 .et-x-pcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin-top:clamp(28px,4vw,56px);border:1px solid #1f1f23;text-align:left}
 .et-x-pcards article{display:flex;flex-direction:column;justify-content:space-between;gap:clamp(60px,8vw,120px);min-height:clamp(320px,30vw,430px);padding:clamp(20px,2.4vw,32px);border-left:1px solid #1f1f23}
 .et-x-pcards article:first-child{border-left:0}
-.et-x-pcards h3{margin:0 0 12px;font-family:var(--h2-serif),Georgia,serif;font-size:clamp(21px,2vw,28px);font-weight:500;letter-spacing:-.01em;color:#fff}
-.et-x-pcards p{margin:0;max-width:30em;min-height:4.8em;font-size:15px;line-height:1.6;color:#8b8b94}
-@media(max-width:900px){.et-x-pcards p{min-height:0}.et-x-pcards{grid-template-columns:1fr}.et-x-pcards article{min-height:0;gap:36px;border-left:0;border-top:1px solid #1f1f23}.et-x-pcards article:first-child{border-top:0}}
+.et-x-pcards h3{font-family:var(--h2-serif),Georgia,serif;font-size:clamp(21px,2vw,28px);font-weight:500;letter-spacing:-.01em;color:#fff}
+.et-x-pcards h3{margin:0}
+.et-x-reveal{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .5s cubic-bezier(.2,.7,.2,1),opacity .4s ease}
+.et-x-reveal>p{margin:0;min-height:0;max-width:30em;overflow:hidden;padding-top:0;font-size:15px;line-height:1.6;color:#8b8b94;transition:padding-top .5s cubic-bezier(.2,.7,.2,1)}
+.et-x-pcards article:hover .et-x-reveal,.et-x-pcards article:focus-within .et-x-reveal{grid-template-rows:1fr;opacity:1}
+.et-x-pcards article:hover .et-x-reveal>p,.et-x-pcards article:focus-within .et-x-reveal>p{padding-top:12px}
+@media(hover:none){.et-x-reveal{grid-template-rows:1fr;opacity:1}.et-x-reveal>p{padding-top:12px}}
+@media(prefers-reduced-motion:reduce){.et-x-reveal,.et-x-reveal>p{transition:none}}
+@media(max-width:900px){.et-x-reveal{grid-template-rows:1fr;opacity:1}.et-x-reveal>p{padding-top:12px}.et-x-pcards{grid-template-columns:1fr}.et-x-pcards article{min-height:0;gap:36px;border-left:0;border-top:1px solid #1f1f23}.et-x-pcards article:first-child{border-top:0}}
 @media(max-width:720px){.et-x-problem:before,.et-x-problem:after{display:none}}

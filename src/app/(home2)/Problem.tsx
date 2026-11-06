@@ -1,5 +1,6 @@
 // "The problem" band after the statement (AgentLab style): black, a serif heading, and three bordered cards with a
-// small isometric icon and a title. Plain statements about online learning, no invented numbers.
+// small isometric icon and a title; the one-line explanation slides in under the title on hover (always shown on touch
+// screens). Plain statements about online learning, no invented numbers.
 
 const CARDS = [
   { id: "price", title: "Priced for somewhere else", body: "Dollar prices and foreign cards put good courses out of reach. Etivio prices in naira and pays through Paystack." },
@@ -72,7 +73,9 @@ export function Problem() {
             <Icon id={c.id} />
             <div>
               <h3>{c.title}</h3>
-              <p>{c.body}</p>
+              <div className="et-x-reveal">
+                <p>{c.body}</p>
+              </div>
             </div>
           </article>
         ))}
