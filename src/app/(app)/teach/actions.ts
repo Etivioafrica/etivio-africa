@@ -1,4 +1,5 @@
 "use server";
+import { COURSE_TITLE_MAX } from "@/lib/field-limits";
 import { redirect } from "next/navigation";
 import { parseSkills } from "@/lib/skills";
 import { TOPICS } from "@/lib/learner-prefs";
@@ -54,6 +55,7 @@ export async function createCourse(_prev: FormState, fd: FormData): Promise<Form
   const { supabase, userId } = await requireUserId();
   const title = str(fd, "title");
   if (title.length < 3) return { error: "Give your course a title of at least 3 characters." };
+  if (title.length > COURSE_TITLE_MAX) return { error: `The course title is ${title.length - COURSE_TITLE_MAX} characters over the ${COURSE_TITLE_MAX}-character limit. Please shorten it.` };
   const level = str(fd, "level") as Level;
   const banned = await words(userId, title, str(fd, "summary"));
   if (banned) return { error: banned };
@@ -91,6 +93,7 @@ export async function updateCourse(_prev: FormState, fd: FormData): Promise<Form
   const slug = slugify(str(fd, "slug"));
   const level = str(fd, "level") as Level;
   if (title.length < 3) return { error: "Title needs at least 3 characters." };
+  if (title.length > COURSE_TITLE_MAX) return { error: `The course title is ${title.length - COURSE_TITLE_MAX} characters over the ${COURSE_TITLE_MAX}-character limit. Please shorten it.` };
   if (!slug) return { error: "Add a URL slug." };
   const banned = await words(userId, title, slug.replace(/-/g, " "), str(fd, "summary"), str(fd, "description"), str(fd, "skills"));
   if (banned) return { error: banned };

@@ -96,6 +96,7 @@ export function ProductEditor({
     setAiBusy(null);
     if (!res.ok) return show({ error: res.error });
     set({ coverUrl: res.data });
+    show({ ok: `Cover created. ${res.left} AI cover${res.left === 1 ? "" : "s"} left today.` });
   }
 
   function save(intent: ProductInput["intent"]) {

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CountedField } from "@/components/dash/CountedField";
+import { BILLING_NAME_MAX } from "@/lib/field-limits";
 import { ArrowRight, CreditCard, Landmark, Plus } from "lucide-react";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { NG_BANKS } from "@/lib/banks";
@@ -118,7 +120,7 @@ export default async function BillingSettings() {
           <div className="et-form-grid">
             <div className="et-field">
               <label htmlFor="b-name">Name on receipts</label>
-              <input id="b-name" name="name" defaultValue={billing?.name ?? user.name} maxLength={120} autoComplete="name" />
+              <CountedField id="b-name" name="name" defaultValue={billing?.name ?? user.name} max={BILLING_NAME_MAX} autoComplete="name" />
             </div>
             <div className="et-field">
               <label htmlFor="b-country">Country</label>

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { COURSE_TITLE_MAX } from "@/lib/field-limits";
 import { COURSE_STATUS_LABEL, type CourseStatus } from "@/lib/course-status";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -141,7 +142,7 @@ export function CourseWizard({
     if (res.data.summary) setSummary(res.data.summary);
     if (res.data.description) setDescription(res.data.description);
     if (res.data.skills.length) setSkills(res.data.skills.join(", "));
-    show({ ok: "Details written. Read them through and edit anything that isn't right." });
+    show({ ok: `Details written. Read them through and edit anything that isn't right. ${res.left} rewrite${res.left === 1 ? "" : "s"} left today.` });
   }
 
   async function aiMakeCover() {
@@ -150,6 +151,7 @@ export function CourseWizard({
     setAiBusy(null);
     if (!res.ok) return show({ error: res.error });
     setCoverUrl(res.data);
+    show({ ok: `Cover created. ${res.left} AI cover${res.left === 1 ? "" : "s"} left today.` });
   }
 
   async function aiPlan() {
@@ -345,7 +347,10 @@ export function CourseWizard({
             <div className="et-form">
               <div className="et-field">
                 <label htmlFor="w-title">Course title</label>
-                <input id="w-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Product design fundamentals" maxLength={140} autoFocus />
+                <input id="w-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Product design fundamentals" maxLength={COURSE_TITLE_MAX} autoFocus aria-describedby="w-title-count" />
+                <small id="w-title-count" className={`et-count-hint${title.length >= COURSE_TITLE_MAX ? " is-full" : title.length >= COURSE_TITLE_MAX - 10 ? " is-near" : ""}`} aria-live="polite">
+                  {title.length >= COURSE_TITLE_MAX ? `Limit reached: ${COURSE_TITLE_MAX} characters` : `${title.length} / ${COURSE_TITLE_MAX} characters`}
+                </small>
               </div>
               {ai && (
               <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!!aiBusy || title.trim().length < 4} onClick={aiDetails}>

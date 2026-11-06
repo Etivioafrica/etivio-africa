@@ -1,5 +1,6 @@
 "use server";
 import { PROFILE_LIMITS } from "@/lib/profile-limits";
+import { BILLING_NAME_MAX } from "@/lib/field-limits";
 import { redirect } from "next/navigation";
 import { isAvatarFace } from "@/lib/avatars";
 import { refresh } from "next/cache";
@@ -266,11 +267,14 @@ export async function saveBillingDetails(_prev: FormState, fd: FormData): Promis
   const receipt = text(fd, "receipt_email", 254).toLowerCase();
   if (receipt && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(receipt)) return { error: "Enter a valid email for receipts." };
 
+  const nameOver = String(fd.get("name") ?? "").trim().length - BILLING_NAME_MAX;
+  if (nameOver > 0) return { error: `The name on receipts is ${nameOver} character${nameOver === 1 ? "" : "s"} over the ${BILLING_NAME_MAX}-character limit. Please shorten it.` };
+
   // With the company switch off, the hidden company fields are cleared rather than kept.
   const company = fd.get("company_invoice") === "on";
   const { error } = await supabase.from("billing_details").upsert({
     user_id: user.id,
-    name: text(fd, "name", 120) || null,
+    name: text(fd, "name", BILLING_NAME_MAX) || null,
     company: (company && text(fd, "company", 120)) || null,
     address: (company && text(fd, "address", 300)) || null,
     city: (company && text(fd, "city", 80)) || null,

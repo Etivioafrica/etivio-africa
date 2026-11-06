@@ -25,7 +25,7 @@ export default async function AccountSettings() {
         </ActionForm>
       </SetRow>
 
-      <SetRow title="Export your data" sub="A copy of everything Etivio holds about you, as a JSON file.">
+      <SetRow title="Export your data" sub="A copy of everything Etivio holds about you. Open it in any browser, or print it to PDF.">
         <div className="et-set-box">
           <div className="et-set-box-row">
             <span>
@@ -38,6 +38,9 @@ export default async function AccountSettings() {
               Download
             </a>
           </div>
+          <small className="et-muted">
+            Need it for another app or a developer? <a href="/api/export?format=json" download style={{ textDecoration: "underline" }}>Download the raw JSON version</a>.
+          </small>
         </div>
       </SetRow>
 

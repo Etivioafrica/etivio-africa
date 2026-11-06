@@ -1,6 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { parseSkills } from "@/lib/skills";
+import { COURSE_TITLE_MAX } from "@/lib/field-limits";
 import { refresh } from "next/cache";
 import { after } from "next/server";
 import { emailCourseSubmitted, emailReviewReply } from "@/lib/email/notify";
@@ -47,6 +48,7 @@ export async function adminCreateCourse(_prev: FormState, fd: FormData): Promise
   const title = str(fd, "title");
   const instructorId = str(fd, "instructor_id");
   if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
+  if (title.length > COURSE_TITLE_MAX) return { error: `The course title is ${title.length - COURSE_TITLE_MAX} characters over the ${COURSE_TITLE_MAX}-character limit. Please shorten it.` };
   if (!instructorId) return { error: "Pick an instructor." };
   const level = str(fd, "level") as Level;
 
@@ -83,6 +85,7 @@ export async function adminUpdateCourse(_prev: FormState, fd: FormData): Promise
   const slug = slugify(str(fd, "slug"));
   const level = str(fd, "level") as Level;
   if (title.length < 3) return { error: "Title needs at least 3 characters." };
+  if (title.length > COURSE_TITLE_MAX) return { error: `The course title is ${title.length - COURSE_TITLE_MAX} characters over the ${COURSE_TITLE_MAX}-character limit. Please shorten it.` };
   if (!slug) return { error: "Add a URL slug." };
   const coverInput = str(fd, "cover_url");
   const cover = safeUrl(coverInput);
@@ -394,8 +397,9 @@ export async function createCourseFull(input: NewCourseInput): Promise<Result> {
   // Tutors asking to publish are submitting for review (trusted tutors publish straight away).
   const goLive = input.publish && editor.trusted;
   const submit = input.publish && !editor.trusted;
-  const title = input.title.trim().slice(0, 140);
+  const title = input.title.trim();
   if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
+  if (title.length > COURSE_TITLE_MAX) return { error: `The course title is ${title.length - COURSE_TITLE_MAX} characters over the ${COURSE_TITLE_MAX}-character limit. Please shorten it.` };
   if (!input.instructorId) return { error: "Pick an instructor." };
   const { modules, error: curriculumError } = cleanCurriculum(input.modules);
   if (curriculumError) return { error: curriculumError };
@@ -640,8 +644,9 @@ export async function updateCourseFull(courseId: string, input: EditCourseInput)
   const { db } = editor;
   const admin = { id: editor.actorId };
   if (!editor.staff) input = { ...input, instructorId: editor.actorId };
-  const title = input.title.trim().slice(0, 140);
+  const title = input.title.trim();
   if (title.length < 3) return { error: "Give the course a title of at least 3 characters." };
+  if (title.length > COURSE_TITLE_MAX) return { error: `The course title is ${title.length - COURSE_TITLE_MAX} characters over the ${COURSE_TITLE_MAX}-character limit. Please shorten it.` };
   if (!input.instructorId) return { error: "Pick an instructor." };
   const { data: before } = await db.from("courses").select("cover_url, status, published_at").eq("id", courseId).maybeSingle();
   if (!before) return { error: "That course no longer exists." };

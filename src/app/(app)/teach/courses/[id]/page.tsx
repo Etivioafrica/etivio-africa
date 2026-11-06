@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CountedField } from "@/components/dash/CountedField";
+import { COURSE_TITLE_MAX } from "@/lib/field-limits";
 import { TOPICS } from "@/lib/learner-prefs";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, Eye, FileText, Pencil, PlayCircle, Trash2 } from "lucide-react";
@@ -147,7 +149,7 @@ export default async function CourseEditor({ params }: { params: Promise<{ id: s
                 <input type="hidden" name="id" value={course.id} />
                 <div className="et-field">
                   <label htmlFor="title">Title</label>
-                  <input id="title" name="title" defaultValue={course.title} required />
+                  <CountedField id="title" name="title" defaultValue={course.title} max={COURSE_TITLE_MAX} />
                 </div>
                 <div className="et-field">
                   <label htmlFor="slug">URL slug</label>
