@@ -4,26 +4,19 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
-  AtSign,
   Award,
   BookOpen,
-  Heart,
-  ImageIcon,
-  MessageCircle,
-  PlayCircle,
   Plus,
-  Sparkles,
   Star,
-  Users,
-  Wallet,
 } from "lucide-react";
 import { getCatalog } from "@/lib/data/learn";
 import { formatPrice } from "@/lib/format";
-import { Caveat } from "next/font/google";
+import { Caveat, Newsreader } from "next/font/google";
 import { HeroCta } from "./HeroCta";
 import { HeroReel } from "./HeroReel";
 import { Home2Nav } from "./Home2Nav";
 import { AppDemo } from "./AppDemo";
+import { Showcase } from "./Showcase";
 import "./home2.css";
 
 export const metadata: Metadata = {
@@ -31,33 +24,6 @@ export const metadata: Metadata = {
   description:
     "Courses, a learner feed and an AI study partner, built for learners across Africa.",
 };
-
-const PILLARS = [
-  {
-    icon: BookOpen,
-    tone: "is-blue",
-    title: "Learn",
-    body: "Short, practical lessons with notes, bookmarks, quizzes and a certificate at the end.",
-  },
-  {
-    icon: Users,
-    tone: "is-green",
-    title: "Connect",
-    body: "Post on Campus, share wins and ask questions alongside learners like you.",
-  },
-  {
-    icon: Sparkles,
-    tone: "is-amber",
-    title: "Study with AI",
-    body: "Ask Etivio AI to explain a lesson, quiz you or help when you are stuck. It knows your course.",
-  },
-  {
-    icon: Wallet,
-    tone: "is-ink",
-    title: "Teach and earn",
-    body: "Turn what you know into courses, templates and e-books, and get paid in your currency.",
-  },
-];
 
 const STEPS = [
   {
@@ -104,6 +70,13 @@ const FAQ = [
   },
 ];
 
+const serif = Newsreader({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--h2-serif",
+  display: "swap",
+});
+
 const hand = Caveat({
   subsets: ["latin"],
   weight: ["600"],
@@ -112,7 +85,7 @@ const hand = Caveat({
 
 export default function Home2() {
   return (
-    <div className={`et-h2 ${hand.variable}`}>
+    <div className={`et-h2 ${hand.variable} ${serif.variable}`}>
       <Home2Nav />
 
       <main>
@@ -166,30 +139,8 @@ export default function Home2() {
           <AppDemo />
         </section>
 
-        {/* 4. Four pillars */}
-        <section className="et-h2-sec is-flush" id="features">
-          <div className="et-h2-box">
-            <div className="et-h2-head">
-              <span className="et-h2-kicker">One platform</span>
-              <h2>Everything you need to grow, not just videos.</h2>
-              <p>
-                Etivio brings learning, people and earning together, so you
-                never have to piece it together from five apps.
-              </p>
-            </div>
-            <div className="et-h2-pillars">
-              {PILLARS.map(({ icon: Icon, tone, title, body }) => (
-                <article key={title} className={`et-h2-pillar ${tone}`}>
-                  <span className="et-h2-pillar-icon">
-                    <Icon size={22} />
-                  </span>
-                  <h3>{title}</h3>
-                  <p>{body}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* 4. Statement and feature rows (AgentLab-style block) */}
+        <Showcase />
 
         {/* 5. How it works */}
         <section className="et-h2-sec is-tint">
@@ -222,103 +173,6 @@ export default function Home2() {
         <Suspense fallback={null}>
           <Courses />
         </Suspense>
-
-        {/* 7. Campus */}
-        <section className="et-h2-sec" id="campus">
-          <div className="et-h2-split is-flip">
-            <div className="et-h2-head">
-              <span className="et-h2-kicker">Campus</span>
-              <h2>Your learning feed, with real people in it.</h2>
-              <p>
-                Post your wins, ask questions and share what you are building.
-                Add photos and video links, mention classmates and get replies
-                as they happen.
-              </p>
-              <div className="et-h2-feats">
-                <span>
-                  <AtSign size={16} /> Mentions
-                </span>
-                <span>
-                  <ImageIcon size={16} /> Photo editor
-                </span>
-                <span>
-                  <PlayCircle size={16} /> Video links
-                </span>
-                <span>
-                  <MessageCircle size={16} /> Replies
-                </span>
-              </div>
-            </div>
-            <div className="et-h2-post" aria-hidden="true">
-              <div className="et-h2-post-head">
-                <span className="et-h2-av is-green">A</span>
-                <div>
-                  <b>Amaka O.</b>
-                  <small>Product design · 2h</small>
-                </div>
-              </div>
-              <p>
-                Just finished my first case study for the UI Foundations course.
-                Thank you <em>@tunde</em> for the feedback on the onboarding
-                flow!
-              </p>
-              <div className="et-h2-post-img">
-                <div className="et-h2-post-frame">
-                  <i />
-                  <i />
-                  <i />
-                </div>
-              </div>
-              <div className="et-h2-post-foot">
-                <span>
-                  <Heart size={15} /> 48
-                </span>
-                <span>
-                  <MessageCircle size={15} /> 12 replies
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 8. Etivio AI */}
-        <section className="et-h2-band is-blue">
-          <div className="et-h2-split">
-            <div className="et-h2-head">
-              <span className="et-h2-kicker">Etivio AI</span>
-              <h2>A study partner that knows your lessons.</h2>
-              <p>
-                Stuck on a lesson at midnight? Ask Etivio AI. It explains ideas
-                in plain words, quizzes you, and points you to the exact lesson
-                to rewatch.
-              </p>
-              <Link href="/signup" className="et-h2-btn is-white">
-                Try Etivio AI <ArrowRight size={15} aria-hidden="true" />
-              </Link>
-            </div>
-            <div className="et-h2-chat" aria-hidden="true">
-              <div className="et-h2-bubble is-me">
-                What is the difference between margin and padding?
-              </div>
-              <div className="et-h2-bubble is-ai">
-                <span className="et-h2-ai-mark">
-                  <Sparkles size={13} />
-                </span>
-                <p>
-                  Padding is the space inside a box, between its border and its
-                  content. Margin is the space outside, between the box and its
-                  neighbours. Lesson 3 at 04:12 shows both.
-                </p>
-              </div>
-              <div className="et-h2-bubble is-me">Quiz me on it</div>
-              <div className="et-h2-typing">
-                <i />
-                <i />
-                <i />
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* 9. Teach on Etivio */}
         <section className="et-h2-band is-amber">
