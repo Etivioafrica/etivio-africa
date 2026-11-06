@@ -76,7 +76,10 @@ export async function POST(request: NextRequest) {
     });
     after(stream.done);
     return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Remaining": String(DAILY_LIMIT - (used ?? 0) - 1) } });
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("(429)")) {
+      return NextResponse.json({ error: "The study assistant has reached its limit for today. It will be back tomorrow." }, { status: 503 });
+    }
     return NextResponse.json({ error: "The study assistant couldn't answer just now. Try again in a moment." }, { status: 502 });
   }
 }
