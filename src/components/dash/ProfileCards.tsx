@@ -85,7 +85,7 @@ export function ProfileCompleteness({ data }: { data: LearnerProfile }) {
         <Ring value={done} max={steps.length}>
           <b>{pct}%</b>
         </Ring>
-        <ul className="et-checklist">
+        <ul className="et-pcl">
           {steps.map((s) => (
             <li key={s.label} className={s.done ? "is-done" : ""}>
               {s.done ? <Check size={14} strokeWidth={2.6} /> : <Circle size={14} />}

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ActionForm, SubmitButton } from "@/components/dash/ActionForm";
 import { AvatarEditor } from "@/components/dash/AvatarEditor";
+import { CountedField } from "@/components/dash/CountedField";
 import { getCurrentUser } from "@/lib/auth";
 import { getProfileDetails } from "@/lib/data/profile";
 import { updateProfile } from "./actions";
@@ -21,15 +22,15 @@ export default async function ProfileSettings() {
       <SetRow title="Public profile" sub="Your name and headline, shown on your profile and courses.">
         <div className="et-field">
           <label htmlFor="full_name">Full name</label>
-          <input id="full_name" name="full_name" defaultValue={user.name} autoComplete="name" maxLength={80} />
+          <CountedField id="full_name" name="full_name" defaultValue={user.name} autoComplete="name" max={80} />
         </div>
         <div className="et-field">
           <label htmlFor="headline">Headline</label>
-          <input id="headline" name="headline" defaultValue={p.headline ?? ""} placeholder="Product designer learning data analysis" maxLength={120} />
+          <CountedField id="headline" name="headline" defaultValue={p.headline ?? ""} placeholder="Product designer learning data analysis" max={120} />
         </div>
         <div className="et-field">
           <label htmlFor="location">Location</label>
-          <input id="location" name="location" defaultValue={p.location ?? ""} placeholder="Lagos, Nigeria" maxLength={80} />
+          <CountedField id="location" name="location" defaultValue={p.location ?? ""} placeholder="Lagos, Nigeria" max={80} />
         </div>
       </SetRow>
 
@@ -58,7 +59,7 @@ export default async function ProfileSettings() {
       <SetRow title="About you" sub="What you're learning or teaching. Interests help us suggest courses.">
         <div className="et-field">
           <label htmlFor="bio">Bio</label>
-          <textarea id="bio" name="bio" rows={4} defaultValue={p.bio ?? ""} maxLength={2000} />
+          <CountedField as="textarea" id="bio" name="bio" rows={4} defaultValue={p.bio ?? ""} max={2000} />
         </div>
         <div className="et-field">
           <label htmlFor="interests">Interests</label>

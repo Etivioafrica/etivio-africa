@@ -157,6 +157,9 @@ a.et-stat:hover{border-color:var(--accent);transform:translateY(-1px)}
 .et-field-wide{grid-column:1/-1}
 .et-field label{font-size:12.5px;font-weight:600}
 .et-field small{font-size:12px;color:var(--a-faint)}
+.et-field .et-count-hint{align-self:flex-end;font-variant-numeric:tabular-nums}
+.et-field .et-count-hint.is-near{color:#b45309}
+.et-field .et-count-hint.is-full{color:#dc2626;font-weight:600}
 .et-field :is(input,select,textarea),.et-input{width:100%;padding:0 13px;height:42px;border-radius:9px;background:var(--a-input);border:1px solid var(--a-border);color:var(--a-fg);font-size:13.5px;outline:none;transition:border-color .15s}
 .et-field textarea{height:auto;padding:11px 13px;resize:vertical;line-height:1.6}
 .et-field :is(input,select,textarea):focus,.et-input:focus{border-color:var(--accent)}
@@ -793,6 +796,15 @@ button.et-avatar-edit{position:relative;padding:0;overflow:hidden;cursor:pointer
 .et-checklist a:hover{color:var(--accent)}
 .et-skill{height:28px;padding:0 12px;border-radius:999px;background:var(--accent);color:#fff;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center}
 @media(max-width:520px){.et-checklist{grid-template-columns:1fr}.et-goal{flex-direction:column;align-items:flex-start}}
+/* Profile completeness list: its own class, the shared .et-checklist is redefined further down for another card */
+.et-pcl{flex:1;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 28px;margin:0;padding:0;list-style:none}
+.et-pcl li{display:flex;align-items:center;gap:10px;min-width:0;font-size:13px;color:var(--a-muted)}
+.et-pcl li svg{flex-shrink:0;color:var(--a-faint)}
+.et-pcl li.is-done{color:var(--a-faint);text-decoration:line-through}
+.et-pcl li.is-done svg{color:#16a34a}
+.et-pcl a{font-weight:600;color:var(--a-fg)}
+.et-pcl a:hover{color:var(--accent)}
+@media(max-width:520px){.et-pcl{grid-template-columns:1fr}}
 .et-grid-2.is-stretch{align-items:stretch}
 .et-grid-2.is-stretch>.et-card{display:flex;flex-direction:column}
 .et-pf-skills{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -2083,26 +2095,34 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 .et-wallet-in{color:#16a34a}
 @media (max-width:640px){.et-gb-admin-grid{grid-template-columns:1fr}.et-gp{padding-top:16px}.et-gp-body{padding:18px}}
 /* Wallet (learner page) and admin group buys / wallets */
-.et-wl-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;margin-bottom:16px}
-/* Balance: a solid blue wallet card */
-.et-wl-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:24px;border-radius:18px;background:#2563eb;color:#fff;overflow:hidden;isolation:isolate}
-.et-wl-card:before,.et-wl-card:after{content:"";position:absolute;z-index:-1;border-radius:50%;background:#3b74f0}
-.et-wl-card:before{width:260px;height:260px;right:-90px;top:-110px}
-.et-wl-card:after{width:180px;height:180px;right:40px;bottom:-120px;background:#1d4ed8}
-.et-wl-card-top{display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:18px}
-.et-wl-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#fff;color:#2563eb}
-.et-wl-brand{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#dbe6fd}
-.et-wl-card>small{font-size:13px;color:#dbe6fd}
-.et-wl-amountbig{font-size:clamp(34px,4vw,44px);font-weight:700;letter-spacing:-.04em;line-height:1.1}
-.et-wl-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin:18px 0 16px}
-.et-wl-split>span{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:#1d4ed8}
-.et-wl-split i{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:#fff;color:#1d4ed8}
-.et-wl-split>span>span{display:flex;flex-direction:column;line-height:1.25;min-width:0}
-.et-wl-split small{font-size:11.5px;color:#dbe6fd}
-.et-wl-split b{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.et-wl-spend{display:inline-flex;align-items:center;gap:6px;margin-top:auto;padding:9px 14px;border-radius:10px;background:#fff;color:#1d4ed8;font-size:13px;font-weight:700}
+.et-wl-grid{display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:28px;align-items:start;margin-bottom:16px}
+.et-wl-left{display:flex;flex-direction:column;gap:16px;min-width:0}
+/* Balance: a dark bank card, with a second card peeking out behind it */
+.et-wl-stack{position:relative;padding-bottom:14px}
+.et-wl-stack:before{content:"";position:absolute;left:18px;right:18px;bottom:0;height:60px;border-radius:0 0 18px 18px;background:#3b4658}
+.et-wl-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:210px;padding:22px 24px;border-radius:18px;background:#0f172a;color:#fff;overflow:hidden;isolation:isolate}
+.et-wl-card:before{content:"";position:absolute;z-index:-1;width:280px;height:280px;right:-110px;top:-130px;border-radius:50%;background:#1e293b}
+.et-wl-card-top{display:flex;align-items:center;justify-content:space-between;width:100%;color:#94a3b8}
+.et-wl-brand{font-size:19px;font-weight:800;letter-spacing:-.02em;color:#fff}
+.et-wl-chip{width:38px;height:28px;margin:14px 0 10px;border-radius:6px;background:#cbd5e1}
+.et-wl-card>small{font-size:12.5px;color:#94a3b8}
+.et-wl-amountbig{font-size:clamp(30px,3.4vw,38px);font-weight:700;letter-spacing:-.04em;line-height:1.1}
+.et-wl-card-foot{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-top:auto;padding-top:16px}
+.et-wl-card-foot>span{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:#1e293b;min-width:0}
+.et-wl-card-foot small{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#94a3b8}
+.et-wl-card-foot b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.et-wl-spend{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 14px;border-radius:10px;border:1px solid var(--a-border);background:var(--a-panel);color:var(--a-fg);font-size:13px;font-weight:600}
 .et-wl-spend:hover{gap:9px}
-/* Add money */
+/* Activity: underlined tabs and a list grouped by day */
+.et-wl-right{min-width:0}
+.et-wl-right>h2{font-size:18px;font-weight:700}
+.et-wl-tabs{display:flex;gap:22px;margin:14px 0 6px;border-bottom:1px solid var(--a-border)}
+.et-wl-tabs a{padding:0 0 10px;margin-bottom:-1px;border-bottom:2px solid transparent;font-size:13.5px;font-weight:600;color:var(--a-muted)}
+.et-wl-tabs a:hover{color:var(--a-fg)}
+.et-wl-tabs a.is-on{border-bottom-color:var(--accent);color:var(--a-fg)}
+.et-wl-day{margin-top:18px}
+.et-wl-day h3{margin-bottom:4px;font-size:12.5px;font-weight:600;color:var(--a-muted)}
+.et-wl-empty{padding:28px 0}
 .et-wl-topup{display:flex;flex-direction:column;gap:14px}
 .et-wl-topup>label{font-size:14.5px;font-weight:700}
 .et-wl-topup>small{font-size:12.5px;color:var(--a-muted)}
@@ -2127,9 +2147,9 @@ select.et-input:focus,.et-field select:focus{border-color:var(--accent)}
 .et-wl-row .et-wl-naira{font-size:inherit}
 .et-wl-secure{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--a-muted)}
 .et-wl-history{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
-.et-wl-history li{display:flex;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid var(--a-border)}
+.et-wl-history li{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--a-border)}
 .et-wl-history li:first-child{border-top:0}
-.et-wl-dot{display:grid;place-items:center;width:30px;height:30px;flex-shrink:0;border-radius:50%;background:var(--a-panel-2);color:var(--a-muted)}
+.et-wl-dot{display:grid;place-items:center;width:40px;height:40px;flex-shrink:0;border-radius:50%;background:var(--a-panel-2);color:var(--a-muted)}
 .et-wl-dot.is-in{background:#16a34a;color:#fff}
 .et-wl-what{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
 .et-wl-what b{font-size:14px}
