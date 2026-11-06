@@ -129,14 +129,15 @@ export function Showcase() {
     <div className="et-x" id="features">
       <DashStage bg="/home/stage-bg.webp" />
       <Ticker />
+
+      <Problem />
+
       <section className="et-x-statement">
         <span className="et-x-label">
           <i /> Why Etivio
         </span>
         <Reveal text="One place to learn a skill, practise it with people, and get paid for what you know." />
       </section>
-
-      <Problem />
 
       {ROWS.map((r, i) => {
         const Art = ART[r.id];
