@@ -124,7 +124,7 @@ const ART = { learn: Lesson, campus: Post, ai: Chat };
 export function Showcase() {
   return (
     <div className="et-x" id="features">
-      <DashStage />
+      <DashStage bg="/home/stage-bg.webp" />
       <section className="et-x-statement">
         <span className="et-x-label">
           <i /> Why Etivio
