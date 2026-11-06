@@ -8,8 +8,9 @@ import { useEffect, useRef, useState } from "react";
 
 const W = 1440;
 const H = 900;
-// How much of the bottom of the dashboard is cut off by the panel's edge.
-const CROP = 120;
+// How much of the dashboard shows before the panel's edge cuts it off: down to the "Continue learning" and "Quizzes" row,
+// so the courses list below stays hidden.
+const SHOWN = 0.69;
 
 export function DashStage({ bg }: { bg?: string }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -61,7 +62,7 @@ export function DashStage({ bg }: { bg?: string }) {
               Light
             </button>
           </span>
-          <div ref={wrap} className="et-x-dashframe" style={{ height: (fh - CROP) * scale }}>
+          <div ref={wrap} className="et-x-dashframe" style={{ height: fh * SHOWN * scale }}>
             <iframe
               ref={frame}
               src="/tour?scene=dashboard&theme=dark"
