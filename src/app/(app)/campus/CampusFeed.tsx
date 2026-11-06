@@ -62,6 +62,8 @@ export function NewPosts({ viewerId }: { viewerId: string }) {
         start(() => {
           router.refresh();
           setCount(0);
+          // On desktop the app scrolls inside .et-main, not the window; on phones it is the window.
+          document.querySelector(".et-main")?.scrollTo({ top: 0, behavior: "smooth" });
           window.scrollTo({ top: 0, behavior: "smooth" });
         })
       }
