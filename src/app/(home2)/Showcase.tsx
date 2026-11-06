@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { ChatSim, LessonSim } from "./ArtSims";
 import { CampusSim } from "./CampusSim";
 import { DashStage } from "./DashStage";
 import { Problem } from "./Problem";
@@ -37,65 +38,7 @@ const ROWS = [
   },
 ] as const;
 
-function Lesson() {
-  const items = [
-    ["Install Python and set up", true],
-    ["Variables and data types", true],
-    ["Make decisions with if and else", false],
-    ["Loops and repeating work", false],
-  ] as const;
-  return (
-    <div className="et-x-card">
-      <div className="et-x-card-bar">
-        <span>LESSON 3 OF 12</span>
-        <span>25%</span>
-      </div>
-      <div className="et-x-prog" aria-hidden="true">
-        <i style={{ width: "25%" }} />
-      </div>
-      <h4>Python for absolute beginners</h4>
-      <ul className="et-x-lessons">
-        {items.map(([t, done], i) => (
-          <li key={t} className={done ? "is-done" : i === 2 ? "is-now" : ""}>
-            <span>{done ? <Check size={13} strokeWidth={3} /> : i + 1}</span>
-            {t}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Chat() {
-  return (
-    <div className="et-x-card">
-      <div className="et-x-card-bar">
-        <span>ETIVIO AI</span>
-        <span>LESSON 3</span>
-      </div>
-      <div className="et-x-chat">
-        <div className="et-x-ai">
-          <span className="et-x-mark">
-            <Sparkles size={13} />
-          </span>
-          <p>Hi! Ask me anything about this lesson.</p>
-        </div>
-        <div className="et-x-me">What is the difference between margin and padding?</div>
-        <div className="et-x-ai">
-          <span className="et-x-mark">
-            <Sparkles size={13} />
-          </span>
-          <p>
-            Padding is the space inside a box. Margin is the space outside it.
-            <small>See lesson 3 at 04:12</small>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const ART = { learn: Lesson, campus: CampusSim, ai: Chat };
+const ART = { learn: LessonSim, campus: CampusSim, ai: ChatSim };
 
 export function Showcase() {
   return (

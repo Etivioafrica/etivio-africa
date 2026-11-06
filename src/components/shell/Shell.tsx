@@ -46,6 +46,7 @@ import {
   UsersRound,
   Target,
   Gift,
+  Sparkles,
 } from "lucide-react";
 import { useTheme, writeTheme } from "@/lib/theme";
 import { signOut } from "@/app/(app)/actions";
@@ -184,6 +185,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
           { label: "Settings", href: "/admin/settings", icon: Settings, area: "settings" },
           { label: "Features", href: "/admin/settings/features", icon: ToggleRight, area: "platform" },
           { label: "Tracking", href: "/admin/tracking", icon: BarChart3, area: "tracking" },
+          { label: "AI usage", href: "/admin/ai", icon: Sparkles, area: "tracking" },
         ],
       },
     ] satisfies Group[]
