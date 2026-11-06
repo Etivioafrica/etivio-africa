@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Heart, MessageCircle, Sparkles } from "lucide-react";
 import { DashStage } from "./DashStage";
@@ -156,7 +157,15 @@ export function Showcase() {
       {ROWS.map((r, i) => {
         const Art = ART[r.id];
         return (
-          <section key={r.id} className={`et-x-row${i % 2 ? " is-flip" : ""}`} id={r.id === "campus" ? "campus" : undefined}>
+          <Fragment key={r.id}>
+            {i > 0 && (
+              <div className="et-x-sep" aria-hidden="true">
+                <span className="et-x-rail" />
+                <b className="h l" />
+                <b className="h r" />
+              </div>
+            )}
+          <section className={`et-x-row${i % 2 ? " is-flip" : ""}`} id={r.id === "campus" ? "campus" : undefined}>
             <div className="et-x-copy">
               <span className="et-x-label">
                 <i /> {r.label}
@@ -178,6 +187,7 @@ export function Showcase() {
               <Art />
             </div>
           </section>
+          </Fragment>
         );
       })}
     </div>
