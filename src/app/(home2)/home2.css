@@ -507,3 +507,8 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 @keyframes et-sim-pop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
 @media(max-width:520px){.et-sim-types span:nth-child(n+4){display:none}.et-sim-quick span{font-size:12px;gap:5px}}
 @media(prefers-reduced-motion:reduce){.et-sim-pane,.et-sim-types span,.et-sim-btn{transition:none}.et-sim-caret{animation:none}.et-sim-act.is-like.is-on svg{animation:none}}
+
+/* The feature panels run out to the guide line on their outer side, like the dashboard stage and topic strip */
+.et-x-art{margin-right:calc(-1*clamp(12px,1.2vw,24px))}
+.et-x-row.is-flip .et-x-art{margin-right:0;margin-left:calc(-1*clamp(12px,1.2vw,24px))}
+@media(max-width:900px){.et-x-art,.et-x-row.is-flip .et-x-art{margin-left:calc(-1*clamp(12px,1.2vw,24px));margin-right:calc(-1*clamp(12px,1.2vw,24px))}}
