@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Heart, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
+import { CampusSim } from "./CampusSim";
 import { DashStage } from "./DashStage";
 import { Problem } from "./Problem";
 import { Reveal } from "./Reveal";
@@ -65,35 +66,6 @@ function Lesson() {
   );
 }
 
-function Post() {
-  return (
-    <div className="et-x-card">
-      <div className="et-x-card-bar">
-        <span>CAMPUS</span>
-        <span>WIN</span>
-      </div>
-      <div className="et-x-who">
-        <span className="et-x-av">A</span>
-        <div>
-          <b>Amaka O.</b>
-          <small>Product design · 2h</small>
-        </div>
-      </div>
-      <p className="et-x-post">
-        Just finished my first case study for the UI Foundations course. Thank you <em>@tunde</em> for the feedback on the onboarding flow!
-      </p>
-      <div className="et-x-post-foot">
-        <span>
-          <Heart size={15} /> 48
-        </span>
-        <span>
-          <MessageCircle size={15} /> 12 replies
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function Chat() {
   return (
     <div className="et-x-card">
@@ -123,7 +95,7 @@ function Chat() {
   );
 }
 
-const ART = { learn: Lesson, campus: Post, ai: Chat };
+const ART = { learn: Lesson, campus: CampusSim, ai: Chat };
 
 export function Showcase() {
   return (
