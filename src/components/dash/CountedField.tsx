@@ -21,7 +21,6 @@ export function CountedField({
   rows?: number;
   placeholder?: string;
   autoComplete?: string;
-  inputMode?: "url" | "text";
 }) {
   const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const [count, setCount] = useState(defaultValue.length);
