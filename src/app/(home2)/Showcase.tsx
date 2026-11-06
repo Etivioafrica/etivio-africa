@@ -134,7 +134,7 @@ export function Showcase() {
 
       <section className="et-x-statement">
         <span className="et-x-label">
-          <i /> Why Etivio
+          <i /> Our solution
         </span>
         <Reveal text="One place to learn a skill, practise it with people, and turn it into a career." />
       </section>
