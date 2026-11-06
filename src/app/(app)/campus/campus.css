@@ -59,7 +59,12 @@
 .et-cps-type-dot.is-poll,.et-cps-kind-select.is-poll{background:var(--cps-poll)}
 .et-cps-type-dot.is-opportunity,.et-cps-kind-select.is-opportunity{background:var(--cps-opportunity)}
 .et-cps-area{position:relative}
-.et-cps-area textarea{display:block;width:100%;min-height:0;padding:8px 0 4px;border:0;outline:0;resize:none;background:none;color:var(--a-fg);font:inherit;font-size:16px;line-height:1.5}
+.et-cps-mirror{position:absolute;inset:0;overflow:hidden;padding:8px 0 4px;color:transparent;font:inherit;font-size:16px;line-height:1.5;white-space:pre-wrap;overflow-wrap:break-word;pointer-events:none}
+.et-cps-box.is-open .et-cps-mirror{padding-top:2px}
+.et-cps-box:not(.is-open) .et-cps-mirror{display:none}
+.et-cps-mirror mark{border-radius:4px;background:#1e3a8a;color:transparent;box-shadow:0 0 0 2px #1e3a8a}
+.et-app.is-light .et-cps-mirror mark{background:#dbeafe;box-shadow:0 0 0 2px #dbeafe}
+.et-cps-area textarea{position:relative;display:block;width:100%;min-height:0;padding:8px 0 4px;border:0;outline:0;resize:none;background:none;color:var(--a-fg);font:inherit;font-size:16px;line-height:1.5}
 .et-cps-box.is-open .et-cps-area textarea{min-height:96px;padding-top:2px}
 /* Open composer: who's posting, the post type as chips, the text full width, then a tool bar along the bottom */
 .et-cps-box.is-open:not(.is-full){padding:16px 18px 0}

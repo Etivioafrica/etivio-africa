@@ -34,6 +34,20 @@ const EMOJIS = ["😀", "😂", "🥹", "😍", "🤩", "😎", "🤔", "😅", 
 
 type Person = { username: string; name: string; avatar: string | null };
 
+// The text with every web link marked, drawn behind the (transparent-backed) textarea so pasted links stand out.
+// A trailing space keeps the last empty line the same height as in the textarea.
+function highlight(text: string) {
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(/https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]]/g)) {
+    out.push(text.slice(last, m.index));
+    out.push(<mark key={m.index}>{m[0]}</mark>);
+    last = m.index + m[0].length;
+  }
+  out.push(text.slice(last), " ");
+  return out;
+}
+
 const isPhone = () => window.matchMedia("(max-width: 860px)").matches;
 
 // Posting, the way it works on X: on a computer the box sits at the top of the feed and opens up when you click into
@@ -62,6 +76,9 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   const [job, setJob] = useState<CampusJob>(EMPTY_JOB);
   const [link, setLink] = useState<CampusLink | null>(null);
   const [linkOff, setLinkOff] = useState<string | null>(null);
+  // The link most recently pasted: the card follows it, and pasting a link again brings back a cancelled card.
+  const [pastedUrl, setPastedUrl] = useState<string | null>(null);
+  const instant = useRef(false);
   const [emoji, setEmoji] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
@@ -176,12 +193,15 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
   const pasted = pastedLink && pastedLink !== videoOff ? pastedLink : null;
   // A card for the first web link in the text, unless the post already has a photo, video or poll.
   const hasMedia = !!photo || videoOpen || kind === "poll" || !!pasted;
-  const url = hasMedia ? null : firstLink(body);
+  const url = hasMedia ? null : pastedUrl && body.includes(pastedUrl) ? pastedUrl : firstLink(body);
   const wanted = url && url !== linkOff ? url : null;
   useEffect(() => {
     if (!wanted || link?.url === wanted) return;
     let live = true;
-    const t = setTimeout(() => previewCampusLink(wanted).then((l) => live && setLink(l ?? { url: wanted, title: "", description: "", image: "", site: "" })), 600);
+    // Pasted links preview straight away; typed ones wait a moment so half-typed addresses aren't fetched.
+    const wait = instant.current ? 0 : 600;
+    instant.current = false;
+    const t = setTimeout(() => previewCampusLink(wanted).then((l) => live && setLink(l ?? { url: wanted, title: "", description: "", image: "", site: "" })), wait);
     return () => {
       live = false;
       clearTimeout(t);
@@ -504,6 +524,9 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
             )}
 
             <div className="et-cps-area">
+              <div className="et-cps-mirror" aria-hidden="true">
+                {highlight(body)}
+              </div>
               <textarea
                 ref={area}
                 rows={1}
@@ -519,7 +542,15 @@ export function Composer({ viewer }: { viewer: CampusViewer }) {
                 }}
                 onChange={(e) => onType(e.target.value, e.target.selectionStart)}
                 onPaste={(e) => {
-                  if (takeFiles(e.clipboardData?.files)) e.preventDefault();
+                  if (takeFiles(e.clipboardData?.files)) return e.preventDefault();
+                  // Pasting a link (again) shows its preview straight away, even if the card was cancelled before.
+                  const pasted = firstLink(e.clipboardData?.getData("text") ?? "");
+                  if (pasted) {
+                    instant.current = true;
+                    setPastedUrl(pasted);
+                    setLinkOff(null);
+                    setVideoOff(null);
+                  }
                 }}
                 onKeyDown={(e) => {
                   if (people.length && mention && e.key === "Enter") {

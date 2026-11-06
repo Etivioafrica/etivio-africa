@@ -76,7 +76,15 @@ async function linkCard(url: string): Promise<CampusLink | null> {
   const hit = linkCache.get(url);
   if (hit && Date.now() - hit.at < 15 * 60_000) return hit.link;
   const meta = await fetchLinkMeta(url);
-  const link = meta.error || !meta.title ? null : { url, title: meta.title.slice(0, 200), description: meta.description.slice(0, 300), image: meta.image.slice(0, 500), site: meta.siteName };
+  // Sites that block bots give no details: still show a plain card with the site name, so a pasted link always gets one.
+  const host = (() => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      return url;
+    }
+  })();
+  const link = meta.error ? null : { url, title: (meta.title || meta.siteName || host).slice(0, 200), description: meta.description.slice(0, 300), image: meta.image.slice(0, 500), site: meta.siteName || host };
   if (linkCache.size > 500) linkCache.clear();
   linkCache.set(url, { at: Date.now(), link });
   return link;
