@@ -413,7 +413,7 @@ a.et-h2-coach:hover{transform:translateY(-4px);border-color:var(--h2-ink)}
 .et-x-ticker li a{display:inline-flex;align-items:center;gap:12px;padding:0 clamp(26px,3.6vw,56px);font-size:clamp(17px,1.7vw,22px);font-weight:600;letter-spacing:-.01em;white-space:nowrap;color:#0a0a0a;text-decoration:none;transition:color .15s}
 .et-x-ticker li a:hover{color:#1d4fff}
 .et-x-ticker:hover .et-x-ticker-track,.et-x-ticker:focus-within .et-x-ticker-track{animation-play-state:paused}
-.et-x-ticker .h{position:absolute;z-index:2;width:9px;height:9px;border:1px solid #9aa3b5;background:#fff}
+.et-x-ticker .h{position:absolute;z-index:5;width:9px;height:9px;border:1px solid #9aa3b5;background:#fff}
 .et-x-ticker .bl{left:-5px;bottom:-5px}.et-x-ticker .br{right:-5px;bottom:-5px}
 @media(prefers-reduced-motion:reduce){.et-x-ticker-track{animation:none}}
 
