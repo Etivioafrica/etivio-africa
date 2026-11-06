@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, Heart, MessageCircle, Sparkles } from "lucide-react";
 import { DashStage } from "./DashStage";
+import { Reveal } from "./Reveal";
 
 // Block 1 of the rebuilt home page (after the hero): a statement, then three alternating feature rows
 // in the AgentLab style: serif headings, thin borders, arrow lists and a blue art panel with a product mock inside.
@@ -129,7 +130,7 @@ export function Showcase() {
         <span className="et-x-label">
           <i /> Why Etivio
         </span>
-        <h2>One place to learn a skill, practise it with people, and get paid for what you know.</h2>
+        <Reveal text="One place to learn a skill, practise it with people, and get paid for what you know." />
       </section>
 
       {ROWS.map((r, i) => {
