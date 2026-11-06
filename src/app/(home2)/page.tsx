@@ -7,8 +7,6 @@ import {
   AtSign,
   Award,
   BookOpen,
-  CalendarClock,
-  Check,
   Heart,
   ImageIcon,
   MessageCircle,
@@ -17,13 +15,9 @@ import {
   Sparkles,
   Star,
   Users,
-  Video,
   Wallet,
 } from "lucide-react";
-import { Avatar } from "@/components/dash/Avatar";
 import { getCatalog } from "@/lib/data/learn";
-import { listCoaches } from "@/lib/data/coaching";
-import { featureOnForVisitor } from "@/lib/data/features";
 import { formatPrice } from "@/lib/format";
 import { Caveat } from "next/font/google";
 import { HeroCta } from "./HeroCta";
@@ -35,7 +29,7 @@ import "./home2.css";
 export const metadata: Metadata = {
   title: "Etivio | Learn, connect and build",
   description:
-    "Courses, communities, coaches and an AI study partner, built for learners across Africa.",
+    "Courses, a learner feed and an AI study partner, built for learners across Africa.",
 };
 
 const PILLARS = [
@@ -49,13 +43,13 @@ const PILLARS = [
     icon: Users,
     tone: "is-green",
     title: "Connect",
-    body: "Join communities around what you are learning and post on Campus with learners like you.",
+    body: "Post on Campus, share wins and ask questions alongside learners like you.",
   },
   {
-    icon: Video,
+    icon: Sparkles,
     tone: "is-amber",
-    title: "Get coached",
-    body: "Book a 1-on-1 video session with a coach when you want feedback or a push.",
+    title: "Study with AI",
+    body: "Ask Etivio AI to explain a lesson, quiz you or help when you are stuck. It knows your course.",
   },
   {
     icon: Wallet,
@@ -69,7 +63,7 @@ const STEPS = [
   {
     n: "01",
     title: "Tell us your goals",
-    body: "Pick what you want to learn. Etivio suggests courses and communities to start with.",
+    body: "Pick what you want to learn. Etivio suggests courses to start with.",
   },
   {
     n: "02",
@@ -86,7 +80,7 @@ const STEPS = [
 const FAQ = [
   {
     q: "Is Etivio free to join?",
-    a: "Yes. Creating an account, joining communities and posting on Campus are free. Some courses are free and others are paid; the price is always shown before you enrol.",
+    a: "Yes. Creating an account and posting on Campus are free. Some courses are free and others are paid; the price is always shown before you enrol.",
   },
   {
     q: "Do I get a certificate?",
@@ -137,9 +131,8 @@ export default function Home2() {
               <span>Learn, connect</span> <span>and build your career.</span>
             </h1>
             <p>
-              Practical <b>courses</b>, <b>communities</b> that keep you going,{" "}
-              <b>coaches</b> when you need them, and an <b>AI study partner</b>{" "}
-              that knows your lessons.
+              Practical <b>courses</b>, a <b>Campus</b> feed that keeps you going,{" "}
+              and an <b>AI study partner</b> that knows your lessons.
             </p>
             <span className="et-h2-note is-right" aria-hidden="true">
               <span>
@@ -230,72 +223,7 @@ export default function Home2() {
           <Courses />
         </Suspense>
 
-        {/* 7. Communities */}
-        <section className="et-h2-band is-ink" id="communities">
-          <div className="et-h2-split">
-            <div className="et-h2-head">
-              <span className="et-h2-kicker">Communities</span>
-              <h2>Learn with people who get it.</h2>
-              <p>
-                Join a community for your course, your career or your city.
-                Share progress, swap resources and find people to study with.
-              </p>
-              <ul className="et-h2-ticks">
-                <li>
-                  <Check size={16} /> Public and private communities
-                </li>
-                <li>
-                  <Check size={16} /> Posts, events and group chats
-                </li>
-                <li>
-                  <Check size={16} /> Start your own in a minute
-                </li>
-              </ul>
-              <Link href="/signup" className="et-h2-btn is-white">
-                Find your community <ArrowRight size={15} aria-hidden="true" />
-              </Link>
-            </div>
-            <div className="et-h2-comms" aria-hidden="true">
-              {[
-                {
-                  name: "Lagos Product Designers",
-                  members: "1.2k members",
-                  tone: "is-blue",
-                  tag: "Design",
-                },
-                {
-                  name: "Frontend Africa",
-                  members: "860 members",
-                  tone: "is-green",
-                  tag: "Code",
-                },
-                {
-                  name: "Creators Who Sell",
-                  members: "540 members",
-                  tone: "is-amber",
-                  tag: "Business",
-                },
-              ].map((c) => (
-                <div key={c.name} className="et-h2-comm">
-                  <span className={`et-h2-comm-icon ${c.tone}`}>
-                    {c.name.charAt(0)}
-                  </span>
-                  <div>
-                    <b>{c.name}</b>
-                    <small>
-                      {c.members} · {c.tag}
-                    </small>
-                  </div>
-                  <span className="et-h2-comm-join">
-                    <Plus size={14} /> Join
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 8. Campus */}
+        {/* 7. Campus */}
         <section className="et-h2-sec" id="campus">
           <div className="et-h2-split is-flip">
             <div className="et-h2-head">
@@ -353,7 +281,7 @@ export default function Home2() {
           </div>
         </section>
 
-        {/* 9. Etivio AI */}
+        {/* 8. Etivio AI */}
         <section className="et-h2-band is-blue">
           <div className="et-h2-split">
             <div className="et-h2-head">
@@ -392,12 +320,7 @@ export default function Home2() {
           </div>
         </section>
 
-        {/* 10. Coaches */}
-        <Suspense fallback={null}>
-          <Coaches />
-        </Suspense>
-
-        {/* 11. Teach on Etivio */}
+        {/* 9. Teach on Etivio */}
         <section className="et-h2-band is-amber">
           <div className="et-h2-split is-flip">
             <div className="et-h2-head">
@@ -439,7 +362,7 @@ export default function Home2() {
           </div>
         </section>
 
-        {/* 12. FAQ */}
+        {/* 10. FAQ */}
         <section className="et-h2-sec">
           <div className="et-h2-split is-top">
             <div className="et-h2-head">
@@ -464,7 +387,7 @@ export default function Home2() {
           </div>
         </section>
 
-        {/* 13. Final call to action */}
+        {/* 11. Final call to action */}
         <section className="et-h2-final">
           <h2>Your next skill starts today.</h2>
           <p>
@@ -538,93 +461,11 @@ async function Courses() {
   );
 }
 
-// 10. Live coaches when coaching is on, otherwise a pitch with sample sessions.
-async function Coaches() {
-  const on = await featureOnForVisitor("coaching");
-  const coaches = on ? (await listCoaches()).slice(0, 3) : [];
-  return (
-    <section className="et-h2-sec is-tint">
-      <div className="et-h2-row-head">
-        <div className="et-h2-head">
-          <span className="et-h2-kicker">Coaches</span>
-          <h2>One hour with the right person changes everything.</h2>
-          <p>
-            Book a 1-on-1 video session for career advice, portfolio reviews or
-            help getting unstuck.
-          </p>
-        </div>
-        <Link
-          href={on ? "/coaches" : "/coaches/apply"}
-          className="et-h2-btn is-ink"
-        >
-          {on ? "Meet the coaches" : "Become a coach"}{" "}
-          <ArrowRight size={15} aria-hidden="true" />
-        </Link>
-      </div>
-      {coaches.length ? (
-        <div className="et-h2-coaches">
-          {coaches.map((c) => (
-            <Link
-              key={c.userId}
-              href={`/coaches/${c.slug}`}
-              className="et-h2-coach"
-            >
-              <Avatar
-                src={c.avatar}
-                initial={c.name.charAt(0).toUpperCase()}
-                seed={c.name}
-                className="et-h2-coach-av"
-              />
-              <b>{c.name}</b>
-              {c.headline && <p>{c.headline}</p>}
-              <div className="et-h2-coach-foot">
-                <span>
-                  <CalendarClock size={14} /> {c.minutes} min
-                </span>
-                <b>{formatPrice(c.priceMinor, c.currency)}</b>
-              </div>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <div className="et-h2-coaches">
-          {[
-            {
-              icon: Users,
-              title: "Career advice",
-              body: "Plan your next move with someone who has made it.",
-            },
-            {
-              icon: ImageIcon,
-              title: "Portfolio review",
-              body: "Get honest feedback on your work before you apply.",
-            },
-            {
-              icon: MessageCircle,
-              title: "Mock interviews",
-              body: "Practise the hard questions in a safe room.",
-            },
-          ].map(({ icon: Icon, title, body }) => (
-            <div key={title} className="et-h2-coach">
-              <span className="et-h2-pillar-icon">
-                <Icon size={20} />
-              </span>
-              <b>{title}</b>
-              <p>{body}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 const FOOT = [
   {
     title: "Platform",
     links: [
       ["/explore", "Courses"],
-      ["/coaches", "Coaches"],
       ["/tutors", "Tutors"],
       ["/teach-on-etivio", "Teach on Etivio"],
     ],
@@ -662,7 +503,7 @@ function Footer() {
         <div className="et-h2-foot-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/etiviologo.svg" alt="Etivio" />
-          <p>Courses, communities and coaches for learners across Africa.</p>
+          <p>Courses and an AI study partner for learners across Africa.</p>
         </div>
         {FOOT.map((col) => (
           <nav key={col.title} aria-label={col.title}>

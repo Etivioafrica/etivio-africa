@@ -18,7 +18,6 @@ import {
   Scale,
   Sparkles,
   Users,
-  Video,
   Wallet,
   X,
 } from "lucide-react";
@@ -40,7 +39,6 @@ const MENUS: Mega[] = [
         title: "Learn",
         items: [
           { href: "/explore", icon: BookOpen, title: "Courses", body: "Practical courses with lessons, quizzes and a certificate at the end." },
-          { href: "#communities", icon: Users, title: "Communities", body: "Join people learning the same things as you, or start your own." },
           { href: "#campus", icon: MessagesSquare, title: "Campus", body: "The Etivio feed. Share wins, ask questions and mention classmates.", tag: "New" },
           { href: "#features", icon: Sparkles, title: "Etivio AI", body: "A study partner that explains, quizzes you and knows your lessons." },
         ],
@@ -48,7 +46,6 @@ const MENUS: Mega[] = [
       {
         title: "Grow",
         items: [
-          { href: "/coaches", icon: Video, title: "Coaches", body: "Book a 1-on-1 video session for advice, reviews or a push." },
           { href: "/tutors", icon: GraduationCap, title: "Tutors", body: "Meet the people who teach on Etivio and see what they offer." },
           { href: "/certificate", icon: BadgeCheck, title: "Certificates", body: "Every certificate has an ID anyone can check in seconds." },
           { href: "/teach-on-etivio", icon: Wallet, title: "Teach and earn", body: "Sell courses, templates and e-books, and get paid out to your bank." },
@@ -57,7 +54,7 @@ const MENUS: Mega[] = [
     ],
     card: {
       kicker: "Start for free",
-      body: "Create an account, set your learning goals and get course and community picks made for you.",
+      body: "Create an account, set your learning goals and get course picks made for you.",
       title: "Your next skill starts today.",
       tone: "is-blue",
       href: "/signup",
@@ -81,7 +78,6 @@ const MENUS: Mega[] = [
         title: "Company",
         items: [
           { href: "/about", icon: Users, title: "About us", body: "Who we are, why we built Etivio and where we are heading." },
-          { href: "/coaches/apply", icon: Video, title: "Become a coach", body: "Share what you know in paid 1-on-1 sessions on your own hours.", tag: "Now open" },
           { href: "/contact", icon: Mail, title: "Contact", body: "Questions, partnerships or press. Our team will get back to you." },
           { href: "/terms", icon: Scale, title: "Legal", body: "Our terms, privacy policy and refund policy." },
         ],
@@ -101,10 +97,8 @@ const MENUS: Mega[] = [
 // Solid colour behind each menu icon, so every item reads at a glance.
 const ICON_COLORS: Record<string, string> = {
   Courses: "#2563eb",
-  Communities: "#15803d",
   Campus: "#7c3aed",
   "Etivio AI": "#0891b2",
-  Coaches: "#e11d48",
   Tutors: "#4f46e5",
   Certificates: "#0d9488",
   "Teach and earn": "#ea580c",
@@ -113,14 +107,12 @@ const ICON_COLORS: Record<string, string> = {
   "Templates and e-books": "#9333ea",
   Explore: "#16a34a",
   "About us": "#1d4ed8",
-  "Become a coach": "#e11d48",
   Contact: "#0f766e",
   Legal: "#475569",
 };
 
 const LINKS = [
   { href: "/explore", label: "Courses" },
-  { href: "/coaches", label: "Coaches" },
   { href: "/teach-on-etivio", label: "Teach" },
 ];
 
