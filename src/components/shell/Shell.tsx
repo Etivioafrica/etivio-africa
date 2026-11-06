@@ -373,7 +373,9 @@ export default function Shell({
   }, [admin, pathname, user.id]);
 
   // /teach and /learn pages set the side; shared pages (Settings, Profile, Support) keep the one used last.
-  const routeSide = pathname.startsWith("/teach") ? "teach" : pathname.startsWith("/learn") ? "learn" : null;
+  // The marketplace (/learn/explore) is reached from both sides, so it keeps whichever side you came from.
+  const sharedMarket = pathname === "/learn/explore" || pathname.startsWith("/learn/explore/");
+  const routeSide = sharedMarket ? null : pathname.startsWith("/teach") ? "teach" : pathname.startsWith("/learn") ? "learn" : null;
   const [side, setSide] = useState(lastSide);
   if (routeSide && routeSide !== side) setSide(routeSide);
   useEffect(() => {
