@@ -145,6 +145,12 @@ export function Showcase() {
         <b className="h r" />
       </div>
 
+      <div className="et-x-built">
+        <h2>What we built</h2>
+        <b className="h bl" />
+        <b className="h br" />
+      </div>
+
       {ROWS.map((r, i) => {
         const Art = ART[r.id];
         return (
