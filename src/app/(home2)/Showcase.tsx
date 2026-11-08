@@ -1,6 +1,7 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { AiDemo } from "./AiDemo";
 import { ChatSim, LessonSim } from "./ArtSims";
 import { CampusSim } from "./CampusSim";
 import { DashStage } from "./DashStage";
@@ -34,13 +35,13 @@ const ROWS = [
     title: "A study partner that knows your lessons.",
     body: "Stuck on a lesson at midnight? Ask Etivio AI. It explains ideas in plain words, quizzes you and points you to the exact lesson to revisit.",
     points: ["Explains in plain, simple English", "Quizzes you on what you just learned", "Knows the course you are taking"],
-    cta: { href: "/signup", label: "Try Etivio AI" },
+    cta: { href: "/signup", label: "Try Etivio AI", demo: true },
   },
 ] as const;
 
 const ART = { learn: LessonSim, campus: CampusSim, ai: ChatSim };
 
-export function Showcase() {
+export function Showcase({ courses }: { courses?: ReactNode }) {
   return (
     <div className="et-x" id="features">
       <DashStage bg="/home/stage-bg.webp" />
@@ -54,6 +55,16 @@ export function Showcase() {
         </span>
         <Reveal text="One place to learn a skill, practise it with people, and turn it into a career." />
       </section>
+
+      {courses && (
+        <div className="et-x-sep" aria-hidden="true">
+          <span className="et-x-rail" />
+          <b className="h l" />
+          <b className="h r" />
+        </div>
+      )}
+
+      {courses}
 
       <div className="et-x-sep" aria-hidden="true">
         <span className="et-x-rail" />
@@ -94,9 +105,13 @@ export function Showcase() {
                   </li>
                 ))}
               </ul>
-              <Link href={r.cta.href} className="et-x-btn">
-                {r.cta.label} <ArrowRight size={15} aria-hidden="true" />
-              </Link>
+              {"demo" in r.cta ? (
+                <AiDemo label={r.cta.label} />
+              ) : (
+                <Link href={r.cta.href} className="et-x-btn">
+                  {r.cta.label} <ArrowRight size={15} aria-hidden="true" />
+                </Link>
+              )}
             </div>
             <div className="et-x-art" aria-hidden="true">
               <Art />

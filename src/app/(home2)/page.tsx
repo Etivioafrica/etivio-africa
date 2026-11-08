@@ -4,18 +4,21 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
-  Award,
   BookOpen,
-  Plus,
   Star,
 } from "lucide-react";
 import { getCatalog } from "@/lib/data/learn";
 import { formatPrice } from "@/lib/format";
 import { Caveat, Newsreader } from "next/font/google";
+import { FaqBlock } from "@/components/faq/FaqBlock";
+import { Capabilities } from "./Capabilities";
+import { Impact, Paths, Trust, Voices } from "./MoreSections";
 import { HeroCta } from "./HeroCta";
+import { SiteFooter } from "./SiteFooter";
 import { HeroReel } from "./HeroReel";
 import { Home2Nav } from "./Home2Nav";
 import { Showcase } from "./Showcase";
+import { WishlistHeart } from "./WishlistHeart";
 import "./home2.css";
 
 export const metadata: Metadata = {
@@ -23,24 +26,6 @@ export const metadata: Metadata = {
   description:
     "Courses, a learner feed and an AI study partner, built for learners across Africa.",
 };
-
-const STEPS = [
-  {
-    n: "01",
-    title: "Tell us your goals",
-    body: "Pick what you want to learn. Etivio suggests courses to start with.",
-  },
-  {
-    n: "02",
-    title: "Learn a little every day",
-    body: "Set a weekly goal, keep your streak, and ask Etivio AI whenever you get stuck.",
-  },
-  {
-    n: "03",
-    title: "Show what you can do",
-    body: "Finish a course, earn a verified certificate, and share it with anyone.",
-  },
-];
 
 const FAQ = [
   {
@@ -103,8 +88,8 @@ export default function Home2() {
               <span>Learn, connect</span> <span>and build your career.</span>
             </h1>
             <p>
-              Practical <b>courses</b>, a <b>Campus</b> feed that keeps you going,{" "}
-              and an <b>AI study partner</b> that knows your lessons.
+              Practical <b>courses</b>, a <b>Campus</b> feed that keeps you
+              going, and an <b>AI study partner</b> that knows your lessons.
             </p>
             <span className="et-h2-note is-right" aria-hidden="true">
               <span>
@@ -134,125 +119,42 @@ export default function Home2() {
         </section>
 
         {/* 4. Statement and feature rows (AgentLab-style block) */}
-        <Showcase />
+        <Showcase
+          courses={
+            <Suspense fallback={null}>
+              <Courses />
+            </Suspense>
+          }
+        />
 
-        {/* 5. How it works */}
-        <section className="et-h2-sec is-tint">
-          <div className="et-h2-split">
-            <div className="et-h2-head">
-              <span className="et-h2-kicker">How it works</span>
-              <h2>From first lesson to proof of skill.</h2>
-              <p>
-                Three steps, at your own pace, on your phone or your laptop.
-              </p>
-              <Link href="/signup" className="et-h2-btn is-ink">
-                Create your account <ArrowRight size={15} aria-hidden="true" />
-              </Link>
-            </div>
-            <ol className="et-h2-steps">
-              {STEPS.map((s) => (
-                <li key={s.n}>
-                  <span className="et-h2-step-n">{s.n}</span>
-                  <div>
-                    <h3>{s.title}</h3>
-                    <p>{s.body}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
+        <Paths />
 
-        {/* 6. Featured courses */}
-        <Suspense fallback={null}>
-          <Courses />
-        </Suspense>
+        <Capabilities />
 
-        {/* 9. Teach on Etivio */}
-        <section className="et-h2-band is-amber">
-          <div className="et-h2-split is-flip">
-            <div className="et-h2-head">
-              <span className="et-h2-kicker">Teach on Etivio</span>
-              <h2>Know something worth teaching? Get paid for it.</h2>
-              <p>
-                Build courses with lessons, quizzes and certificates. Sell
-                templates and e-books. See every sale, every learner and every
-                payout in one dashboard.
-              </p>
-              <div className="et-h2-hero-ctas">
-                <Link href="/teach-on-etivio" className="et-h2-btn is-ink">
-                  Start teaching <ArrowRight size={15} aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
-            <div className="et-h2-earn" aria-hidden="true">
-              <div className="et-h2-earn-top">
-                <small>This month</small>
-                <span className="et-h2-chip is-green">
-                  <ArrowUpRight size={13} /> 24%
-                </span>
-              </div>
-              <b className="et-h2-earn-total">₦ 1,284,500</b>
-              <div className="et-h2-bars">
-                {[38, 52, 44, 66, 58, 80, 72, 94].map((h, i) => (
-                  <i key={i} style={{ height: `${h}%` }} />
-                ))}
-              </div>
-              <div className="et-h2-earn-rows">
-                <span>
-                  <BookOpen size={14} /> Course sales <b>₦ 912,000</b>
-                </span>
-                <span>
-                  <Award size={14} /> Templates <b>₦ 372,500</b>
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <Impact />
+
+        <Voices />
+
+        <Trust />
 
         {/* 10. FAQ */}
-        <section className="et-h2-sec">
-          <div className="et-h2-split is-top">
-            <div className="et-h2-head">
-              <span className="et-h2-kicker">Questions</span>
-              <h2>Good to know before you start.</h2>
-              <p>
-                Still unsure? <Link href="/help">Visit the help centre</Link> or{" "}
-                <Link href="/contact">talk to us</Link>.
-              </p>
-            </div>
-            <div className="et-h2-faq">
-              {FAQ.map((f, i) => (
-                <details key={f.q} open={i === 0}>
-                  <summary>
-                    {f.q}
-                    <Plus size={18} aria-hidden="true" />
-                  </summary>
-                  <p>{f.a}</p>
-                </details>
-              ))}
-            </div>
+        <section className="et-h2-sec et-h2-guided">
+          <div className="et-h2-knots" aria-hidden="true">
+            <span className="et-x-rail" />
+            <b className="l" />
+            <b className="r" />
           </div>
+          <FaqBlock
+            title={["Have questions?", "Find answers."]}
+            items={FAQ}
+            name="home-faq"
+            more={{ title: "Have more questions?", body: "Reach out to our friendly support team.", href: "/contact", label: "Talk to us" }}
+          />
         </section>
 
-        {/* 11. Final call to action */}
-        <section className="et-h2-final">
-          <h2>Your next skill starts today.</h2>
-          <p>
-            Join Etivio free. Pick a course, find your people and start moving.
-          </p>
-          <div className="et-h2-hero-ctas is-center">
-            <Link href="/signup" className="et-h2-btn is-blue is-lg">
-              Get started free <ArrowRight size={17} aria-hidden="true" />
-            </Link>
-            <Link href="/explore" className="et-h2-btn is-line-white is-lg">
-              Browse courses
-            </Link>
-          </div>
-        </section>
       </main>
 
-      <Footer />
+      <SiteFooter />
     </div>
   );
 }
@@ -261,14 +163,14 @@ export default function Home2() {
 async function Courses() {
   const courses = (await getCatalog(12))
     .sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
-    .slice(0, 4);
+    .slice(0, 8);
   if (!courses.length) return null;
   return (
     <section className="et-h2-sec">
       <div className="et-h2-row-head">
         <div className="et-h2-head">
           <span className="et-h2-kicker">Popular now</span>
-          <h2>Courses worth your time.</h2>
+          <h2>Handpicked courses for you.</h2>
         </div>
         <Link href="/explore" className="et-h2-btn is-line">
           See all courses <ArrowRight size={15} aria-hidden="true" />
@@ -276,98 +178,43 @@ async function Courses() {
       </div>
       <div className="et-h2-courses">
         {courses.map((c) => (
-          <Link key={c.id} href={`/courses/${c.slug}`} className="et-h2-course">
-            <div className="et-h2-course-cover">
-              {c.coverUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={c.coverUrl} alt="" />
-              ) : (
-                <BookOpen size={30} strokeWidth={1.6} />
-              )}
-              <span>{c.level}</span>
-            </div>
-            <div className="et-h2-course-body">
-              <h3>{c.title}</h3>
-              <small>
-                {c.instructor} · {c.lessonCount} lessons
-              </small>
-              <div className="et-h2-course-foot">
-                {c.rating ? (
-                  <span>
-                    <Star size={14} /> {c.rating.toFixed(1)}
-                  </span>
+          <article key={c.id} className="et-h2-course">
+            <Link href={`/courses/${c.slug}`} className="et-h2-course-link">
+              <div className="et-h2-course-cover">
+                {c.coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.coverUrl} alt="" />
                 ) : (
-                  <span>New</span>
+                  <BookOpen size={30} strokeWidth={1.6} />
                 )}
-                <b>{formatPrice(c.priceMinor, c.currency)}</b>
+                <span>{c.level}</span>
               </div>
+              <div className="et-h2-course-body">
+                <h3>{c.title}</h3>
+                <small>
+                  {c.instructor} · {c.lessonCount} lessons
+                </small>
+                <div className="et-h2-course-foot">
+                  {c.rating ? (
+                    <span>
+                      <Star size={14} /> {c.rating.toFixed(1)}
+                    </span>
+                  ) : (
+                    <span>New</span>
+                  )}
+                  <b>{formatPrice(c.priceMinor, c.currency)}</b>
+                </div>
+              </div>
+            </Link>
+            <div className="et-h2-course-acts">
+              <Link href={`/courses/${c.slug}`} className="et-h2-enrol">
+                Enrol now <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+              <WishlistHeart courseId={c.id} title={c.title} />
             </div>
-          </Link>
+          </article>
         ))}
       </div>
     </section>
-  );
-}
-
-const FOOT = [
-  {
-    title: "Platform",
-    links: [
-      ["/explore", "Courses"],
-      ["/tutors", "Tutors"],
-      ["/teach-on-etivio", "Teach on Etivio"],
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      ["/about", "About us"],
-      ["/blog", "Blog"],
-      ["/contact", "Contact"],
-    ],
-  },
-  {
-    title: "Support",
-    links: [
-      ["/help", "Help centre"],
-      ["/certificate", "Verify a certificate"],
-      ["/refund-policy", "Refund policy"],
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      ["/privacy", "Privacy"],
-      ["/terms", "Terms"],
-    ],
-  },
-];
-
-// 13. Footer
-function Footer() {
-  return (
-    <footer className="et-h2-foot">
-      <div className="et-h2-foot-top">
-        <div className="et-h2-foot-brand">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/etiviologo.svg" alt="Etivio" />
-          <p>Courses and an AI study partner for learners across Africa.</p>
-        </div>
-        {FOOT.map((col) => (
-          <nav key={col.title} aria-label={col.title}>
-            <b>{col.title}</b>
-            {col.links.map(([href, label]) => (
-              <Link key={href} href={href}>
-                {label}
-              </Link>
-            ))}
-          </nav>
-        ))}
-      </div>
-      <div className="et-h2-foot-base">
-        <span>© Etivio Africa</span>
-        <span>Learn, connect and build.</span>
-      </div>
-    </footer>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { METRICS } from "@/lib/charts-metrics";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -43,6 +44,8 @@ import {
   ShoppingBasket,
   ToggleRight,
   TrendingUp,
+  ChartSpline,
+  CircleHelp,
   UsersRound,
   Target,
   Gift,
@@ -156,7 +159,7 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
           { label: "Users", href: "/admin/users", icon: Users, area: "users", badge: badges.applications },
           { label: "Chats", href: "/admin/chats", icon: MessagesSquare, area: "chats", badge: badges.chats },
           // Questions from students on courses this account teaches (answered on the Teach side).
-          { label: "Course messages", href: "/teach/messages", icon: MessageCircle, area: "chats" },
+          { label: "Course messages", href: "/admin/course-messages", icon: MessageCircle, area: "chats" },
           {
             label: "Emails",
             href: "/admin/emails",
@@ -175,6 +178,13 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
         items: [
           { label: "Wallets", href: "/admin/wallets", icon: Wallet, area: "financials" },
           { label: "Referrals", href: "/admin/referrals", icon: Gift, area: "financials" },
+          {
+            label: "Charts",
+            href: "/admin/charts",
+            icon: ChartSpline,
+            area: "financials",
+            children: METRICS.map((m) => ({ label: m.label, href: `/admin/charts/${m.key}` })),
+          },
           { label: "Finance analytics", href: "/admin/financials", icon: TrendingUp, area: "financials" },
           { label: "Coupons", href: "/admin/coupons", icon: Tag, area: "coupons" },
         ],
@@ -200,6 +210,7 @@ const learnNav: Group[] = [
       { label: "Dashboard", href: "/learn", icon: LayoutDashboard, exact: true },
       { label: "Campus", href: "/campus", icon: School, feature: "campus" },
       { label: "Announcements", href: "/learn/announcements", icon: Megaphone },
+      { label: "FAQs", href: "/learn/faq", icon: CircleHelp },
     ],
   },
   {

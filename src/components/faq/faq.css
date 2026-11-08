@@ -1,0 +1,22 @@
+/* Shared FAQ block. Colours fall back to light values; inside the dashboard the theme variables take over. */
+.et-faq{--fq-fg:var(--a-fg,#0a0a0a);--fq-muted:var(--a-muted,#5b6475);--fq-line:var(--a-border,#e5e7eb);--fq-blue:var(--accent,#2563eb);
+  display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(32px,6vw,120px);color:var(--fq-fg)}
+.et-faq-mk{display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.et-faq-mk i{width:16px;height:9px;background:var(--fq-blue)}
+.et-faq h2{margin:20px 0 0;font-family:var(--h2-serif,Georgia),Georgia,serif;font-weight:400;font-size:clamp(36px,4vw,64px);line-height:1.08;letter-spacing:-.02em}
+.et-faq-more{margin-top:clamp(32px,4vw,64px)}
+.et-faq-more b{display:block;font-size:18px;font-weight:600}
+.et-faq-more p{margin:6px 0 0;font-size:16px;color:var(--fq-muted)}
+.et-faq-btn{display:inline-flex;align-items:center;gap:10px;height:50px;margin-top:22px;padding:0 20px;border:1px solid var(--fq-line);font-size:13.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--fq-fg);text-decoration:none;transition:border-color .2s,background .2s}
+.et-faq-btn:hover{border-color:var(--fq-fg)}
+.et-faq-list{border-top:1px solid var(--fq-line)}
+.et-faq-list details{border-bottom:1px solid var(--fq-line)}
+.et-faq-list summary{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:clamp(22px,2vw,30px) 0;cursor:pointer;list-style:none;font-size:clamp(17px,1.35vw,21px);font-weight:500}
+.et-faq-list summary::-webkit-details-marker{display:none}
+.et-faq-list summary svg{flex:none;transition:transform .25s ease}
+.et-faq-list details[open] summary svg{transform:rotate(45deg)}
+.et-faq-list details p{margin:-6px 0 0;padding:0 48px clamp(22px,2vw,30px) 0;font-size:clamp(15px,1.15vw,17px);line-height:1.7;color:var(--fq-muted)}
+.et-faq-list details[open] p{animation:et-faq-in .3s ease-out}
+@keyframes et-faq-in{from{opacity:0;transform:translateY(-4px)}}
+@media(max-width:900px){.et-faq{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.et-faq-list summary svg{transition:none}.et-faq-list details[open] p{animation:none}}

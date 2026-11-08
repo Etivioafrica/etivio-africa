@@ -71,3 +71,51 @@ export async function conversationFor(courseId: string, studentId: string) {
   const { data } = await createAdminClient().from("conversations").select("id").eq("course_id", courseId).eq("student_id", studentId).maybeSingle();
   return data?.id ?? null;
 }
+
+// Admin oversight: every student-tutor conversation (read-only; admins aren't a side of the chat).
+export async function listAllConversations(courseId?: string): Promise<(ConversationRow & { flagged: number })[]> {
+  const db = createAdminClient();
+  let q = db
+    .from("conversations")
+    .select("id, course_id, last_message, last_message_at, course:courses(title), student:profiles!conversations_student_id_fkey(full_name, avatar_url), tutor:profiles!conversations_tutor_id_fkey(full_name)")
+    .order("last_message_at", { ascending: false })
+    .limit(300);
+  if (courseId) q = q.eq("course_id", courseId);
+  const [{ data }, { data: hidden }] = await Promise.all([q, db.from("conversation_messages").select("conversation_id").eq("hidden", true).limit(2000)]);
+  const flags = new Map<string, number>();
+  for (const h of hidden ?? []) flags.set(h.conversation_id, (flags.get(h.conversation_id) ?? 0) + 1);
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    courseId: c.course_id,
+    courseTitle: c.course?.title ?? "Course",
+    otherName: `${c.student?.full_name || "Student"} and ${c.tutor?.full_name || "Tutor"}`,
+    otherAvatar: c.student?.avatar_url ?? null,
+    lastMessage: c.last_message,
+    lastAt: c.last_message_at,
+    unread: 0,
+    flagged: flags.get(c.id) ?? 0,
+  }));
+}
+
+export async function adminConversation(id: string) {
+  const db = createAdminClient();
+  const [{ data: c }, { data: messages }] = await Promise.all([
+    db
+      .from("conversations")
+      .select("id, course_id, student_id, tutor_id, course:courses(title), student:profiles!conversations_student_id_fkey(full_name), tutor:profiles!conversations_tutor_id_fkey(full_name)")
+      .eq("id", id)
+      .maybeSingle(),
+    db.from("conversation_messages").select("id, body, sender_id, created_at, hidden").eq("conversation_id", id).order("created_at").limit(1000),
+  ]);
+  if (!c) return null;
+  return {
+    id: c.id,
+    courseId: c.course_id,
+    courseTitle: c.course?.title ?? "Course",
+    studentId: c.student_id,
+    tutorId: c.tutor_id,
+    studentName: c.student?.full_name || "Student",
+    tutorName: c.tutor?.full_name || "Tutor",
+    messages: messages ?? [],
+  };
+}
