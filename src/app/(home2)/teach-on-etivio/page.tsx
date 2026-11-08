@@ -35,7 +35,7 @@ import "../home2.css";
 
 export const metadata: Metadata = {
   title: "Teach on Etivio | Share what you know and get paid",
-  description: "Build a course with Etivio's course builder and AI assistant, sell templates and e-books, coach learners one to one, and get paid to your bank account. Apply to teach on Etivio.",
+  description: "Build a course with Etivio's course builder and AI assistant, sell templates and e-books, and get paid to your bank account. Apply to teach on Etivio.",
   alternates: { canonical: "/teach-on-etivio" },
 };
 
