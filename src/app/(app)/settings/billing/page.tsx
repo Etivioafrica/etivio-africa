@@ -106,11 +106,13 @@ export default async function BillingSettings() {
                 <Plus size={17} />
               </span>
               <span>
-                <b>Add a payment method</b>
-                <small>Cards are saved when you pay for a course. Online checkout is launching soon.</small>
+                <b>Add a card</b>
+                <small>Your card is saved automatically the next time you pay by card at checkout. Only the brand, last four digits and expiry are kept; Paystack holds the card itself.</small>
               </span>
             </span>
-            <span className="et-tag">Coming soon</span>
+            <Link href="/explore" className="et-btn et-btn-ghost et-btn-sm">
+              Browse courses
+            </Link>
           </div>
         </div>
       </SetRow>

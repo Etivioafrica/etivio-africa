@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      project_submissions: {
+        Row: {
+          created_at: string
+          feedback: string | null
+          id: string
+          image_url: string | null
+          link_url: string | null
+          project_id: string
+          reviewed_at: string | null
+          status: string
+          summary: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          project_id: string
+          reviewed_at?: string | null
+          status?: string
+          summary?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          project_id?: string
+          reviewed_at?: string | null
+          status?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          author_id: string
+          brief: string
+          course_id: string | null
+          created_at: string
+          due_at: string | null
+          id: string
+          level: string
+          skills: string[]
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          brief?: string
+          course_id?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          level?: string
+          skills?: string[]
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          brief?: string
+          course_id?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          level?: string
+          skills?: string[]
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       activity_events: {
         Row: {
           course_id: string | null

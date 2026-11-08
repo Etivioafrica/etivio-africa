@@ -24,7 +24,8 @@ export function initializeTransaction(input: { email: string; amountMinor: numbe
   });
 }
 
-export type VerifiedTransaction = { status: string; reference: string; amount: number; currency: string; paid_at: string | null; channel: string; customer: { email: string } };
+export type PaystackAuthorization = { authorization_code?: string; card_type?: string; brand?: string; last4?: string; exp_month?: string; exp_year?: string; bank?: string; reusable?: boolean; channel?: string };
+export type VerifiedTransaction = { status: string; reference: string; amount: number; currency: string; paid_at: string | null; channel: string; customer: { email: string }; authorization?: PaystackAuthorization };
 
 export function verifyTransaction(reference: string) {
   return call<VerifiedTransaction>(`/transaction/verify/${encodeURIComponent(reference)}`);

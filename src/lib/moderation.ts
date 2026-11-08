@@ -26,7 +26,9 @@ export type TargetType =
   | "profile"
   | "image"
   | "campus_post"
-  | "campus_comment";
+  | "campus_comment"
+  | "project"
+  | "project_submission";
 
 export type Reason = "sexual" | "harassment" | "hate" | "violence" | "spam" | "other";
 
@@ -55,6 +57,8 @@ export const TARGET_LABELS: Record<TargetType, string> = {
   image: "Image upload",
   campus_post: "Campus post",
   campus_comment: "Campus comment",
+  project: "Project brief",
+  project_submission: "Project submission",
 };
 
 export const MUTE_AT = 3;
@@ -331,6 +335,8 @@ const TARGETS: Partial<Record<TargetType, Target>> = {
   course: { table: "courses", text: "title", author: "instructor_id", link: (r) => `/courses/${r.slug}` },
   product: { table: "products", text: "title", author: "creator_id", link: (r) => `/products/${r.slug}` },
   profile: { table: "profiles", text: "full_name", author: "id", link: (r) => (r.username ? `/u/${r.username}` : `/admin/users/${r.id}`) },
+  project: { table: "projects", text: "title", author: "author_id", link: (r) => `/projects/${r.id}` },
+  project_submission: { table: "project_submissions", text: "summary", author: "user_id", link: (r) => `/projects/${r.project_id}` },
 };
 
 export const reportable = (type: string): type is TargetType => type in TARGETS;
@@ -385,6 +391,12 @@ export async function removeTarget(type: TargetType, id: string) {
       break;
     case "community":
       await db.from("communities").update({ status: "archived" }).eq("id", id);
+      break;
+    case "project":
+      await db.from("projects").update({ status: "closed" }).eq("id", id);
+      break;
+    case "project_submission":
+      await db.from("project_submissions").update({ status: "hidden" }).eq("id", id);
       break;
     case "profile":
       await db.from("profiles").update({ bio: null, headline: null, avatar_url: null, cover_url: null, profile_public: false }).eq("id", id);

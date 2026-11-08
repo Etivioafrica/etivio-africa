@@ -11,7 +11,7 @@ import { sessionPaid } from "./coaching";
 import { recordRedemption } from "./coupons";
 import { emailGuestAccess, emailOrderReceipt } from "@/lib/email/notify";
 import { accountForGuest, maskEmail } from "./guest";
-import { initializeTransaction, type VerifiedTransaction } from "@/lib/paystack";
+import { initializeTransaction, type PaystackAuthorization, type VerifiedTransaction } from "@/lib/paystack";
 import { siteUrl } from "@/lib/email/site";
 
 // Cart checkout. The buyer's items become one order with one Paystack payment; each item is also a row in payments
@@ -183,7 +183,35 @@ export async function fulfillOrder(tx: VerifiedTransaction): Promise<{ ok: boole
     await db.from("payments").update({ status: "failed", note }).eq("order_id", order.id).eq("status", "pending");
     return { ok: false, reason: "amount mismatch" };
   }
-  return completeOrder(order, tx.paid_at ?? new Date().toISOString(), destination);
+  const done = await completeOrder(order, tx.paid_at ?? new Date().toISOString(), destination);
+  // Remember the card for the Billing page. Guests get their account inside completeOrder, so re-read the owner.
+  if (tx.channel === "card" && tx.authorization?.reusable) {
+    const { data: owner } = await db.from("orders").select("user_id").eq("id", order.id).maybeSingle();
+    if (owner?.user_id) await saveCard(owner.user_id, tx.authorization).catch(() => {});
+  }
+  return done;
+}
+
+// Stores a reusable Paystack card (brand, last four, expiry). The first card a person saves becomes their default.
+async function saveCard(userId: string, a: PaystackAuthorization) {
+  if (!a.authorization_code || !/^\d{4}$/.test(a.last4 ?? "")) return;
+  const db = createAdminClient();
+  const month = Number(a.exp_month), year = Number(a.exp_year);
+  const { count } = await db.from("payment_methods").select("id", { count: "exact", head: true }).eq("user_id", userId);
+  await db.from("payment_methods").upsert(
+    {
+      user_id: userId,
+      provider: "paystack",
+      authorization_code: a.authorization_code,
+      brand: (a.card_type || a.brand || "card").trim().toLowerCase(),
+      last4: a.last4!,
+      exp_month: month >= 1 && month <= 12 ? month : null,
+      exp_year: Number.isFinite(year) && year > 2000 ? year : null,
+      bank: a.bank ?? null,
+      is_default: !count,
+    },
+    { onConflict: "user_id,authorization_code", ignoreDuplicates: true },
+  );
 }
 
 const ORDER_COLUMNS = "id, reference, user_id, email, first_name, last_name, total_minor, currency, status, group_buy_id, wallet_minor, purpose, coupon_id, discount_minor";
