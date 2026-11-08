@@ -57,7 +57,7 @@ const GROUPS = [
     items: [
       { icon: Tag, title: "Set your own price", body: "Free, paid or anything in between. Learners pay by card, bank transfer or USSD through Paystack." },
       { icon: FileStack, title: "Sell digital products", body: "Templates, e-books, resource packs and bundles, listed in the Etivio marketplace beside your courses." },
-      { icon: CalendarClock, title: "Coaching sessions", body: "Offer one-to-one sessions that learners book and pay for, right from your profile." },
+      { icon: CalendarClock, title: "Coaching sessions (coming soon)", body: "Soon you will be able to offer one-to-one video sessions that learners book and pay for, right from your profile." },
       { icon: Users, title: "Group buys", body: "Learners can team up to buy your course together at a group price, which brings you more students at once." },
     ],
   },
@@ -96,7 +96,7 @@ const FAQ = [
   { q: "How and when do I get paid?", a: "Your share of every sale shows in your earnings dashboard. Add your bank account in Settings, and payouts are sent to it." },
   { q: "Do I need professional video equipment?", a: "No. A phone with a clear picture and good sound is enough. You can also teach with written lessons, files and YouTube videos." },
   { q: "Why does Etivio review courses?", a: "So learners can trust every course they buy. We review your first version before it goes live and tell you clearly if anything needs fixing. Edits to a live course go straight through." },
-  { q: "Can I sell things other than courses?", a: "Yes. You can sell templates, e-books, resource packs and bundles in the marketplace, and offer paid one-to-one coaching sessions." },
+  { q: "Can I sell things other than courses?", a: "Yes. You can sell templates, e-books, resource packs and bundles in the marketplace. Paid one-to-one coaching sessions are coming soon." },
 ];
 
 function Knots() {
@@ -121,7 +121,7 @@ export default function TeachOnEtivio() {
           </span>
           <h1>Share what you know. Get paid for it.</h1>
           <p className="et-tc-sub">
-            Build a course with our course builder and AI assistant, sell templates and e-books, coach learners one to one and get paid to
+            Build a course with our course builder and AI assistant, sell templates and e-books, and get paid to
             your bank account. Everything you need to teach, in one place.
           </p>
           <div className="et-ab-btns">
