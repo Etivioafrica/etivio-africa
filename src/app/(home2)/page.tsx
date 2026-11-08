@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { getCatalog } from "@/lib/data/learn";
 import { formatPrice } from "@/lib/format";
-import { Caveat, Newsreader } from "next/font/google";
+import { hand, serif } from "./fonts";
 import { FaqBlock } from "@/components/faq/FaqBlock";
 import { Capabilities } from "./Capabilities";
 import { Impact, Paths, Trust, Voices } from "./MoreSections";
@@ -53,19 +53,6 @@ const FAQ = [
     a: "You can pay by card, bank transfer or USSD. Prices show in your local currency where we support it.",
   },
 ];
-
-const serif = Newsreader({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--h2-serif",
-  display: "swap",
-});
-
-const hand = Caveat({
-  subsets: ["latin"],
-  weight: ["600"],
-  variable: "--h2-hand",
-});
 
 export default function Home2() {
   return (
