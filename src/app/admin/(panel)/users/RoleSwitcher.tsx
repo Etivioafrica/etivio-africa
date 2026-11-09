@@ -32,7 +32,7 @@ const visible = (roles: AppRole[]) => (roles.length > 1 ? roles.filter((r) => r 
 // The roles cell on /admin/users: click to open a menu of roles, tick or untick one, approve it in a dialog.
 export function RoleSwitcher({ user, self }: { user: User; self: boolean }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number; maxHeight: number }>({ top: 0, left: 0, maxHeight: 480 });
   const [change, setChange] = useState<Change | null>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -40,7 +40,13 @@ export function RoleSwitcher({ user, self }: { user: User; self: boolean }) {
   // The table scrolls sideways, so the menu is fixed to the viewport under the button.
   function toggleMenu() {
     const r = btn.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 6, left: Math.min(r.left, window.innerWidth - 280) });
+    if (r) {
+      // Open below the button when there's room, otherwise above it; scroll inside if it still doesn't fit.
+      const below = window.innerHeight - r.bottom - 16;
+      const above = r.top - 16;
+      const left = Math.min(r.left, window.innerWidth - 280);
+      setPos(below >= 420 || below >= above ? { top: r.bottom + 6, left, maxHeight: below } : { bottom: window.innerHeight - r.top + 6, left, maxHeight: above });
+    }
     setOpen((o) => !o);
   }
 
@@ -89,7 +95,7 @@ export function RoleSwitcher({ user, self }: { user: User; self: boolean }) {
       {open &&
         host &&
         createPortal(
-          <div ref={menu} className="et-role-menu" role="menu" style={{ top: pos.top, left: pos.left }}>
+          <div ref={menu} className="et-role-menu" role="menu" style={{ top: pos.top, bottom: pos.bottom, left: pos.left, maxHeight: pos.maxHeight, overflowY: "auto" }}>
             <div className="et-role-row is-locked">
               <span className="et-role-box is-on">
                 <Lock size={10} />
