@@ -7,6 +7,7 @@ import { emailApplicationDecision } from "@/lib/email/notify";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isOwnerEmail, isOwnerId, OWNER_ONLY, OWNER_PROTECTED } from "@/lib/owner";
 import { audit, requireAdmin } from "@/lib/admin";
+import { notifyStaffChange } from "@/lib/email/staff";
 import { ROLE_LABELS, type AppRole } from "@/lib/roles";
 import type { Database } from "@/lib/database.types";
 import type { FormState } from "@/app/(app)/teach/actions";
@@ -62,7 +63,10 @@ export async function setUserRoles(_prev: FormState, fd: FormData): Promise<Form
         .eq("status", "pending")
         .in("role", add);
 
-    if (add.length || remove.length) await audit(admin.id, "user.roles", { type: "user", id: target.id }, { added: add, removed: remove });
+    if (add.length || remove.length) {
+      await audit(admin.id, "user.roles", { type: "user", id: target.id }, { added: add, removed: remove });
+      after(() => notifyStaffChange({ targetId: target.id, added: add, removed: remove, actor: admin }));
+    }
 
     // Trusted tutors skip the course review queue.
     const trusted = fd.get("trusted") === "1";
@@ -105,6 +109,7 @@ export async function toggleUserRole(id: string, role: AppRole, on: boolean, not
       const { error } = await db.from("user_roles").delete().eq("user_id", target.id).eq("role", role);
       if (error) return { error: error.message };
     }
+    after(() => notifyStaffChange({ targetId: target.id, added: on ? [role] : [], removed: on ? [] : [role], actor: admin }));
     await audit(admin.id, "user.roles", { type: "user", id: target.id }, {
       added: on ? [role] : [],
       removed: on ? [] : [role],

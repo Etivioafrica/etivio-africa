@@ -1,5 +1,7 @@
 "use server";
 import { refresh } from "next/cache";
+import { after } from "next/server";
+import { notifyStaffChange } from "@/lib/email/staff";
 import { audit, requireAdmin } from "@/lib/admin";
 import { isOwnerEmail, isOwnerId, OWNER_ONLY } from "@/lib/owner";
 import { ROLE_LABELS, STAFF_ROLES, type AppRole } from "@/lib/roles";
@@ -41,7 +43,9 @@ export async function addStaff(_prev: FormState, fd: FormData): Promise<FormStat
   const { error } = await db.from("user_roles").upsert({ user_id: userId, role, granted_by: admin.id }, { onConflict: "user_id,role", ignoreDuplicates: true });
   if (error) return { error: "Could not add them to the team." };
   await audit(admin.id, invited ? "team.invite" : "team.add", { type: "user", id: userId }, { role });
-  if (!invited) await staffEmail(email, found?.full_name ?? "", label, admin.name, `${siteUrl()}/admin/login`, false);
+  // Existing account: email + in-app notice via the shared notifier. New invite: they already got the set-password
+  // email, so only the in-app notice and the owner's copy go out.
+  after(() => notifyStaffChange({ targetId: userId!, added: [role], removed: [], actor: admin, skipTargetEmail: invited }));
   refresh();
   const who = found?.full_name || name || email;
   const as = label.toLowerCase() === "accounts" ? "on accounts" : `a ${label.toLowerCase()}`;
@@ -63,6 +67,7 @@ export async function removeStaffRole(fd: FormData) {
   }
   await db.from("user_roles").delete().eq("user_id", id).eq("role", role);
   await audit(admin.id, "team.remove", { type: "user", id }, { role });
+  after(() => notifyStaffChange({ targetId: id, added: [], removed: [role], actor: admin }));
   refresh();
 }
 
