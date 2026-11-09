@@ -5,6 +5,7 @@ import { refresh } from "next/cache";
 import { after } from "next/server";
 import { emailApplicationDecision } from "@/lib/email/notify";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isOwnerEmail, isOwnerId, OWNER_ONLY, OWNER_PROTECTED } from "@/lib/owner";
 import { audit, requireAdmin } from "@/lib/admin";
 import { ROLE_LABELS, type AppRole } from "@/lib/roles";
 import type { Database } from "@/lib/database.types";
@@ -20,7 +21,10 @@ async function guardTarget(targetId: string) {
   if (targetId === ctx.admin.id) throw new Error("You can't change your own account here.");
   const { data: target } = await ctx.db.from("profiles").select("id, status, full_name, deleted_at").eq("id", targetId).single();
   if (!target) throw new Error("User not found.");
-  return { ...ctx, target };
+  // The owner's account is off limits to every other admin.
+  const actorIsOwner = isOwnerEmail(ctx.admin.email);
+  if (!actorIsOwner && (await isOwnerId(target.id))) throw new Error(OWNER_PROTECTED);
+  return { ...ctx, target, actorIsOwner };
 }
 
 // Courses need an owner who can teach: their students message the instructor. Taking the last teaching role
@@ -36,7 +40,7 @@ async function stillTeaches(db: Awaited<ReturnType<typeof guardTarget>>["db"], u
 
 export async function setUserRoles(_prev: FormState, fd: FormData): Promise<FormState> {
   try {
-    const { admin, db, target } = await guardTarget(str(fd, "id"));
+    const { admin, db, target, actorIsOwner } = await guardTarget(str(fd, "id"));
     // Everyone stays a student.
     const wanted = new Set<AppRole>(["student", ...(fd.getAll("roles").map(String).filter((r) => ALL_ROLES.includes(r as AppRole)) as AppRole[])]);
     const { data: current } = await db.from("user_roles").select("role").eq("user_id", target.id);
@@ -45,6 +49,7 @@ export async function setUserRoles(_prev: FormState, fd: FormData): Promise<Form
     const remove = [...have].filter((r) => !wanted.has(r));
     const owns = remove.length ? await stillTeaches(db, target.id, wanted) : null;
     if (owns) return { error: owns };
+    if (!actorIsOwner && (add.includes("super_admin") || remove.includes("super_admin"))) return { error: `${OWNER_ONLY} Giving or removing Super admin is limited to the owner.` };
 
     if (add.length) await db.from("user_roles").insert(add.map((role) => ({ user_id: target.id, role, granted_by: admin.id })));
     if (remove.length) await db.from("user_roles").delete().eq("user_id", target.id).in("role", remove);
@@ -77,8 +82,9 @@ export async function setUserRoles(_prev: FormState, fd: FormData): Promise<Form
 // One role on or off, from the users list (after the admin approves it in a dialog). Leaves trusted_tutor alone.
 export async function toggleUserRole(id: string, role: AppRole, on: boolean, note = ""): Promise<FormState> {
   try {
-    const { admin, db, target } = await guardTarget(id);
+    const { admin, db, target, actorIsOwner } = await guardTarget(id);
     if (!ALL_ROLES.includes(role) || role === "student") return { error: "Everyone stays a student." };
+    if (role === "super_admin" && !actorIsOwner) return { error: `${OWNER_ONLY} Giving or removing Super admin is limited to the owner.` };
     if (on) {
       const { error } = await db.from("user_roles").upsert({ user_id: target.id, role, granted_by: admin.id }, { onConflict: "user_id,role", ignoreDuplicates: true });
       if (error) return { error: error.message };

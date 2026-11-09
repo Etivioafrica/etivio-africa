@@ -1,6 +1,7 @@
 "use server";
 import { refresh } from "next/cache";
 import { audit, requireAdmin } from "@/lib/admin";
+import { isOwnerEmail, isOwnerId, OWNER_ONLY } from "@/lib/owner";
 import { ROLE_LABELS, STAFF_ROLES, type AppRole } from "@/lib/roles";
 import type { FormState } from "@/app/(app)/teach/actions";
 import { render } from "@/lib/email/layout";
@@ -14,6 +15,7 @@ export async function addStaff(_prev: FormState, fd: FormData): Promise<FormStat
   const email = str(fd, "email").toLowerCase();
   const role = str(fd, "role") as AppRole;
   if (!STAFF_ROLES.includes(role)) return { error: "Pick a staff role." };
+  if (role === "super_admin" && !isOwnerEmail(admin.email)) return { error: `${OWNER_ONLY} Ask the owner to add super admins.` };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid email address." };
   const name = str(fd, "name").slice(0, 80);
   const label = ROLE_LABELS[role];
@@ -51,6 +53,8 @@ export async function removeStaffRole(fd: FormData) {
   const id = str(fd, "id");
   const role = str(fd, "role") as AppRole;
   if (!STAFF_ROLES.includes(role)) return;
+  // The owner's roles can't be touched by anyone else, and only the owner removes super admins.
+  if (!isOwnerEmail(admin.email) && (role === "super_admin" || (await isOwnerId(id)))) return;
   // Never remove the last super admin, and never your own super admin role.
   if (role === "super_admin") {
     if (id === admin.id) return;
