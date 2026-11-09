@@ -74,11 +74,15 @@ export default async function Team() {
             <div className="et-card-pad">
               <ActionForm action={addStaff}>
                 <p className="et-muted" style={{ fontSize: 12.5 }}>
-                  They need an Etivio account first, then sign in at /admin/login.
+                  Works for anyone. If they don&apos;t have an Etivio account yet, we create one and email them a link to set their password. Then they sign in at /admin/login.
                 </p>
                 <div className="et-field">
                   <label htmlFor="email">Email</label>
                   <input id="email" name="email" type="email" required />
+                </div>
+                <div className="et-field">
+                  <label htmlFor="name">Full name (for new accounts)</label>
+                  <input id="name" name="name" maxLength={80} placeholder="Optional" />
                 </div>
                 <div className="et-field">
                   <label htmlFor="role">Role</label>
