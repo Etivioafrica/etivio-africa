@@ -91,3 +91,12 @@ async function staffEmail(to: string, name: string, role: string, by: string, ur
   });
   return sendEmail({ to, subject: invite ? "You're invited to help run Etivio" : "You've been added to the Etivio team", html, text, kind: invite ? "staff_invite" : "staff_added" });
 }
+
+// Type-ahead search for the "Add a team member" box: existing accounts by name or email.
+export async function searchUsersForTeam(q: string): Promise<{ id: string; name: string; email: string; avatar: string | null }[]> {
+  const { db } = await requireAdmin("team");
+  const term = q.trim().slice(0, 80);
+  if (term.length < 2) return [];
+  const { data } = await db.rpc("admin_list_users", { p_search: term, p_limit: 8 });
+  return (data ?? []).map((u) => ({ id: u.id, name: u.full_name || "", email: u.email, avatar: u.avatar_url || null }));
+}

@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatDate } from "@/lib/format";
 import { ROLE_BLURBS, ROLE_LABELS, STAFF_ROLES } from "@/lib/roles";
 import { addStaff, removeStaffRole } from "./actions";
+import { UserPicker } from "./UserPicker";
 import { Select } from "@/components/dash/Select";
 
 export const metadata = { title: "Team" };
@@ -76,10 +77,7 @@ export default async function Team() {
                 <p className="et-muted" style={{ fontSize: 12.5 }}>
                   Works for anyone. If they don&apos;t have an Etivio account yet, we create one and email them a link to set their password. Then they sign in at /admin/login.
                 </p>
-                <div className="et-field">
-                  <label htmlFor="email">Email</label>
-                  <input id="email" name="email" type="email" required />
-                </div>
+                <UserPicker />
                 <div className="et-field">
                   <label htmlFor="name">Full name (for new accounts)</label>
                   <input id="name" name="name" maxLength={80} placeholder="Optional" />
