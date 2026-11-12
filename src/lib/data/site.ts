@@ -1,9 +1,12 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Public marketing-page reads (About, Tutors). Service role, but only counts and public-safe profile fields.
 
 export async function getSiteStats() {
+  "use cache";
+  cacheLife("minutes");
   const db = createAdminClient();
   const head = { count: "exact" as const, head: true };
   const [courses, products, tutors, learners, certificates] = await Promise.all([
@@ -36,6 +39,8 @@ export type PublicTutor = {
 
 // Tutors with a public profile and at least one live course or product, busiest first.
 export async function getPublicTutors(): Promise<PublicTutor[]> {
+  "use cache";
+  cacheLife("minutes");
   const db = createAdminClient();
   const { data: roles } = await db.from("user_roles").select("user_id").eq("role", "tutor");
   const ids = [...new Set((roles ?? []).map((r) => r.user_id))];

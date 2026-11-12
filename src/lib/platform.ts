@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { cacheLife } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type PlatformSettings = {
@@ -23,6 +24,8 @@ const SOCIALS = [
 // Public-safe platform settings for any page (including signed-out ones). Read with the service role because
 // platform_settings is only readable by signed-in users; nothing private (like commission) is returned.
 export const getPlatformSettings = cache(async (): Promise<PlatformSettings> => {
+  "use cache";
+  cacheLife("minutes");
   const { data: s } = await createAdminClient().from("platform_settings").select("*").maybeSingle();
   return {
     supportEmail: s?.support_email ?? null,

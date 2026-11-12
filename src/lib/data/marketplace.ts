@@ -1,4 +1,5 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { sessionUser } from "@/lib/supabase/session";
@@ -12,12 +13,16 @@ export async function viewer() {
 }
 
 export async function getCategories() {
+  "use cache";
+  cacheLife("minutes");
   const { data } = await createAdminClient().from("course_categories").select("id, name, slug, parent_id").order("name");
   return data ?? [];
 }
 
 // Everything live on the marketplace. Small catalogue, so filtering and sorting happen on the page.
 export async function getExploreItems(): Promise<ExploreItem[]> {
+  "use cache";
+  cacheLife("minutes");
   const db = createAdminClient();
   const [{ data: courses }, { data: products }, { data: metrics }, { data: cats }, { data: access }, { data: files }, { data: items }] = await Promise.all([
     db
@@ -116,6 +121,8 @@ export type BundleEntry = { type: "course" | ProductKind; slug: string; title: s
 
 // One product page. Files are listed by name and size only; downloads go through /api/download.
 export async function getPublicProduct(slug: string) {
+  "use cache";
+  cacheLife("minutes");
   const db = createAdminClient();
   const { data: p } = await db
     .from("products")

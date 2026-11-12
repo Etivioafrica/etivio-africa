@@ -1,4 +1,5 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ProfileDetails } from "@/lib/data/profile";
 import { readPrefs, skillsFrom } from "@/lib/data/profile";
@@ -24,6 +25,8 @@ export type PublicProfile = {
 // What anyone on the internet sees at /@username. Uses the service role because visitors may be
 // signed out, so it must only ever return public-safe fields: no email, no in-progress or private courses.
 export async function getPublicProfile(username: string): Promise<PublicProfile | null> {
+  "use cache";
+  cacheLife("minutes");
   const db = createAdminClient();
   const { data: p } = await db
     .from("profiles")

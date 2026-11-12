@@ -1,4 +1,5 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 import { activeAccess, isExpired } from "@/lib/access";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -56,9 +57,9 @@ type CourseRow = {
   instructor: { full_name: string | null } | null;
 };
 
-async function lessonCounts(ids: string[]) {
+async function lessonCounts(ids: string[], db?: ReturnType<typeof createAdminClient>) {
   if (!ids.length) return new Map<string, number>();
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
   const { data } = await supabase.rpc("course_lesson_counts", { p_course_ids: ids });
   return new Map((data ?? []).map((r) => [r.course_id, r.lesson_count]));
 }
@@ -151,8 +152,11 @@ export async function getMyCourses(): Promise<MyCourse[]> {
 }
 
 // Published catalog, newest first.
+// Published courses are the same for everyone, so this is cached and read without the visitor's session.
 export async function getCatalog(limit = 60): Promise<CourseCard[]> {
-  const supabase = await createClient();
+  "use cache";
+  cacheLife("minutes");
+  const supabase = createAdminClient();
   const { data } = await supabase
     .from("courses")
     .select(COURSE_COLS)
@@ -161,7 +165,7 @@ export async function getCatalog(limit = 60): Promise<CourseCard[]> {
     .limit(limit);
   const rows = (data ?? []) as unknown as CourseRow[];
   const ids = rows.map((r) => r.id);
-  const [counts, { data: ratings }] = await Promise.all([lessonCounts(ids), ids.length ? supabase.rpc("course_ratings", { p_course_ids: ids }) : Promise.resolve({ data: [] })]);
+  const [counts, { data: ratings }] = await Promise.all([lessonCounts(ids, supabase), ids.length ? supabase.rpc("course_ratings", { p_course_ids: ids }) : Promise.resolve({ data: [] })]);
   const rated = new Map((ratings ?? []).map((r) => [r.course_id, r]));
   return rows.map((r) => ({ ...toCard(r, counts), rating: rated.has(r.id) ? Number(rated.get(r.id)!.rating) : null, reviews: rated.get(r.id)?.reviews ?? 0 }));
 }
