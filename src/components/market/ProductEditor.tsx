@@ -152,7 +152,10 @@ export function ProductEditor({
             </div>
             <div className="et-field">
               <label htmlFor="pe-title">Title</label>
-              <input id="pe-title" className="et-input" value={f.title} onChange={(e) => set({ title: e.target.value })} maxLength={140} placeholder="e.g. Startup Pitch Deck Template" />
+              <input id="pe-title" className="et-input" value={f.title} onChange={(e) => set({ title: e.target.value })} maxLength={140} placeholder="e.g. Startup Pitch Deck Template" aria-describedby="pe-title-count" />
+              <small id="pe-title-count" className={`et-count-hint${f.title.length >= 140 ? " is-full" : f.title.length >= 130 ? " is-near" : ""}`} aria-live="polite">
+                {f.title.length >= 140 ? "Limit reached: 140 characters" : `${f.title.length} / 140 characters`}
+              </small>
             </div>
             {ai && (
             <button type="button" className="et-btn et-btn-ghost et-btn-sm et-ai-inline" disabled={!canAi} onClick={aiWrite}>

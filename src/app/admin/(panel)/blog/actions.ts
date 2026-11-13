@@ -1,5 +1,5 @@
 "use server";
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { audit, requireAdmin } from "@/lib/admin";
 import { deleteObject, keyFromUrl } from "@/lib/r2";
 import { slugify } from "@/lib/format";
@@ -79,6 +79,7 @@ export async function savePost(input: PostInput): Promise<Result> {
   if (before?.cover_url && before.cover_url !== row.cover_url) await deleteObject(keyFromUrl(before.cover_url));
   if (!input.id) await audit(admin.id, "blog.create", { type: "post", id });
   if (before?.status !== input.status) await audit(admin.id, `blog.${input.status}`, { type: "post", id });
+  updateTag("blog");
   refresh();
   return { ok: "Saved.", id };
 }
@@ -96,6 +97,7 @@ export async function setPostStatus(id: string, status: PostStatus, scheduledAt 
     .eq("id", id);
   if (error) return { error: "Could not change the status." };
   await audit(admin.id, `blog.${status}`, { type: "post", id });
+  updateTag("blog");
   refresh();
   return { ok: "Updated." };
 }
@@ -109,6 +111,7 @@ export async function setFeatured(id: string | null): Promise<Result> {
     if (error) return { error: "Could not feature that post." };
   }
   await audit(admin.id, id ? "blog.feature" : "blog.unfeature", id ? { type: "post", id } : undefined);
+  updateTag("blog");
   refresh();
   return { ok: id ? "Featured." : "Removed from featured." };
 }
@@ -120,6 +123,7 @@ export async function deletePost(id: string): Promise<Result> {
   await db.from("blog_posts").delete().eq("id", id);
   await deleteObject(keyFromUrl(data.cover_url));
   await audit(admin.id, "blog.delete", { type: "post", id }, { title: data.title });
+  updateTag("blog");
   refresh();
   return { ok: "Deleted." };
 }
@@ -138,6 +142,7 @@ export async function addCategory(name: string, parentId: string | null): Promis
   const { data, error } = await db.from("blog_categories").insert({ name: clean, slug, parent_id: parentId }).select("id").single();
   if (error || !data) return { error: "Could not add the category." };
   await audit(admin.id, "blog.category_add", { type: "blog_category", id: data.id }, { name: clean });
+  updateTag("blog");
   refresh();
   return { ok: "Added.", id: data.id };
 }
@@ -146,6 +151,7 @@ export async function deleteCategory(id: string): Promise<Result> {
   const { admin, db } = await requireAdmin("blog");
   await db.from("blog_categories").delete().eq("id", id);
   await audit(admin.id, "blog.category_delete", { type: "blog_category", id });
+  updateTag("blog");
   refresh();
   return { ok: "Deleted." };
 }
@@ -157,6 +163,7 @@ export async function approveComment(id: string, approved: boolean): Promise<Res
   const { error } = await db.from("blog_comments").update({ approved }).eq("id", id);
   if (error) return { error: "Could not update the comment." };
   await audit(admin.id, approved ? "blog.comment_approve" : "blog.comment_unapprove", { type: "blog_comment", id });
+  updateTag("blog");
   refresh();
   return { ok: approved ? "Approved." : "Hidden." };
 }
@@ -171,6 +178,7 @@ export async function replyToComment(id: string, reply: string): Promise<Result>
     .eq("id", id);
   if (error) return { error: "Could not save the reply." };
   await audit(admin.id, text ? "blog.comment_reply" : "blog.comment_reply_remove", { type: "blog_comment", id });
+  updateTag("blog");
   refresh();
   return { ok: text ? "Reply posted." : "Reply removed." };
 }
@@ -179,6 +187,7 @@ export async function deleteComment(id: string): Promise<Result> {
   const { admin, db } = await requireAdmin("blog");
   await db.from("blog_comments").delete().eq("id", id);
   await audit(admin.id, "blog.comment_delete", { type: "blog_comment", id });
+  updateTag("blog");
   refresh();
   return { ok: "Deleted." };
 }
@@ -215,6 +224,7 @@ export async function saveCurated(input: { url: string; sourceName: string; titl
     .single();
   if (error || !data) return { error: "Could not save the link." };
   await audit(admin.id, "blog.curated_add", { type: "blog_curated", id: data.id });
+  updateTag("blog");
   refresh();
   return { ok: "Saved.", id: data.id };
 }
@@ -222,6 +232,7 @@ export async function saveCurated(input: { url: string; sourceName: string; titl
 export async function toggleCurated(id: string, published: boolean): Promise<Result> {
   const { db } = await requireAdmin("blog");
   await db.from("blog_curated").update({ published }).eq("id", id);
+  updateTag("blog");
   refresh();
   return { ok: published ? "Showing." : "Hidden." };
 }
@@ -230,6 +241,7 @@ export async function deleteCurated(id: string): Promise<Result> {
   const { admin, db } = await requireAdmin("blog");
   await db.from("blog_curated").delete().eq("id", id);
   await audit(admin.id, "blog.curated_delete", { type: "blog_curated", id });
+  updateTag("blog");
   refresh();
   return { ok: "Deleted." };
 }

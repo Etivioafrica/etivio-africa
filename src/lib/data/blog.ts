@@ -1,5 +1,5 @@
 import "server-only";
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PostStatus } from "@/lib/blog";
 
@@ -50,8 +50,10 @@ const live = <T extends { neq: (c: string, v: string) => T; lte: (c: string, v: 
 
 export async function getPublicBlog() {
   "use cache";
-  cacheLife("minutes");
-  // Cached for a minute, so scheduled posts go live within a minute of their time.
+  // Pulls every post body (for read times), so cache it for an hour; admin blog changes clear the "blog" tag at once.
+  // Scheduled posts reach the list within an hour of their time.
+  cacheLife("hours");
+  cacheTag("blog");
   const db = createAdminClient();
   const [posts, categories, postCats, curated] = await Promise.all([
     live(db.from("blog_posts").select(PUBLIC_COLS)).order("published_at", { ascending: false }).limit(500),
@@ -73,6 +75,7 @@ export type CuratedLink = Awaited<ReturnType<typeof getPublicBlog>>["curated"][n
 export async function getPublicPost(slug: string) {
   "use cache";
   cacheLife("minutes");
+  cacheTag("blog");
   const db = createAdminClient();
   const { data: post } = await live(
     db.from("blog_posts").select(`${PUBLIC_COLS}, meta_title, meta_description, updated_at`).eq("slug", slug),

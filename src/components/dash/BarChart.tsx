@@ -55,7 +55,7 @@ export function BarChart({
         </div>
         <div className="et-chart-x" aria-hidden>
           {data.map((d, i) => (
-            <span key={d.label}>{i % labelEvery === 0 || i === data.length - 1 ? d.label : ""}</span>
+            <span key={d.label}>{(data.length - 1 - i) % labelEvery === 0 ? d.label : ""}</span>
           ))}
         </div>
       </div>

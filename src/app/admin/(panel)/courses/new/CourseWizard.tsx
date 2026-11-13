@@ -397,7 +397,10 @@ export function CourseWizard({
               </div>
               <div className="et-field">
                 <label htmlFor="w-desc">About this course</label>
-                <textarea id="w-desc" rows={5} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} placeholder="What's covered, who it's for, and what learners need before starting." />
+                <textarea id="w-desc" rows={5} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} placeholder="What's covered, who it's for, and what learners need before starting." aria-describedby="w-desc-count" />
+                <small id="w-desc-count" className={`et-count-hint${description.length >= 5000 ? " is-full" : description.length >= 4500 ? " is-near" : ""}`} aria-live="polite">
+                  {description.length >= 5000 ? "Limit reached: 5,000 characters" : `${description.length.toLocaleString()} / 5,000 characters`}
+                </small>
               </div>
               <div className="et-field">
                 <label htmlFor="w-skills">Skills learners will earn</label>

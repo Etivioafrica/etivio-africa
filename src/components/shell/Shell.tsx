@@ -1,8 +1,8 @@
 "use client";
 import { METRICS } from "@/lib/charts-metrics";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   BarChart3,
   ClipboardCheck,
@@ -143,9 +143,9 @@ const adminNav = (roles: AppRole[], badges: Record<string, number>): Group[] =>
               { label: "All products", href: "/admin/marketplace" },
               { label: "New product", href: "/admin/marketplace/new" },
               { label: "Needs review", href: "/admin/marketplace?status=pending", badge: badges.products },
-              { label: "Reviews", href: "/admin/marketplace/reviews", badge: badges.productReviews },
-              { label: "Courses", href: "/admin/marketplace?status=courses" },
+              { label: "Listed courses", href: "/admin/marketplace?status=courses" },
               { label: "Orders", href: "/admin/marketplace/orders" },
+              { label: "Product reviews", href: "/admin/marketplace/reviews", badge: badges.productReviews },
             ],
           },
           { label: "Communities", href: "/admin/communities", icon: UsersRound, area: "communities" },
@@ -594,18 +594,38 @@ function NavGroup({ item, active, pathname }: { item: Item; active: boolean; pat
         <ChevronDown size={13} className={`et-nav-chev${open ? " is-open" : ""}`} />
       </button>
       {open && (
-        <div className="et-nav-sub">
-          {item.children!.map((c) => {
-            const on = pathname === c.href || (c.href !== item.href && pathname.startsWith(`${c.href}/`)) || (c.href === item.href && new RegExp(`^${item.href}/[0-9a-f-]{36}(/|$)`).test(pathname));
-            return (
-              <Link key={c.href} href={c.href} className={on ? "is-active" : ""} aria-current={on ? "page" : undefined}>
-                {c.label}
-                {c.badge ? <span className="et-count">{c.badge}</span> : null}
-              </Link>
-            );
-          })}
-        </div>
+        <Suspense fallback={null}>
+          <NavSub item={item} pathname={pathname} />
+        </Suspense>
       )}
+    </div>
+  );
+}
+
+// Sub-links can point at a filtered view of the same page ("/admin/marketplace?status=pending"), so the query string
+// decides which one is lit: the filtered link when its filter is on, the plain link only when no sibling's filter is.
+function NavSub({ item, pathname }: { item: Item; pathname: string }) {
+  const params = useSearchParams();
+  const kids = item.children!.map((c) => {
+    const [path, query = ""] = c.href.split("?");
+    const want = [...new URLSearchParams(query)];
+    return { c, path, filtered: want.length > 0, hit: pathname === path && want.every(([k, v]) => params.get(k) === v) };
+  });
+  return (
+    <div className="et-nav-sub">
+      {kids.map(({ c, path, filtered, hit }) => {
+        const on = filtered
+          ? hit
+          : (pathname === path && !kids.some((o) => o.filtered && o.path === path && o.hit)) ||
+            (path !== item.href && pathname.startsWith(`${path}/`)) ||
+            (path === item.href && new RegExp(`^${item.href}/[0-9a-f-]{36}(/|$)`).test(pathname));
+        return (
+          <Link key={c.href} href={c.href} className={on ? "is-active" : ""} aria-current={on ? "page" : undefined}>
+            {c.label}
+            {c.badge ? <span className="et-count">{c.badge}</span> : null}
+          </Link>
+        );
+      })}
     </div>
   );
 }

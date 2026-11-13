@@ -5,6 +5,8 @@ import { useToast } from "@/components/dash/useToast";
 import { confirmDialog } from "@/components/dash/dialogs";
 export type Category = { id: string; name: string; slug: string; parent_id: string | null };
 type Result = { ok?: string; error?: string };
+// Same limit the add-category server actions cut names to (blog and courses).
+const NAME_MAX = 60;
 
 // Shared by Blog and Courses: main categories with one level of subcategories.
 export function CategoryManager({
@@ -82,7 +84,12 @@ export function CategoryManager({
             <div className="et-be-label is-flat">
               <span>New category</span>
             </div>
-            <input className="et-input" value={name} placeholder="e.g. Careers" onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add(name, null)} />
+            <div className="et-field">
+              <input className="et-input" value={name} maxLength={NAME_MAX} placeholder="e.g. Careers" aria-label="New category name" aria-describedby="cat-name-count" onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add(name, null)} />
+              <small id="cat-name-count" className={`et-count-hint${name.length >= NAME_MAX ? " is-full" : name.length >= NAME_MAX - 10 ? " is-near" : ""}`} aria-live="polite">
+                {name.length >= NAME_MAX ? `Limit reached: ${NAME_MAX} characters` : `${name.length} / ${NAME_MAX} characters`}
+              </small>
+            </div>
             <button type="button" className="et-btn et-btn-primary" onClick={() => add(name, null)} disabled={pending || !name.trim()}>
               <Plus size={15} /> {pending ? "Adding…" : "Add category"}
             </button>
@@ -137,6 +144,7 @@ export function CategoryManager({
                           <input
                             className="et-input"
                             value={subName[p.id] ?? ""}
+                            maxLength={NAME_MAX}
                             placeholder="Add a subcategory…"
                             onChange={(e) => setSubName((s) => ({ ...s, [p.id]: e.target.value }))}
                             onKeyDown={(e) => e.key === "Enter" && add(subName[p.id] ?? "", p.id)}

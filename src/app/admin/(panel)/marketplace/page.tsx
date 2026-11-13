@@ -17,7 +17,7 @@ const TABS = [
   { key: "archived", label: "Archived" },
   { key: "courses", label: "Courses" },
 ] as const;
-const ALWAYS: string[] = ["", "published", "courses"];
+const ALWAYS: string[] = ["", "pending", "published", "courses"];
 
 type Props = { searchParams: Promise<{ status?: string }> };
 
@@ -63,7 +63,7 @@ async function List({ searchParams }: Props) {
   return (
     <section className="et-card">
       <nav className="et-seg" style={{ margin: 16 }}>
-        {/* Review-stage tabs only show when something is in them. */}
+        {/* Drafts, Changes requested and Archived only show when something is in them. */}
         {TABS.filter((t) => ALWAYS.includes(t.key) || count(t.key) > 0 || (status ?? "") === t.key).map((t) => (
           <Link key={t.key} href={t.key ? `/admin/marketplace?status=${t.key}` : "/admin/marketplace"} className={(status ?? "") === t.key ? "is-on" : ""}>
             {t.label}
