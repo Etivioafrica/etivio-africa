@@ -50,17 +50,21 @@ const live = <T extends { neq: (c: string, v: string) => T; lte: (c: string, v: 
 
 export async function getPublicBlog() {
   "use cache";
-  // Pulls every post body (for read times), so cache it for an hour; admin blog changes clear the "blog" tag at once.
-  // Scheduled posts reach the list within an hour of their time.
-  cacheLife("hours");
+  // Pulls every post body (for read times), so cache it for up to an hour; admin blog changes clear the "blog" tag at
+  // once, and the cache ends early when the next scheduled post is due, so it appears on time.
   cacheTag("blog");
   const db = createAdminClient();
-  const [posts, categories, postCats, curated] = await Promise.all([
+  const now = new Date().toISOString();
+  const [posts, categories, postCats, curated, next] = await Promise.all([
     live(db.from("blog_posts").select(PUBLIC_COLS)).order("published_at", { ascending: false }).limit(500),
     db.from("blog_categories").select("id, name, slug, parent_id").order("created_at"),
     db.from("blog_post_categories").select("post_id, category_id"),
     db.from("blog_curated").select("id, url, source_name, title, excerpt, cover_url, created_at").eq("published", true).order("created_at", { ascending: false }).limit(120),
+    db.from("blog_posts").select("published_at").neq("status", "draft").gt("published_at", now).order("published_at").limit(1).maybeSingle(),
   ]);
+  const dueIn = next.data?.published_at ? Math.ceil((Date.parse(next.data.published_at) - Date.now()) / 1000) : Infinity;
+  const revalidate = Math.min(3600, Math.max(30, dueIn));
+  cacheLife({ stale: Math.min(60, revalidate), revalidate, expire: Math.max(revalidate, 86400) });
   return {
     posts: posts.data ?? [],
     categories: (categories.data ?? []) as Category[],
