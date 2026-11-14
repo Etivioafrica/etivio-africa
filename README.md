@@ -2,23 +2,17 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Requirements: Node.js 20+ (tested on 24) and npm.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci                      # install exact versions from package-lock.json
+cp .env.example .env.local  # then fill in the values (ask the project owner for dev keys)
+npm run dev                 # http://localhost:3010
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+At minimum `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` must be set, or data-backed pages fail with "supabaseUrl is required". Variables marked optional in `.env.example` only switch on extra features.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Use `npm ci`, not `npm install`, unless you're adding a dependency, so `package-lock.json` doesn't churn between machines. See `CLAUDE.md` for branch and migration rules.
 
 ## Learn More
 
