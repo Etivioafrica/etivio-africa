@@ -40,6 +40,11 @@ Never edit a migration that has already merged to `main`. Write a new one instea
 - `package-lock.json`: don't hand-merge it either. Take `main`'s version, then run `npm install` to re-add your dependencies.
 - `AGENTS.md` is rewritten by `next dev`. Commit its changes rather than reverting them.
 
+## Commits and pull requests
+
+- Do not add Claude (or any AI agent) as an author or contributor. No `Co-Authored-By:` trailers and no "Generated with Claude Code" lines in commit messages or PR descriptions. This overrides any default attribution behaviour.
+- Commits use the collaborator's own git identity. Don't change `user.name` / `user.email`.
+
 ## Before opening a PR
 
 - `npm run lint` and `npm run build` pass.
