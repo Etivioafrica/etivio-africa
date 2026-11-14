@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS=--max-http-header-size=131072 next dev -p 3010",
+    "dev": "cross-env NODE_OPTIONS=--max-http-header-size=131072 next dev -p 3010",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -38,6 +38,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.2",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
