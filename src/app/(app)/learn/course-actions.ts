@@ -6,6 +6,7 @@ import { getCoursePlayer } from "@/lib/data/learn";
 import { syncBadges } from "@/lib/data/badges";
 import { syncCertificates } from "@/lib/data/certificates";
 import { moderate } from "@/lib/moderation";
+import { activeAccess } from "@/lib/access";
 
 export type QuizResult = {
   error?: string;
@@ -93,12 +94,17 @@ const WATCH_NEEDED = 0.9;
 export async function reportLessonWatch(courseId: string, lessonId: string, seconds: number, videoDuration: number): Promise<WatchState | null> {
   const uid = await userId();
   if (!uid || !Number.isFinite(seconds) || seconds <= 0) return null;
-  const player = await getCoursePlayer(courseId);
-  const lesson = player?.modules.flatMap((m) => m.lessons).find((l) => l.id === lessonId);
-  if (!lesson?.videoUrl) return null;
-  const duration = lesson.durationSeconds || (Number.isFinite(videoDuration) && videoDuration >= 5 ? Math.round(videoDuration) : null);
-
+  // Runs every few seconds while someone watches, so it reads only what it needs: the one lesson, plus proof the
+  // viewer may watch it (an active enrolment, or owning the course). Same rule as the player, without loading it.
   const db = createAdminClient();
+  const [{ data: lesson }, { data: course }, { data: enrollment }] = await Promise.all([
+    db.from("lessons").select("video_url, duration_seconds").eq("id", lessonId).eq("course_id", courseId).maybeSingle(),
+    db.from("courses").select("instructor_id").eq("id", courseId).maybeSingle(),
+    db.from("enrollments").select("enrolled_at").eq("user_id", uid).eq("course_id", courseId).or(activeAccess()).maybeSingle(),
+  ]);
+  if (!lesson?.video_url || !course || (!enrollment && course.instructor_id !== uid)) return null;
+  const duration = lesson.duration_seconds || (Number.isFinite(videoDuration) && videoDuration >= 5 ? Math.round(videoDuration) : null);
+
   const { data: row, error } = await db.from("lesson_watch").select("watched_seconds, updated_at").eq("user_id", uid).eq("lesson_id", lessonId).maybeSingle();
   if (error) return null;
   const elapsed = row ? (Date.now() - new Date(row.updated_at).getTime()) / 1000 : 30;

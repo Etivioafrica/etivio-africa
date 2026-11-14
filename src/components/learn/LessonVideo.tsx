@@ -64,7 +64,7 @@ export const LESSON_WATCH = "et:lesson-watch";
 type Report = (seconds: number, duration: number) => Promise<WatchState | null>;
 
 // Counts seconds of the video actually played. Each second counts once; jumps (seeking, skipping) count nothing.
-// New seconds go to the server in batches of 10, and whenever playback pauses or ends.
+// New seconds go to the server in batches of 30, and whenever playback pauses or ends.
 function useWatchTracker(lessonId?: string, report?: Report) {
   const seen = useRef(new Set<number>());
   const last = useRef<number | null>(null);
@@ -92,7 +92,7 @@ function useWatchTracker(lessonId?: string, report?: Report) {
         seen.current.add(sec);
         pending.current++;
       }
-      if (pending.current >= 10) flush();
+      if (pending.current >= 30) flush();
     },
     [flush],
   );

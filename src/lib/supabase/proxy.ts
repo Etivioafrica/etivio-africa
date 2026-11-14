@@ -21,6 +21,20 @@ export async function updateSession(request: NextRequest) {
   }
 
   let response = NextResponse.next({ request });
+  const path = request.nextUrl.pathname;
+  const isApp = APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
+  const isAdmin = (path === "/admin" || path.startsWith("/admin/")) && path !== "/admin/login";
+
+  // Signed-out visitors (most public traffic and all bots) have no session cookie: there is nothing to refresh or
+  // verify, so skip the auth client and only do the signed-out redirects.
+  if (!request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"))) {
+    const to = isAdmin ? "/admin/login" : isApp ? "/login" : path === "/set-password" || path === "/verify" ? "/login" : null;
+    if (!to) return response;
+    const url = request.nextUrl.clone();
+    url.pathname = to;
+    url.search = isAdmin || isApp ? `?next=${encodeURIComponent(path)}` : "";
+    return NextResponse.redirect(url);
+  }
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,11 +65,8 @@ export async function updateSession(request: NextRequest) {
   const mustSetPassword = !!(data?.claims?.app_metadata as { must_set_password?: boolean } | undefined)?.must_set_password;
 
   // Optimistic routing only. Layouts and Server Actions re-check the session.
-  const path = request.nextUrl.pathname;
-  const isApp = APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
   // The app's start screen counts as an auth page: signed-in people go straight to the dashboard.
   const isAuthPage = path === "/login" || path === "/signup" || path === "/welcome";
-  const isAdmin = (path === "/admin" || path.startsWith("/admin/")) && path !== "/admin/login";
 
   if (!user && isAdmin) {
     const url = request.nextUrl.clone();

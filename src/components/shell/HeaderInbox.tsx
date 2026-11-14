@@ -41,8 +41,10 @@ export function HeaderInbox({ userId, messagesOn, staff = false }: { userId: str
     }, 250);
   }, [staff]);
 
-  // Reload on every page change (opening a chat clears its unread count) and whenever something changes live.
-  useEffect(load, [load, pathname]);
+  // Load once, then again on chat and support pages (opening one clears its unread count) and whenever something
+  // changes live. Not on every page change: that was a server call per click for every signed-in user.
+  const chatPage = /^\/(learn\/messages|teach\/messages|support|admin\/chats)(\/|$)/.test(pathname) ? pathname : "";
+  useEffect(load, [load, chatPage]);
   useEffect(
     () =>
       listen((supabase) =>
