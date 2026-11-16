@@ -40,6 +40,13 @@ Never edit a migration that has already merged to `main`. Write a new one instea
 - `package-lock.json`: don't hand-merge it either. Take `main`'s version, then run `npm install` to re-add your dependencies.
 - `AGENTS.md` is rewritten by `next dev`. Commit its changes rather than reverting them.
 
+## Architecture docs (`docs/architecture/`)
+
+- The architecture is documented as plain Markdown, one file per layer, indexed in `docs/architecture/README.md`. Diagrams are Mermaid code blocks.
+- **When you change code, update the doc for every layer you touched in the same piece of work.** The README table maps source paths to docs. Also bump the "Last verified against" line in the README.
+- A change that adds a route, table, env var, feature flag, outside service or cron job always needs a doc update.
+- `docs/` is gitignored and kept locally. If it's missing on your machine, skip this step.
+
 ## Commits and pull requests
 
 - Do not add Claude (or any AI agent) as an author or contributor. No `Co-Authored-By:` trailers and no "Generated with Claude Code" lines in commit messages or PR descriptions. This overrides any default attribution behaviour.
