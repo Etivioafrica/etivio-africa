@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
+import { safeNext } from "@/lib/safe-next";
 
 // Inline **bold**, `code` and [links](/path), as React nodes (never raw HTML). Only links inside Etivio are kept.
 function inline(text: string) {
@@ -7,7 +8,7 @@ function inline(text: string) {
     if (part.startsWith("**") && part.endsWith("**")) return <b key={i}>{part.slice(2, -2)}</b>;
     if (part.startsWith("`") && part.endsWith("`")) return <code key={i}>{part.slice(1, -1)}</code>;
     const link = part.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
-    if (link) return link[2].startsWith("/") && !link[2].startsWith("//") ? <Link key={i} href={link[2]}>{link[1]}</Link> : <Fragment key={i}>{link[1]}</Fragment>;
+    if (link) return safeNext(link[2], "") ? <Link key={i} href={link[2]}>{link[1]}</Link> : <Fragment key={i}>{link[1]}</Fragment>;
     return <Fragment key={i}>{part}</Fragment>;
   });
 }

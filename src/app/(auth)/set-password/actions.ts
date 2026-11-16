@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { safeNext } from "@/lib/safe-next";
 
 // First sign-in for accounts made by a guest purchase: replaces the emailed temporary password.
 export async function setFirstPassword(_prev: { error?: string } | null, fd: FormData): Promise<{ error?: string } | null> {
@@ -21,5 +22,5 @@ export async function setFirstPassword(_prev: { error?: string } | null, fd: For
   await createAdminClient().auth.admin.updateUserById(user.id, { app_metadata: { must_set_password: false } });
   // Fresh session so the cleared flag is in the cookie straight away.
   await supabase.auth.refreshSession();
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/learn");
+  redirect(safeNext(next, "/learn"));
 }

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/safe-next";
 
 const TYPES: EmailOtpType[] = ["signup", "email", "recovery", "invite", "magiclink", "email_change"];
 
@@ -13,12 +14,12 @@ export async function GET(request: NextRequest) {
   const type = params.get("type") as EmailOtpType | null;
   const next = params.get("next") ?? "/learn";
   // Only same-site paths, never another domain.
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/learn";
+  const safeNextPath = safeNext(next, "/learn");
 
   if (tokenHash && type && TYPES.includes(type)) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-    if (!error) return NextResponse.redirect(new URL(safeNext, request.url));
+    if (!error) return NextResponse.redirect(new URL(safeNextPath, request.url));
   }
   return NextResponse.redirect(new URL("/login?error=link", request.url));
 }

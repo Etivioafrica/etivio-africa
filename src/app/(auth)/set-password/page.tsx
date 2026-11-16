@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { SetPasswordForm } from "./SetPasswordForm";
+import { safeNext } from "@/lib/safe-next";
 
 export const metadata = { title: "Choose your password | Etivio", robots: { index: false } };
 
@@ -15,5 +16,5 @@ export default function SetPasswordPage({ searchParams }: Props) {
 
 async function Form({ searchParams }: Props) {
   const { next } = await searchParams;
-  return <SetPasswordForm next={next && next.startsWith("/") && !next.startsWith("//") ? next : "/learn"} />;
+  return <SetPasswordForm next={safeNext(next, "/learn")} />;
 }

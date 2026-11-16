@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/dash/Avatar";
+import { safeNext } from "@/lib/safe-next";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
 
@@ -17,7 +18,7 @@ const copy: Record<Mode, { title: string; sub: string; submit: string }> = {
 
 function nextPath() {
   const next = new URLSearchParams(window.location.search).get("next") ?? "/learn";
-  return next.startsWith("/") && !next.startsWith("//") ? next : "/learn";
+  return safeNext(next, "/learn");
 }
 
 function callbackUrl(next: string) {
