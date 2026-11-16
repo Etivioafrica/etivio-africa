@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { ExploreFilters } from "@/components/market/ExploreFilters";
-import { ExploreResults, type ExploreSearch } from "@/components/market/ExploreResults";
+import { ExploreResults } from "@/components/market/ExploreResults";
+import { ExploreFiltersLive, ExploreResultsLive } from "@/components/market/ExploreLive";
 import { getCategories, getExploreItems } from "@/lib/data/marketplace";
 
 export const metadata: Metadata = {
@@ -10,32 +10,40 @@ export const metadata: Metadata = {
   alternates: { canonical: "/explore" },
 };
 
-type Props = { searchParams: Promise<ExploreSearch> };
-
-export default function ExplorePage({ searchParams }: Props) {
+// Fully prerendered: the item list comes from a cache, and filtering happens in the browser from the URL, so
+// visitors and crawlers trying filter combinations are served from the CDN instead of running a function each time.
+export default function ExplorePage() {
   return (
     <div className="et-mk">
       <section className="et-mk-hero">
         <div className="et-mk-hero-in">
           <Suspense fallback={<div className="et-mk-bar" />}>
-            <Bar searchParams={searchParams} />
+            <Bar />
           </Suspense>
         </div>
       </section>
       <Suspense fallback={<div className="et-skel" style={{ height: 520 }} />}>
-        <Results searchParams={searchParams} />
+        <Results />
       </Suspense>
     </div>
   );
 }
 
-async function Bar({ searchParams }: Props) {
-  const s = await searchParams;
+async function Bar() {
   const categories = await getCategories();
-  return <ExploreFilters key={s.q ?? ""} categories={categories.filter((c) => !c.parent_id)} />;
+  return (
+    <Suspense fallback={<div className="et-mk-bar" />}>
+      <ExploreFiltersLive categories={categories.filter((c) => !c.parent_id)} />
+    </Suspense>
+  );
 }
 
-async function Results({ searchParams }: Props) {
-  const [s, items] = await Promise.all([searchParams, getExploreItems()]);
-  return <ExploreResults items={items} s={s} base="/explore" />;
+async function Results() {
+  const items = await getExploreItems();
+  // The unfiltered list is the prerendered HTML; the browser swaps in the filtered view from the URL.
+  return (
+    <Suspense fallback={<ExploreResults items={items} s={{}} base="/explore" />}>
+      <ExploreResultsLive items={items} base="/explore" />
+    </Suspense>
+  );
 }
