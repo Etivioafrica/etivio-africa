@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/app/(app)/actions";
+import { safeNext } from "@/lib/safe-next";
 
 function nextPath() {
   const next = new URLSearchParams(window.location.search).get("next") ?? "/learn";
-  return next.startsWith("/") && !next.startsWith("//") ? next : "/learn";
+  return safeNext(next, "/learn");
 }
 
 // Second step of sign-in for accounts with an authenticator app.
