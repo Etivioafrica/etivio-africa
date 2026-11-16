@@ -9,5 +9,6 @@ Review this list whenever a layer changes. Remove items once they're fixed.
 | Medium | No automated tests or CI | GitHub Actions on PRs: `npm ci && npm run lint && npm run build` |
 | Medium | Cron jobs call `https://etivio.co` directly ([06-database.md](06-database.md)) | Preview deployments can't test them, and a domain change breaks them silently. Keep the URL in Vault or a settings table |
 | Medium | Without TURN credentials, coaching calls fail on many mobile networks ([11-realtime-calls.md](11-realtime-calls.md)) | Set `CF_TURN_KEY_ID` and `CF_TURN_API_TOKEN` before switching `coaching` on |
+| High | Capacity tops out around 1,500–2,500 people at once on Pro defaults; the 500 Realtime connection limit hits first ([scaling.md](scaling.md)) | Follow the recommended order in [scaling.md](scaling.md) |
 | Low | Functions run in Dublin while most users are likely in Africa | Keep the Vercel region next to the Supabase region; revisit if the database moves |
 | Low | Migration numbers are claimed by hand | Follow the claiming rules in `CLAUDE.md` |
