@@ -17,8 +17,9 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       { userAgent: BLOCKED, disallow: "/" },
-      // Search engines still index every public page.
-      { userAgent: "*", allow: "/", disallow: PRIVATE },
+      // Search engines still index every public page, but not the endless filter/search combinations on /explore
+      // (each one is a fresh server render; /explore itself is the canonical page).
+      { userAgent: "*", allow: "/", disallow: [...PRIVATE, "/explore?"] },
     ],
     sitemap: `${siteUrl()}/sitemap.xml`,
   };
