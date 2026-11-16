@@ -11,6 +11,7 @@ const BLOCKED = [
   "Bytespider", "meta-externalagent", "meta-externalfetcher", "FacebookBot", "Amazonbot", "cohere-ai", "Diffbot",
   "ImagesiftBot", "Omgilibot", "Timpibot", "AI2Bot", "PetalBot",
   "AhrefsBot", "SemrushBot", "MJ12bot", "DotBot", "BLEXBot", "DataForSeoBot", "serpstatbot", "Barkrowler", "SeekportBot",
+  "SERankingBacklinksBot", "SERankingBot",
 ];
 
 export default function robots(): MetadataRoute.Robots {
