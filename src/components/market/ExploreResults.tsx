@@ -51,7 +51,7 @@ export function ExploreResults({ items, s, base, controls }: { items: ExploreIte
     const on = list(s[key]).includes(value);
     return (
       <li key={value}>
-        <Link href={toggle(key, value)} className={`et-mk-check${on ? " is-on" : ""}`} role="checkbox" aria-checked={on} scroll={false}>
+        <Link href={toggle(key, value)} rel="nofollow" className={`et-mk-check${on ? " is-on" : ""}`} role="checkbox" aria-checked={on} scroll={false}>
           <span>{on && <Check size={12} strokeWidth={3} />}</span>
           {label}
           {count !== undefined && <small>{count}</small>}
