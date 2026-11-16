@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Internal notes (roadmap, handoff), never committed
 docs/
+
+# local documentation (not committed)
+/docs/
