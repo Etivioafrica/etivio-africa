@@ -17,4 +17,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - `docs/architecture/` holds the architecture as plain Markdown, one file per layer, indexed in `docs/architecture/README.md`.
 - When you change code, update the doc for each layer you touched in the same piece of work, and bump the README's "Last verified against" line. New routes, tables, env vars, feature flags, outside services and cron jobs always need a doc update.
-- `docs/` is gitignored. If it isn't present locally, skip this step.
+- `docs/architecture/` is committed (the rest of `docs/` stays gitignored). Put doc updates in the same commit or PR as the code change.

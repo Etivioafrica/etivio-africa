@@ -45,7 +45,7 @@ next-env.d.ts
 /screenshots
 
 # Internal notes (roadmap, handoff), never committed
-docs/
+docs/*
+# ...except the architecture docs, which are shared and kept current with the code
+!docs/architecture/
 
-# local documentation (not committed)
-/docs/
