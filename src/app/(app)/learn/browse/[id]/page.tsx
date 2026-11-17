@@ -23,5 +23,5 @@ async function Details({ params }: Props) {
   const data = await getCourseDetails(id);
   if (!data) notFound();
   await connection();
-  return <CourseView data={data} />;
+  return <CourseView data={data} exploreBase="/learn/explore" />;
 }

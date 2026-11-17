@@ -16,6 +16,25 @@ type Tab = { label: string; href: string; icon: LucideIcon; match: (p: string) =
 type Segment = { label: string; href: string; match: (p: string) => boolean };
 type Section = { title: string; match: (p: string) => boolean; segments?: Segment[] };
 
+// True while a text field has focus (the on-screen keyboard is up). The tab bar and + button step aside then, instead of
+// riding up above the keyboard or peeking out at the bottom.
+function useTyping() {
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    const field = (el: Element | null) =>
+      !!el && (el.matches("textarea,select,[contenteditable='true']") || (el.matches("input") && !/^(checkbox|radio|button|submit|reset|range|file|color|image)$/i.test((el as HTMLInputElement).type)));
+    const sync = () => setTyping(field(document.activeElement));
+    const out = () => setTimeout(sync, 60);
+    document.addEventListener("focusin", sync);
+    document.addEventListener("focusout", out);
+    return () => {
+      document.removeEventListener("focusin", sync);
+      document.removeEventListener("focusout", out);
+    };
+  }, []);
+  return typing;
+}
+
 const starts = (p: string, ...prefixes: string[]) => prefixes.some((x) => p === x || p.startsWith(`${x}/`));
 
 // Campus takes the fourth tab; Messages and Announcements then live on the Me screen. With Campus off, it's Inbox again.
@@ -96,6 +115,7 @@ const CAMPUS_COMPOSE = "et-campus-compose";
 export function MobileFab({ pathname, features }: { pathname: string; features: Partial<FeatureMap> }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const typing = useTyping();
   const ai = features.ai_assistant !== false;
   const campus = features.campus !== false;
   useEffect(() => {
@@ -119,7 +139,7 @@ export function MobileFab({ pathname, features }: { pathname: string; features: 
   return (
     <>
       {open && <div className="et-mfab-scrim" onClick={() => setOpen(false)} aria-hidden />}
-      <div className={`et-mfab${open ? " is-open" : ""}`}>
+      <div className={`et-mfab${open ? " is-open" : ""}${typing ? " is-hidden" : ""}`}>
         {open && (
           <div className="et-mfab-menu" role="menu">
             {campus && (
@@ -149,13 +169,24 @@ export function MobileFab({ pathname, features }: { pathname: string; features: 
 }
 
 export function MobileTabBar({ pathname, tabs }: { pathname: string; tabs: Tab[] }) {
+  const typing = useTyping();
+  // The tapped tab lights up at once instead of waiting for the next screen to load. It clears as soon as the route changes.
+  const [tapped, setTapped] = useState<{ label: string; from: string } | null>(null);
+  if (tapped && tapped.from !== pathname) setTapped(null);
   return (
-    <div className="et-mdock">
+    <div className={`et-mdock${typing ? " is-hidden" : ""}`}>
     <nav className="et-mtabs" aria-label="Main" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
       {tabs.map(({ label, href, icon: Icon, match }) => {
-        const on = match(pathname);
+        const on = tapped ? tapped.label === label : match(pathname);
         return (
-          <Link key={label} href={href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined} data-tour={href}>
+          <Link
+            key={label}
+            href={href}
+            className={on ? "is-active" : undefined}
+            aria-current={on ? "page" : undefined}
+            data-tour={href}
+            onClick={() => !match(pathname) && setTapped({ label, from: pathname })}
+          >
             <Icon size={23} strokeWidth={on ? 2.2 : 1.7} />
             <span>{label}</span>
           </Link>
@@ -202,12 +233,17 @@ export function MobileTopBar({
       if (on && strip) strip.scrollLeft += on.getBoundingClientRect().left - strip.getBoundingClientRect().left - (strip.clientWidth - on.offsetWidth) / 2;
     };
     read();
-    const watch = new MutationObserver(read);
+    // Many DOM changes land per navigation; read the screen once per frame, not once per change.
+    let frame = 0;
+    const watch = new MutationObserver(() => {
+      if (!frame) frame = requestAnimationFrame(() => ((frame = 0), read()));
+    });
     watch.observe(main, { childList: true, subtree: true });
     const stop = setTimeout(() => watch.disconnect(), 4000);
     return () => {
       main.removeEventListener("scroll", onScroll);
       watch.disconnect();
+      cancelAnimationFrame(frame);
       clearTimeout(stop);
     };
   }, [pathname, section?.title]);

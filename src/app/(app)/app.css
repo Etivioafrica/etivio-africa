@@ -420,7 +420,10 @@ a.et-lesson:hover{background:var(--a-hover);color:var(--a-fg)}
 .et-pf-links a{height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--a-border);background:var(--a-panel-2);display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--a-muted)}
 .et-pf-links a:hover{color:var(--a-fg);border-color:var(--a-faint)}
 .et-pf-streak{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--a-muted)}
-@media(max-width:520px){.et-pf-main{padding:0 16px 18px}.et-pf-about{padding:16px}.et-pf-avatar{width:84px;height:84px;margin-top:-42px;font-size:30px}}
+@media(max-width:520px){.et-pf-main{padding:0 16px 18px;grid-template-areas:"avatar avatar" "actions actions" "id id"}.et-pf-about{padding:16px}.et-pf-avatar{width:84px;height:84px;margin-top:-42px;font-size:30px}
+  /* Copy link, Public page and Edit profile sit in one row under the avatar instead of stacking down the right side. */
+  .et-pf-actions{justify-self:stretch;flex-wrap:nowrap;gap:6px;padding-top:0}
+  .et-pf-actions>*{flex:1 1 0;min-width:0;justify-content:center;padding-left:8px;padding-right:8px;font-size:13px;white-space:nowrap}}
 
 /* Settings */
 .et-set{overflow:hidden}
