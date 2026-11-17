@@ -66,6 +66,9 @@
   .et-app.is-phone-app .et-mfab-scrim{display:block;position:fixed;inset:0;z-index:45;background:#05080fa6;animation:et-aw-fade .2s ease-out}
   @keyframes et-mfab-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   .et-app.is-phone-app .et-main.has-bottom-nav{padding-bottom:calc(96px + max(8px,env(safe-area-inset-bottom) - 26px))}
+  /* In a conversation the tab bar is gone: give its space back and let the chat card fill the screen. */
+  .et-app.is-phone-app .et-body:has(.et-mdock.is-conv) .et-main.has-bottom-nav{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .et-app.is-phone-app .et-body:has(.et-mdock.is-conv) .et-convo{height:calc(100dvh - 50px - env(safe-area-inset-top) - 8px - 12px - env(safe-area-inset-bottom));min-height:0}
   /* The top bar already has a back arrow on pushed screens, so a page's own "← Back" link would be a second one. */
   .et-app.is-phone-app .et-back.is-dup{display:none}
   /* App feel: no pinch-zoom layout jumps when a field is tapped. */
