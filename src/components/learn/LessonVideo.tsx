@@ -63,23 +63,40 @@ const RATES = [0.75, 1, 1.25, 1.5, 2];
 export const LESSON_WATCH = "et:lesson-watch";
 type Report = (seconds: number, duration: number) => Promise<WatchState | null>;
 
+// Share of the video that unlocks the Complete button. Must match WATCH_NEEDED in learn/course-actions.ts.
+const WATCH_NEEDED = 0.9;
+
 // Counts seconds of the video actually played. Each second counts once; jumps (seeking, skipping) count nothing.
-// New seconds go to the server in batches of 30, and whenever playback pauses or ends.
+// New seconds go to the server in batches of 60 (30 until the first save says how much was watched before), and
+// whenever playback pauses or ends. Near the unlock point a save goes straight away, so the Complete button unlocks
+// as soon as enough has been watched rather than up to a minute later.
 function useWatchTracker(lessonId?: string, report?: Report) {
   const seen = useRef(new Set<number>());
   const last = useRef<number | null>(null);
   const pending = useRef(0);
   const length = useRef(0);
+  const saved = useRef<WatchState | null>(null);
 
   const flush = useCallback(() => {
     if (!report || pending.current < 1) return;
     const sent = pending.current;
     pending.current = 0;
     report(sent, length.current).then(
-      (st) => st && window.dispatchEvent(new CustomEvent(LESSON_WATCH, { detail: { lessonId, ...st } })),
+      (st) => {
+        if (!st) return;
+        saved.current = st;
+        window.dispatchEvent(new CustomEvent(LESSON_WATCH, { detail: { lessonId, ...st } }));
+      },
       () => (pending.current += sent),
     );
   }, [lessonId, report]);
+
+  const due = useCallback(() => {
+    const st = saved.current;
+    if (!st) return pending.current >= 30;
+    if (!st.qualified && length.current > 0 && st.watched + pending.current >= length.current * WATCH_NEEDED) return true;
+    return pending.current >= 60;
+  }, []);
 
   const tick = useCallback(
     (position: number, duration: number) => {
@@ -92,9 +109,9 @@ function useWatchTracker(lessonId?: string, report?: Report) {
         seen.current.add(sec);
         pending.current++;
       }
-      if (pending.current >= 30) flush();
+      if (due()) flush();
     },
-    [flush],
+    [flush, due],
   );
 
   // Send what's left when the lesson changes or the page closes.
