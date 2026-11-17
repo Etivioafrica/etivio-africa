@@ -124,7 +124,8 @@ export function MobileFab({ pathname, features }: { pathname: string; features: 
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [open]);
-  if (!ai && !campus) return null;
+  // Not on chat screens: the button would sit on top of the message box's Send button.
+  if ((!ai && !campus) || /\/messages(\/|$)/.test(pathname)) return null;
 
   const post = () => {
     setOpen(false);
