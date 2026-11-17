@@ -45,15 +45,21 @@ export function HeaderInbox({ userId, messagesOn, staff = false }: { userId: str
   // changes live. Not on every page change: that was a server call per click for every signed-in user.
   const chatPage = /^\/(learn\/messages|teach\/messages|support|admin\/chats)(\/|$)/.test(pathname) ? pathname : "";
   useEffect(load, [load, chatPage]);
+  // Only this person's own conversations (as learner or as tutor), which is all the inbox shows. Listening to the
+  // whole table made Supabase check every change against every signed-in tab. The channel closes in background tabs
+  // and the inbox reloads when the tab comes back.
   useEffect(
     () =>
-      listen((supabase) =>
-        supabase
-          .channel(`inbox:${userId}`)
-          .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, load)
-          .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, load)
-          .on("postgres_changes", staff ? { event: "*", schema: "public", table: "support_threads" } : { event: "*", schema: "public", table: "support_threads", filter: `user_id=eq.${userId}` }, load)
-          .subscribe(),
+      listen(
+        (supabase) =>
+          supabase
+            .channel(`inbox:${userId}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, load)
+            .on("postgres_changes", { event: "*", schema: "public", table: "conversations", filter: `student_id=eq.${userId}` }, load)
+            .on("postgres_changes", { event: "*", schema: "public", table: "conversations", filter: `tutor_id=eq.${userId}` }, load)
+            .on("postgres_changes", staff ? { event: "*", schema: "public", table: "support_threads" } : { event: "*", schema: "public", table: "support_threads", filter: `user_id=eq.${userId}` }, load)
+            .subscribe(),
+        { pauseWhenHidden: true, onResume: load },
       ),
     [userId, load, staff],
   );
