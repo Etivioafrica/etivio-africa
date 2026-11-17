@@ -27,7 +27,7 @@ These files describe the code as it is. **When you change code in a layer, updat
 | — | Request flows | [request-flows.md](request-flows.md) | Any change to page load, upload, checkout or cron paths |
 | — | Environments & config | [environments.md](environments.md) | `.env.example`, `package.json`, `vercel.json` |
 | — | Risks | [risks.md](risks.md) | Review whenever any layer changes |
-| — | Scaling notes (proposed) | [scaling.md](scaling.md) | `LessonVideo.tsx`, `course-actions.ts`, `HeaderInbox.tsx`, `realtime.ts`, plan or compute changes |
+| — | Scaling notes (parked until a measured bottleneck) | [scaling.md](scaling.md) | `LessonVideo.tsx`, `course-actions.ts`, `HeaderInbox.tsx`, `realtime.ts`, plan or compute changes |
 
 ## At a glance
 

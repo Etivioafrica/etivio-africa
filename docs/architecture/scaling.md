@@ -1,6 +1,8 @@
-# Scaling notes (proposed)
+# Scaling notes (parked)
 
-**Status:** Proposal. Nothing here is built yet, and all numbers are estimates until there's a load test against a separate database.
+> **Parked until a measured bottleneck.** Don't act on this plan until the team hits a real limit, seen in dashboards, errors or user complaints. Kept for reference only.
+
+**Status:** Parked (17 Nov 2026). Nothing here is built, and all numbers are estimates until there's a load test against a separate database.
 **Plans assumed:** Vercel Pro + Supabase Pro, Supabase defaults (spend cap on, Micro database) unless a row says otherwise.
 **Source of truth:** `src/components/learn/LessonVideo.tsx`, `src/app/(app)/learn/course-actions.ts`, `src/components/shell/HeaderInbox.tsx`, `src/lib/supabase/realtime.ts`, `src/app/api/t/route.ts`
 
