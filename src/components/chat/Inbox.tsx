@@ -46,7 +46,7 @@ export async function ConversationView({ id, userId, base }: { id: string; userI
   if (!c) notFound();
   return (
     <>
-      <Link href={base} className="et-back">
+      <Link href={base} className="et-back is-dup">
         <ArrowLeft size={14} />
         Messages
       </Link>
