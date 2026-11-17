@@ -171,11 +171,13 @@ export function MobileFab({ pathname, features }: { pathname: string; features: 
 
 export function MobileTabBar({ pathname, tabs }: { pathname: string; tabs: Tab[] }) {
   const typing = useTyping();
+  // Inside one conversation the message box is the bottom of the screen, as in other chat apps; the top bar's arrow is the way out.
+  const chat = /^\/(learn|teach)\/messages\/[^/]+/.test(pathname);
   // The tapped tab lights up at once instead of waiting for the next screen to load. It clears as soon as the route changes.
   const [tapped, setTapped] = useState<{ label: string; from: string } | null>(null);
   if (tapped && tapped.from !== pathname) setTapped(null);
   return (
-    <div className={`et-mdock${typing ? " is-hidden" : ""}`}>
+    <div className={`et-mdock${typing || chat ? " is-hidden" : ""}${chat ? " is-conv" : ""}`}>
     <nav className="et-mtabs" aria-label="Main" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
       {tabs.map(({ label, href, icon: Icon, match }) => {
         const on = tapped ? tapped.label === label : match(pathname);
