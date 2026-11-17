@@ -91,6 +91,7 @@
 /* Loading skeleton */
 .et-skel{border-radius:10px;background:var(--a-panel-2);animation:et-pulse 1.4s ease-in-out infinite}
 @keyframes et-pulse{50%{opacity:.5}}
+@media(prefers-reduced-motion:reduce){.et-skel{animation:none}}
 
 /* Page */
 .et-page{width:100%;margin:0;display:flex;flex-direction:column;gap:20px}

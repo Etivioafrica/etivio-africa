@@ -1,4 +1,6 @@
-import { PageSkeleton } from "@/components/dash/PageSkeleton";
+import { RowsSkeleton } from "@/components/dash/Skeletons";
 
-// Own loading boundary so switching between tabs shows a skeleton straight away (a shared one stays mounted and shows nothing).
-export default PageSkeleton;
+// Shaped like this screen, shown while it loads (also gives the tab its own loading boundary).
+export default function Loading() {
+  return <RowsSkeleton />;
+}
