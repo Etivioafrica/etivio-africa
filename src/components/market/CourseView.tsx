@@ -35,7 +35,8 @@ export type CourseData = NonNullable<Awaited<ReturnType<typeof getCourseDetails>
 
 // The course details page (Udemy-style), shared by the in-app page and the public /courses/[slug] page.
 // Call connection() before rendering: the "New" badge depends on today's date.
-export function CourseView({ data }: { data: CourseData }) {
+// `exploreBase` keeps the breadcrumb on the page's own marketplace: the public /explore, or /learn/explore inside the app.
+export function CourseView({ data, exploreBase = "/explore" }: { data: CourseData; exploreBase?: string }) {
   const { course, instructor, modules, stats, reviews, enrolled, saved, signedIn, accessEnded, accessEndsAt } = data;
   const publicPath = `/courses/${course.slug}`;
   const free = course.priceMinor === 0;
@@ -76,13 +77,13 @@ export function CourseView({ data }: { data: CourseData }) {
         <div className="et-ud-grid">
           <div className="et-ud-hero-text">
             <nav className="et-ud-crumb" aria-label="Breadcrumb">
-              <Link href="/explore">Explore</Link>
+              <Link href={exploreBase}>Explore</Link>
               <ChevronRight size={14} />
-              <Link href="/explore?type=course">Courses</Link>
+              <Link href={`${exploreBase}?type=course`}>Courses</Link>
               {course.category && (
                 <>
                   <ChevronRight size={14} />
-                  <Link href={`/explore?type=course&q=${encodeURIComponent(course.category)}`}>{course.category}</Link>
+                  <Link href={`${exploreBase}?type=course&q=${encodeURIComponent(course.category)}`}>{course.category}</Link>
                 </>
               )}
             </nav>

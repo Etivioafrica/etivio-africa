@@ -94,7 +94,7 @@ export function ExploreResults({ items, s, base, controls }: { items: ExploreIte
         {shown.length ? (
           <div className="et-mk-grid">
             {shown.map((i) => (
-              <MarketCard key={`${i.type}-${i.id}`} item={i} />
+              <MarketCard key={`${i.type}-${i.id}`} item={i} inApp={base.startsWith("/learn/")} />
             ))}
           </div>
         ) : (

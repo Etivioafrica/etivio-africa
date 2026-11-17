@@ -23,12 +23,13 @@ function countLabel(i: ExploreItem) {
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 // One marketplace tile: a coloured panel (date, creator, title, tags), then price and a Details button.
-export function MarketCard({ item }: { item: ExploreItem }) {
+// `inApp`: a course opens its in-app page (/learn/browse) so a signed-in learner keeps the app shell, instead of the public page.
+export function MarketCard({ item, inApp = false }: { item: ExploreItem; inApp?: boolean }) {
   const Icon = ICONS[item.type];
   const tags = [ITEM_TYPES[item.type].label, item.level && item.level.charAt(0).toUpperCase() + item.level.slice(1), countLabel(item), item.category].filter(Boolean) as string[];
   return (
     <article className="et-mk-card">
-      <Link href={itemHref(item.type, item.slug)} className="et-mk-link" aria-label={item.title} />
+      <Link href={inApp && item.type === "course" ? `/learn/browse/${item.slug}` : itemHref(item.type, item.slug)} className="et-mk-link" aria-label={item.title} />
       <div className="et-mk-panel" style={{ background: panel(item.title) }}>
         <div className="et-mk-top">
           <span className="et-mk-date">{item.featured ? "Featured" : item.publishedAt ? day(item.publishedAt) : "New"}</span>
