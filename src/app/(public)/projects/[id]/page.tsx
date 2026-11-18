@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProject, submissionsFor, LEVELS } from "@/lib/data/projects";
 import { formatDate } from "@/lib/format";
+import { sanitizeRichText } from "@/lib/sanitize";
 import { SubmitForm } from "./SubmitForm";
 
 type Props = { params: Promise<{ id: string }> };
@@ -48,7 +49,7 @@ async function ProjectView({ params }: Props) {
             Part of the course {project.courseTitle}
           </p>
         )}
-        <div className="et-prose" style={{ marginTop: 20 }} dangerouslySetInnerHTML={{ __html: project.brief }} />
+        <div className="et-prose" style={{ marginTop: 20 }} dangerouslySetInnerHTML={{ __html: sanitizeRichText(project.brief) }} />
       </section>
 
       <section className="et-card" style={{ marginTop: 20 }}>
