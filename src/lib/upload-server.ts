@@ -8,7 +8,8 @@ import { checkImage, giveStrike } from "@/lib/moderation";
 
 // Who may upload what, shared by /api/upload/sign and /api/upload/finish. Returns the user, or a response to send.
 export async function uploader(kind: string): Promise<{ userId: string; kind: UploadKind } | { response: NextResponse }> {
-  if (!(kind in UPLOAD_KINDS)) return { response: NextResponse.json({ error: "Unknown upload type." }, { status: 400 }) };
+  // hasOwn, not `in`: `in` also matches inherited keys like "constructor" and "__proto__".
+  if (!Object.hasOwn(UPLOAD_KINDS, kind)) return { response: NextResponse.json({ error: "Unknown upload type." }, { status: 400 }) };
   const supabase = await createClient();
   const {
     data: { user },

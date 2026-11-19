@@ -126,6 +126,12 @@ export function checkName(kind: keyof typeof KIND_FAMILIES, fileName: string): s
 
 export type Verdict ={ ok: true; family: Family; type: string; ext: string } | { ok: false; error: string };
 
+// Extension to use when the name has none: for images, the one matching the real type (a PNG is .png, not the family's first entry, .jpg).
+const extFor = (found: Sniffed, realExts: string[]) => {
+  const sub = found.type.split("/")[1]?.replace("jpeg", "jpg");
+  return found.family === "image" && sub && realExts.includes(sub) ? sub : realExts[0];
+};
+
 // The whole check for one upload: name, then content, then whether this kind accepts it.
 export function checkUpload(kind: keyof typeof KIND_FAMILIES, fileName: string, head: Uint8Array): Verdict {
   const ext = extOf(fileName);
@@ -141,5 +147,5 @@ export function checkUpload(kind: keyof typeof KIND_FAMILIES, fileName: string, 
   // The extension has to match what's inside (no PDF named .jpg); fix it up to the real one if it's missing.
   const realExts = EXTENSIONS[found.family];
   if (ext && !realExts.includes(ext)) return { ok: false, error: `This file is named .${ext} but it's really ${DESCRIBE[found.family]}. Rename it and try again.` };
-  return { ok: true, family: found.family, type: found.type, ext: ext || realExts[0] };
+  return { ok: true, family: found.family, type: found.type, ext: ext || extFor(found, realExts) };
 }
