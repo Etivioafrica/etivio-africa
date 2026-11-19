@@ -92,6 +92,10 @@ export function CreateCommunityForm({ courses, canOfficial }: { courses: { id: s
             </label>
             <textarea id="cm-desc" name="description" rows={4} maxLength={DESC_MAX} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Who it's for and what people do here." />
           </div>
+          <div className="et-field">
+            <label htmlFor="cm-rules">Rules (optional)</label>
+            <textarea id="cm-rules" name="rules" rows={3} maxLength={2000} placeholder="e.g. Be kind. No spam. Keep questions on topic." />
+          </div>
         </section>
 
         <section className="et-card et-cmn-sec">
