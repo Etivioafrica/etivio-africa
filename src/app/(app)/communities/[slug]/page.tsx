@@ -5,14 +5,14 @@ import { ArrowLeft, BadgeCheck, Check, Users, X } from "lucide-react";
 import { Avatar } from "@/components/dash/Avatar";
 import { CopyLink } from "@/components/dash/CopyLink";
 import { getCurrentUser } from "@/lib/auth";
-import { JOIN_LABEL, communityFeed, getCommunity, pendingRequests } from "@/lib/data/communities";
+import { CATEGORIES, JOIN_LABEL, communityFeed, communityMembers, getCommunity, isCategory, pendingRequests } from "@/lib/data/communities";
 import { decideRequest, leaveCommunity } from "../actions";
-import { Composer, JoinBox, PostCard } from "./CommunityClient";
+import { Composer, Feed, JoinBox, RulesEditor } from "./CommunityClient";
 import { ReportButton } from "@/components/moderation/ReportButton";
 
 export const metadata = { title: "Community" };
 
-type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ invite?: string }> };
+type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ invite?: string; type?: string }> };
 
 export default function CommunityPage({ params, searchParams }: Props) {
   return (
@@ -25,12 +25,21 @@ export default function CommunityPage({ params, searchParams }: Props) {
 }
 
 async function Community({ params, searchParams }: Props) {
-  const [{ slug }, { invite }, user] = await Promise.all([params, searchParams, getCurrentUser()]);
+  const [{ slug }, { invite, type }, user] = await Promise.all([params, searchParams, getCurrentUser()]);
   const c = await getCommunity(slug, user.id, user.roles);
   if (!c) notFound();
   // Invite-only spaces stay hidden from people without the link.
   if (c.joinMode === "invite" && !c.isMember && invite !== c.invite_code) notFound();
-  const [feed, requests] = await Promise.all([c.isMember ? communityFeed(c.id, user.id, c.canModerate) : Promise.resolve([]), c.canModerate ? pendingRequests(c.id) : Promise.resolve([])]);
+  const category = isCategory(type) ? type : undefined;
+  const isOwner = c.mine?.role === "owner" || user.roles.includes("super_admin");
+  const [feed, requests, members] = await Promise.all([
+    c.isMember ? communityFeed(c.id, user.id, c.canModerate, { category }) : Promise.resolve({ posts: [], hasMore: false }),
+    c.canModerate ? pendingRequests(c.id) : Promise.resolve([]),
+    c.isMember ? communityMembers(c.id, 60) : Promise.resolve([]),
+  ]);
+  const staffRoles = members.filter((m) => m.role !== "member");
+  const recent = members.filter((m) => m.role === "member").slice(0, 8);
+  const base = `/communities/${c.slug}`;
 
   return (
     <>
@@ -56,7 +65,17 @@ async function Community({ params, searchParams }: Props) {
           {c.isMember ? (
             <>
               <Composer slug={c.slug} />
-              {feed.length ? feed.map((p) => <PostCard key={p.id} post={p} canModerate={c.canModerate} viewerId={user.id} />) : <p className="et-muted et-cm-empty">No posts yet. Start the conversation.</p>}
+              <nav className="et-cm-chips" aria-label="Filter posts">
+                <Link href={base} className={`et-cm-chip${category ? "" : " is-on"}`} scroll={false}>
+                  All
+                </Link>
+                {CATEGORIES.map((k) => (
+                  <Link key={k.id} href={`${base}?type=${k.id}`} className={`et-cm-chip${category === k.id ? " is-on" : ""}`} scroll={false}>
+                    {k.label}
+                  </Link>
+                ))}
+              </nav>
+              <Feed key={`${category ?? "all"}:${feed.posts.map((p) => p.id).join(",")}`} initial={feed.posts} hasMore={feed.hasMore} slug={c.slug} category={category} canModerate={c.canModerate} viewerId={user.id} />
             </>
           ) : (
             <section className="et-card et-card-pad">
@@ -67,6 +86,41 @@ async function Community({ params, searchParams }: Props) {
         </div>
 
         <aside className="et-cm-side">
+          {c.isMember && (
+            <section className="et-card et-card-pad">
+              <b className="et-cm-side-title">About</b>
+              {c.description && <p className="et-cm-about">{c.description}</p>}
+              <small className="et-muted">Started {new Date(c.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</small>
+              <b className="et-cm-side-title et-cm-rules-title">Rules</b>
+              {c.rules ? <p className="et-cm-about et-cm-rules">{c.rules}</p> : <p className="et-muted" style={{ fontSize: 13, margin: "4px 0 0" }}>No rules set yet.</p>}
+              {isOwner && (
+                <div style={{ marginTop: 10 }}>
+                  <RulesEditor slug={c.slug} rules={c.rules} />
+                </div>
+              )}
+            </section>
+          )}
+          {c.isMember && members.length > 0 && (
+            <section className="et-card">
+              <div className="et-card-head">
+                <h2>Members ({c.members.toLocaleString()})</h2>
+                <Link href={`${base}/members`} className="et-link">
+                  See all
+                </Link>
+              </div>
+              <ul className="et-cm-requests">
+                {[...staffRoles, ...recent].map((m) => (
+                  <li key={m.userId}>
+                    <Avatar src={m.avatar} initial={m.name.charAt(0).toUpperCase()} seed={m.name} className="et-cm-face" />
+                    <span>
+                      <b>{m.name}</b>
+                      {m.role !== "member" && <small>{m.role === "owner" ? "Owner" : "Moderator"}</small>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {c.canModerate && requests.length > 0 && (
             <section className="et-card">
               <div className="et-card-head">

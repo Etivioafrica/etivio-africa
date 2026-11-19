@@ -1,21 +1,12 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isStaff, type AppRole } from "@/lib/roles";
+import { FEED_PAGE, isCategory, type Category, type CommunityCard, type FeedPost, type JoinMode, type MemberRow, type Membership } from "./communities-shared";
+
+export * from "./communities-shared";
 
 // Communities (migration 0047). Everything is read with the service role after checking who's asking, so the rules
 // live here: members see posts, owners and moderators (and Etivio staff) run the community.
-
-export type JoinMode = "open" | "request" | "course" | "invite";
-export type Membership = { role: "owner" | "moderator" | "member"; status: "active" | "pending" | "banned" } | null;
-
-export const JOIN_LABEL: Record<JoinMode, string> = {
-  open: "Anyone can join",
-  request: "Request to join",
-  course: "For students of a course",
-  invite: "Invite only",
-};
-
-export type CommunityCard = { id: string; slug: string; name: string; description: string | null; coverUrl: string | null; joinMode: JoinMode; isOfficial: boolean; members: number; courseTitle: string | null; mine: Membership };
 
 // Communities this person is in, and ones they could join (invite-only spaces stay hidden unless they're in them).
 export async function listCommunities(userId: string) {
@@ -56,7 +47,7 @@ export async function getCommunity(slug: string, userId: string, roles: AppRole[
   const db = createAdminClient();
   const { data: c } = await db
     .from("communities")
-    .select("id, slug, name, description, cover_url, owner_id, join_mode, course_id, join_question, invite_code, is_official, status, course:courses(title, slug)")
+    .select("id, slug, name, description, cover_url, owner_id, join_mode, course_id, join_question, invite_code, is_official, status, rules, created_at, course:courses(title, slug)")
     .eq("slug", slug)
     .maybeSingle();
   if (!c || (c.status !== "active" && !isStaff(roles))) return null;
@@ -69,33 +60,59 @@ export async function getCommunity(slug: string, userId: string, roles: AppRole[
   return { ...c, joinMode: c.join_mode as JoinMode, mine, canModerate, isMember: mine?.status === "active" || isStaff(roles), members: members ?? 0 };
 }
 
-export type FeedPost = { id: string; body: string; pinned: boolean; hidden: boolean; createdAt: string; comments: number; likes: number; liked: boolean; author: { id: string | null; name: string; avatar: string | null } };
-
-// Posts held for a moderation check show only to whoever wrote them and to moderators (`seeHidden`).
-export async function communityFeed(communityId: string, userId: string, seeHidden = false, limit = 50): Promise<FeedPost[]> {
+// One page of the feed. The first page (no `before`) lists pinned posts first; later pages continue with older, unpinned
+// posts. Posts held for a moderation check show only to whoever wrote them and to moderators (`seeHidden`).
+export async function communityFeed(
+  communityId: string,
+  userId: string,
+  seeHidden = false,
+  { before, category, limit = FEED_PAGE }: { before?: string; category?: Category; limit?: number } = {},
+): Promise<{ posts: FeedPost[]; hasMore: boolean }> {
   const db = createAdminClient();
-  const { data: posts } = await db
+  let q = db
     .from("community_posts")
-    .select("id, body, pinned, hidden, created_at, comment_count, like_count, author_id, author:profiles(full_name, avatar_url)")
-    .eq("community_id", communityId)
-    .order("pinned", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  const shown = (posts ?? []).filter((p) => !p.hidden || seeHidden || p.author_id === userId);
-  const ids = shown.map((p) => p.id);
+    .select("id, body, image_url, category, pinned, hidden, created_at, edited_at, comment_count, like_count, author_id, author:profiles(full_name, avatar_url)")
+    .eq("community_id", communityId);
+  if (!seeHidden) q = q.or(`hidden.eq.false,author_id.eq.${userId}`);
+  if (category) q = q.eq("category", category);
+  if (before) q = q.eq("pinned", false).lt("created_at", before);
+  const { data: rows } = await q.order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(limit + 1);
+  const posts = (rows ?? []).slice(0, limit);
+  const ids = posts.map((p) => p.id);
   const { data: liked } = ids.length ? await db.from("community_likes").select("post_id").eq("user_id", userId).in("post_id", ids) : { data: [] };
   const likedSet = new Set((liked ?? []).map((l) => l.post_id));
-  return shown.map((p) => ({
-    id: p.id,
-    body: p.body,
-    pinned: p.pinned,
-    hidden: p.hidden,
-    createdAt: p.created_at,
-    comments: p.comment_count,
-    likes: p.like_count,
-    liked: likedSet.has(p.id),
-    author: { id: p.author_id, name: p.author?.full_name || "Member", avatar: p.author?.avatar_url ?? null },
-  }));
+  return {
+    hasMore: (rows ?? []).length > limit,
+    posts: posts.map((p) => ({
+      id: p.id,
+      body: p.body,
+      image: p.image_url,
+      category: isCategory(p.category) ? p.category : "discussion",
+      pinned: p.pinned,
+      hidden: p.hidden,
+      createdAt: p.created_at,
+      editedAt: p.edited_at,
+      comments: p.comment_count,
+      likes: p.like_count,
+      liked: likedSet.has(p.id),
+      author: { id: p.author_id, name: p.author?.full_name || "Member", avatar: p.author?.avatar_url ?? null },
+    })),
+  };
+}
+
+// Everyone in the community, owner and moderators first (capped; communities are small).
+export async function communityMembers(communityId: string, limit = 300): Promise<MemberRow[]> {
+  const { data } = await createAdminClient()
+    .from("community_members")
+    .select("user_id, role, joined_at, profile:profiles(full_name, avatar_url)")
+    .eq("community_id", communityId)
+    .eq("status", "active")
+    .order("joined_at")
+    .limit(limit);
+  const rank = { owner: 0, moderator: 1, member: 2 } as const;
+  return (data ?? [])
+    .map((m) => ({ userId: m.user_id, name: m.profile?.full_name || "Member", avatar: m.profile?.avatar_url ?? null, role: m.role as MemberRow["role"], joinedAt: m.joined_at }))
+    .sort((x, y) => rank[x.role] - rank[y.role]);
 }
 
 export async function pendingRequests(communityId: string) {

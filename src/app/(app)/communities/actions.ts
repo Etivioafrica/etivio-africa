@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { featureOn } from "@/lib/data/features";
-import { canCreateCommunity, getCommunity, type JoinMode } from "@/lib/data/communities";
+import { FEED_PAGE, canCreateCommunity, communityFeed, getCommunity, isCategory, type Category, type JoinMode } from "@/lib/data/communities";
 import { slugify } from "@/lib/format";
 import { moderate } from "@/lib/moderation";
 import { keyFromUrl } from "@/lib/r2";
@@ -67,7 +67,12 @@ export async function createPost(_prev: Result | null, fd: FormData): Promise<Re
   if (body.length < 2) return { error: "Write something first." };
   const mod = await moderate("community_post", user.id, [body], `/communities/${c.slug}`);
   if (mod.error) return { error: mod.error };
-  const { data, error } = await createAdminClient().from("community_posts").insert({ community_id: c.id, author_id: user.id, body, hidden: mod.hold }).select("id").single();
+  // A picture must be one uploaded to our own storage; the category falls back to a plain discussion.
+  const picture = str(fd, "image_url", 500);
+  const image = keyFromUrl(picture) ? picture : null;
+  const rawCategory = str(fd, "category", 20);
+  const category: Category = isCategory(rawCategory) ? rawCategory : "discussion";
+  const { data, error } = await createAdminClient().from("community_posts").insert({ community_id: c.id, author_id: user.id, body, image_url: image, category, hidden: mod.hold }).select("id").single();
   if (error) return { error: "Couldn't post. Try again." };
   await mod.record(data?.id);
   refresh();
@@ -101,9 +106,9 @@ export async function addComment(postId: string, body: string): Promise<Result &
 export async function loadComments(postId: string) {
   const a = await postAccess(postId);
   if (!a || !a.c.isMember) return [];
-  const { data } = await a.db.from("community_comments").select("id, body, created_at, hidden, author_id, author:profiles(full_name)").eq("post_id", postId).order("created_at").limit(200);
+  const { data } = await a.db.from("community_comments").select("id, body, created_at, edited_at, hidden, author_id, author:profiles(full_name)").eq("post_id", postId).order("created_at").limit(200);
   // Held comments show only to whoever wrote them and to moderators.
-  return (data ?? []).filter((c) => !c.hidden || c.author_id === a.user.id || a.c.canModerate).map((c) => ({ id: c.id, body: c.body, createdAt: c.created_at, author: c.author?.full_name || "Member", mine: c.author_id === a.user.id }));
+  return (data ?? []).filter((c) => !c.hidden || c.author_id === a.user.id || a.c.canModerate).map((c) => ({ id: c.id, body: c.body, createdAt: c.created_at, editedAt: c.edited_at, author: c.author?.full_name || "Member", mine: c.author_id === a.user.id }));
 }
 
 export async function toggleLike(postId: string): Promise<{ liked?: boolean; error?: string }> {
@@ -129,6 +134,89 @@ export async function pinPost(fd: FormData) {
   refresh();
 }
 
+// Authors can fix their own post. The new text is checked again, and a post that gets held goes back to waiting.
+export async function editPost(postId: string, body: string): Promise<Result> {
+  const a = await postAccess(postId);
+  if (!a || a.post.author_id !== a.user.id) return { error: "You can only edit your own posts." };
+  const text = body.trim().slice(0, 5000);
+  if (text.length < 2) return { error: "Write something first." };
+  const mod = await moderate("community_post", a.user.id, [text], `/communities/${a.c.slug}`);
+  if (mod.error) return { error: mod.error };
+  const { error } = await a.db.from("community_posts").update({ body: text, edited_at: new Date().toISOString(), ...(mod.hold ? { hidden: true } : {}) }).eq("id", postId);
+  if (error) return { error: "Couldn't save. Try again." };
+  await mod.record(postId);
+  refresh();
+  return { ok: mod.hold ? "Saved. It shows to others once the team has checked it." : "Saved." };
+}
+
+export async function editComment(commentId: string, body: string): Promise<Result & { body?: string; editedAt?: string }> {
+  const user = await viewer();
+  const db = createAdminClient();
+  const { data: row } = await db.from("community_comments").select("id, author_id, post:community_posts(id)").eq("id", commentId).maybeSingle();
+  if (!row?.post || row.author_id !== user.id) return { error: "You can only edit your own comments." };
+  const a = await postAccess(row.post.id);
+  if (!a || !a.c.isMember) return { error: "Join the community first." };
+  const text = body.trim().slice(0, 2000);
+  if (!text) return { error: "Write a comment first." };
+  const mod = await moderate("community_comment", user.id, [text], `/communities/${a.c.slug}`);
+  if (mod.error) return { error: mod.error };
+  const editedAt = new Date().toISOString();
+  const { error } = await db.from("community_comments").update({ body: text, edited_at: editedAt, ...(mod.hold ? { hidden: true } : {}) }).eq("id", commentId);
+  if (error) return { error: "Couldn't save. Try again." };
+  await mod.record(commentId);
+  return { ok: "Saved.", body: text, editedAt };
+}
+
+// The next page of the feed, older than the last post the person has seen.
+export async function loadMorePosts(slug: string, before: string, category?: string) {
+  const user = await viewer();
+  const c = await getCommunity(slug.slice(0, 80), user.id, user.roles);
+  if (!c || !c.isMember || Number.isNaN(Date.parse(before))) return { posts: [], hasMore: false };
+  return communityFeed(c.id, user.id, c.canModerate, { before, category: isCategory(category) ? category : undefined, limit: FEED_PAGE });
+}
+
+// Owners (and Etivio staff) set the community's rules, shown to everyone in the sidebar.
+export async function updateRules(_prev: Result | null, fd: FormData): Promise<Result> {
+  const user = await viewer();
+  const c = await getCommunity(str(fd, "slug", 80), user.id, user.roles);
+  if (!c || !(c.mine?.role === "owner" || user.roles.includes("super_admin"))) return { error: "Only the owner can change the rules." };
+  const rules = str(fd, "rules", 2000);
+  if (rules) {
+    const mod = await moderate("community", user.id, [rules], `/communities/${c.slug}`);
+    if (mod.error) return { error: mod.error };
+  }
+  const { error } = await createAdminClient().from("communities").update({ rules: rules || null }).eq("id", c.id);
+  if (error) return { error: "Couldn't save. Try again." };
+  refresh();
+  return { ok: "Rules saved." };
+}
+
+// Moderators remove (ban) a member; only the owner can touch a moderator, and nobody can touch the owner.
+export async function removeMember(fd: FormData) {
+  const user = await viewer();
+  const c = await getCommunity(str(fd, "slug", 80), user.id, user.roles);
+  if (!c?.canModerate) return;
+  const target = str(fd, "user_id", 40);
+  if (target === user.id) return;
+  const db = createAdminClient();
+  const { data: row } = await db.from("community_members").select("role").eq("community_id", c.id).eq("user_id", target).maybeSingle();
+  if (!row || row.role === "owner") return;
+  const isOwner = c.mine?.role === "owner" || user.roles.includes("super_admin");
+  if (row.role === "moderator" && !isOwner) return;
+  await db.from("community_members").update({ status: "banned", role: "member" }).eq("community_id", c.id).eq("user_id", target);
+  refresh();
+}
+
+// The owner makes a member a moderator, or takes it back.
+export async function setModerator(fd: FormData) {
+  const user = await viewer();
+  const c = await getCommunity(str(fd, "slug", 80), user.id, user.roles);
+  if (!c || !(c.mine?.role === "owner" || user.roles.includes("super_admin"))) return;
+  const target = str(fd, "user_id", 40);
+  await createAdminClient().from("community_members").update({ role: fd.get("make") === "1" ? "moderator" : "member" }).eq("community_id", c.id).eq("user_id", target).eq("status", "active").neq("role", "owner");
+  refresh();
+}
+
 // Approve or turn down a join request.
 export async function decideRequest(fd: FormData) {
   const user = await viewer();
@@ -147,7 +235,7 @@ export async function createCommunity(_prev: Result | null, fd: FormData): Promi
   const db = createAdminClient();
   const name = str(fd, "name", 80);
   if (name.length < 3) return { error: "Give the community a name of at least 3 characters." };
-  const mod = await moderate("community", user.id, [name, str(fd, "description", 600), str(fd, "join_question", 200)]);
+  const mod = await moderate("community", user.id, [name, str(fd, "description", 600), str(fd, "join_question", 200), str(fd, "rules", 2000)]);
   if (mod.error) return { error: mod.error };
   const joinMode = (MODES.includes(str(fd, "join_mode", 10) as JoinMode) ? str(fd, "join_mode", 10) : "open") as JoinMode;
   const courseId = str(fd, "course_id", 40) || null;
@@ -177,6 +265,7 @@ export async function createCommunity(_prev: Result | null, fd: FormData): Promi
         join_mode: joinMode,
         course_id: joinMode === "course" ? courseId : null,
         join_question: joinMode === "request" ? str(fd, "join_question", 200) || null : null,
+        rules: str(fd, "rules", 2000) || null,
         is_official: user.roles.includes("super_admin") && fd.get("official") === "on",
       })
       .select("id")

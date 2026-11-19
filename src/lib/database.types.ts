@@ -1227,6 +1227,7 @@ export type Database = {
           join_question: string | null
           name: string
           owner_id: string | null
+          rules: string | null
           slug: string
           status: string
         }
@@ -1242,6 +1243,7 @@ export type Database = {
           join_question?: string | null
           name: string
           owner_id?: string | null
+          rules?: string | null
           slug: string
           status?: string
         }
@@ -1257,6 +1259,7 @@ export type Database = {
           join_question?: string | null
           name?: string
           owner_id?: string | null
+          rules?: string | null
           slug?: string
           status?: string
         }
@@ -1282,6 +1285,7 @@ export type Database = {
           author_id: string | null
           body: string
           created_at: string
+          edited_at: string | null
           hidden: boolean
           id: string
           post_id: string
@@ -1290,6 +1294,7 @@ export type Database = {
           author_id?: string | null
           body: string
           created_at?: string
+          edited_at?: string | null
           hidden?: boolean
           id?: string
           post_id: string
@@ -1298,6 +1303,7 @@ export type Database = {
           author_id?: string | null
           body?: string
           created_at?: string
+          edited_at?: string | null
           hidden?: boolean
           id?: string
           post_id?: string
@@ -1398,33 +1404,42 @@ export type Database = {
         Row: {
           author_id: string | null
           body: string
+          category: string
           comment_count: number
           community_id: string
           created_at: string
+          edited_at: string | null
           hidden: boolean
           id: string
+          image_url: string | null
           like_count: number
           pinned: boolean
         }
         Insert: {
           author_id?: string | null
           body: string
+          category?: string
           comment_count?: number
           community_id: string
           created_at?: string
+          edited_at?: string | null
           hidden?: boolean
           id?: string
+          image_url?: string | null
           like_count?: number
           pinned?: boolean
         }
         Update: {
           author_id?: string | null
           body?: string
+          category?: string
           comment_count?: number
           community_id?: string
           created_at?: string
+          edited_at?: string | null
           hidden?: boolean
           id?: string
+          image_url?: string | null
           like_count?: number
           pinned?: boolean
         }
