@@ -41,7 +41,12 @@ export async function POST(request: NextRequest) {
   if (process.env.NODE_ENV !== "production") return new NextResponse(null, { status: 204 });
   const ua = request.headers.get("user-agent") ?? "";
   const origin = request.headers.get("origin");
-  if (!ua || BOTS.test(ua) || (origin && new URL(origin).host !== request.nextUrl.host)) return new NextResponse(null, { status: 204 });
+  // Browsers always send Origin on this POST. A missing, "null" or foreign one is a script or another site, not a visit.
+  let sameSite = false;
+  try {
+    sameSite = !!origin && new URL(origin).host === request.nextUrl.host;
+  } catch {}
+  if (!ua || BOTS.test(ua) || !sameSite) return new NextResponse(null, { status: 204 });
 
   let body: { path?: unknown; referrer?: unknown; search?: unknown };
   try {

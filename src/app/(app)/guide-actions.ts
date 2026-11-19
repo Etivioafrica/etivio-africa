@@ -17,7 +17,7 @@ export async function updateGuide(patch: { tour?: "done"; checklistHidden?: bool
   const state: GuideState = { ...readGuide(data?.guide_state) };
   if (patch.tour === "done") state.tour = new Date().toISOString();
   if (typeof patch.checklistHidden === "boolean") state.checklist_hidden = patch.checklistHidden;
-  if (patch.tip && patch.tip in PAGE_TIPS) state.tips = [...new Set([...(state.tips ?? []), patch.tip])];
+  if (patch.tip && Object.hasOwn(PAGE_TIPS, patch.tip)) state.tips = [...new Set([...(state.tips ?? []), patch.tip])];
   await db.from("profiles").update({ guide_state: state }).eq("id", user.id);
   // Ticks "Take the tour" on the dashboard checklist and lets page tips start showing.
   if (patch.tour) refresh();
